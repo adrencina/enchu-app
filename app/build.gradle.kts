@@ -2,13 +2,13 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.gms.google-services")
-    id("kotlin-kapt") // Kapt para Hilt
-    alias(libs.plugins.hilt) // Plugin de Hilt
+    id("kotlin-kapt")
+    alias(libs.plugins.hilt)
 }
 
 android {
     namespace = "com.adrencina.enchu"
-    compileSdk = 34 // Usamos la SDK 34, que es la última versión estable actual.
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.adrencina.enchu"
@@ -18,6 +18,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
@@ -30,17 +33,20 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        // Se recomienda usar Java 17 para las versiones recientes de Android Gradle Plugin
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+    // El bloque kotlinOptions va aquí, al mismo nivel que compileOptions, no dentro.
+    // Este era el causante principal de tu error de compilación.
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1" // Versión estable para compatibilidad
+        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
     packaging {
         resources {
@@ -50,6 +56,7 @@ android {
 }
 
 dependencies {
+
     // Core de Android y Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -60,14 +67,12 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Firebase BOM (Bill of Materials) - Gestiona las versiones de las librerías de Firebase
+    // Firebase BOM (Bill of Materials) - Gestiona las versiones
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    // Servicios de Firebase que necesitamos
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
-    // Cliente de Google Auth (para el login)
     implementation(libs.google.services.auth)
 
 
