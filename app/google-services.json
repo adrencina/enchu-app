@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "103026774261",
+    "project_id": "enchu-d210a",
+    "storage_bucket": "enchu-d210a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:103026774261:android:6aded652c9d2d1321a35bc",
+        "android_client_info": {
+          "package_name": "com.adrencina.enchu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANoCb8bVcwHjZEvv_uHu6nJIxRnbJ6dXU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

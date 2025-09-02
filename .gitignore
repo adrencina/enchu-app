@@ -1,0 +1,94 @@
+--- Información Sensible y Variables de Entorno ---
+Nunca subir archivos con contraseñas, API keys, tokens o secretos.
+.env
+.env.*
+!.env.example
+!.env.sample
+
+Archivos de configuración local que pueden contener datos sensibles.
+config/local.js
+settings/local.py
+local_settings.py
+*.pem
+*.key
+
+Credenciales de servicios en la nube
+.aws/
+.gcloud/
+*.p12
+*.cer
+
+--- Dependencias de Proyectos ---
+Estas se instalan con un gestor de paquetes (npm, yarn, pip, composer, etc.).
+node_modules/
+bower_components/
+vendor/
+venv/
+env/
+jspm_packages/
+
+--- Archivos de Build y Distribución ---
+Código compilado o empaquetado que se genera automáticamente.
+build/
+dist/
+.out/
+target/
+*.o
+*.a
+*.so
+
+--- Logs y Bases de Datos Locales ---
+Archivos de registro y bases de datos que no deben estar en el repositorio.
+.log
+logs/
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+--- Archivos de IDEs y Editores de Código ---
+Configuraciones personales del entorno de desarrollo de cada programador.
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+nbproject/
+*.swp
+*~
+
+--- Archivos del Sistema Operativo ---
+Archivos autogenerados por Windows, macOS o Linux.
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+--- Archivos específicos de lenguajes o frameworks ---
+Python
+pycache/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+
+Java
+*.class
+*.jar
+*.war
+*.ear
+
+SASS/LESS Cache
+.sass-cache/
+.less-cache/
+
+--- Contenido subido por el usuario (en desarrollo) ---
+Si tu app permite subir archivos, es bueno ignorar el directorio local.
+uploads/
+media/
+tmp/
+temp/
+.cache/
