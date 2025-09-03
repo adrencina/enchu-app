@@ -1,14 +1,14 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.google.gms.google-services")
-    alias(libs.plugins.kotlin.kapt) // Kapt para Hilt
-    alias(libs.plugins.hilt) // Plugin de Hilt
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt)
 }
 
 android {
     namespace = "com.adrencina.enchu"
-    compileSdk = 34 // Usamos la SDK 34, que es la última versión estable actual.
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.adrencina.enchu"
@@ -33,12 +33,9 @@ android {
         }
     }
     compileOptions {
-        // RECOMENDADO: AGP 8+ funciona mejor con Java 17
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // El bloque kotlinOptions va aquí, al mismo nivel que compileOptions, no dentro.
-    // Este era el causante principal de tu error de compilación.
     kotlinOptions {
         jvmTarget = "17"
     }
