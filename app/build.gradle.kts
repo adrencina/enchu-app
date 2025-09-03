@@ -18,6 +18,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
@@ -34,6 +37,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    // El bloque kotlinOptions va aquí, al mismo nivel que compileOptions, no dentro.
+    // Este era el causante principal de tu error de compilación.
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -51,6 +56,7 @@ android {
 }
 
 dependencies {
+
     // Core de Android y Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
