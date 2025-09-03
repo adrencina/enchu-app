@@ -1,13 +1,13 @@
 [versions]
 agp = "8.2.2" # Ajustado a una versión común y estable
-kotlin = "1.9.22" # Ajustado para compatibilidad
+kotlin = "1.9.23" # Ajustado para compatibilidad
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.3"
 activityCompose = "1.9.0"
-composeBom = "2024.06.00"
+composeBom = "2024.02.02"
 firebaseBom = "33.1.2"
 # AÑADIDO
 googleServicesAuth = "21.2.0"
@@ -50,3 +50,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 # kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" } # Este plugin no se declara aquí usualmente
 # AÑADIDO
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
