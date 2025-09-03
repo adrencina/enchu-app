@@ -1,5 +1,7 @@
 package com.adrencina.enchu.di
 
+import com.adrencina.enchu.data.repository.AuthRepository
+import com.adrencina.enchu.data.repository.AuthRepositoryImpl
 import com.adrencina.enchu.data.repository.ObraRepository
 import com.adrencina.enchu.data.repository.ObraRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
@@ -40,5 +42,11 @@ object AppModule {
         auth: FirebaseAuth
     ): ObraRepository {
         return ObraRepositoryImpl(firestore, auth)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
+        return AuthRepositoryImpl(auth)
     }
 }
