@@ -12,41 +12,33 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-/**
- * Este es un Módulo de Hilt. Es como un manual de instrucciones para Hilt.
- * Le dice cómo crear y proveer las dependencias que nuestra app necesita.
- * @Module: Le dice a Hilt que esta clase contiene instrucciones de provisión.
- * @InstallIn(SingletonComponent::class): Le dice que estas instrucciones son para
- * toda la vida de la aplicación.
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // Provee la instancia de FirebaseAuth
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 
-    // Provee la instancia de FirebaseFirestore
     @Provides
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    // Instrucción CLAVE: Cuando alguien en la app pida un "ObraRepository" (la interfaz),
-    // Hilt sabrá que debe crear y entregar una instancia de "ObraRepositoryImpl" (la implementación).
     @Provides
     @Singleton
-    fun provideObraRepository(
-        firestore: FirebaseFirestore,
-        auth: FirebaseAuth
-    ): ObraRepository {
-        return ObraRepositoryImpl(firestore, auth)
+    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
+        // CORRECCIÓN: Ahora solo le pasamos 'auth', que es lo que el constructor de AuthRepositoryImpl espera.
+        return AuthRepositoryImpl(auth)
     }
 
     @Provides
     @Singleton
-    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
-        return AuthRepositoryImpl(auth)
+    fun provideObraRepository(
+        auth: FirebaseAuth,
+        firestore: FirebaseFirestore
+    ): ObraRepository {
+        // CORRECCIÓN: Invertimos el orden de los argumentos para que coincida
+        // con el constructor de ObraRepositoryImpl.
+        return ObraRepositoryImpl(auth, firestore)
     }
 }

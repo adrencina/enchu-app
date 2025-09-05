@@ -1,11 +1,12 @@
 package com.adrencina.enchu.ui.screens.login
 
+import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,16 +15,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
+import com.adrencina.enchu.core.resources.AppImages
+import com.adrencina.enchu.core.resources.AppStrings
+import com.adrencina.enchu.ui.components.AppGoogleSignInButton
+import com.adrencina.enchu.ui.theme.Dimens
+import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
+/**
+ * Composable de pantalla: maneja la lógica, el estado y la interacción con el ViewModel.
+ */
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
@@ -31,8 +45,6 @@ fun LoginScreen(
 ) {
     val signInState by viewModel.signInState.collectAsState()
     val context = LocalContext.current
-
-    // CORRECCIÓN 1: Obtenemos el recurso de string acá afuera.
     val webClientId = stringResource(id = R.string.default_web_client_id)
 
     val launcher = rememberLauncherForActivityResult(
@@ -41,13 +53,21 @@ fun LoginScreen(
             try {
                 val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
                 val account = task.getResult(ApiException::class.java)
-                val idToken = account.idToken
-                viewModel.onSignInResult(idToken)
+                viewModel.onSignInResult(account.idToken)
             } catch (e: ApiException) {
                 viewModel.onSignInResult(null)
             }
         }
     )
+
+    fun onGoogleSignInClick() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        launcher.launch(googleSignInClient.signInIntent)
+    }
 
     LaunchedEffect(key1 = signInState.isSignInSuccessful) {
         if (signInState.isSignInSuccessful) {
@@ -55,46 +75,83 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    LoginScreenContent(
+        error = signInState.signInError,
+        onSignInClick = ::onGoogleSignInClick
+    )
+}
+
+/**
+ * Composable de presentación: solo muestra la UI basada en los parámetros recibidos.
+ */
+@Composable
+fun LoginScreenContent(
+    modifier: Modifier = Modifier,
+    error: String?,
+    onSignInClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = "Logo de Enchu",
-            modifier = Modifier.size(150.dp)
-        )
-        Text(
-            text = "Enchu",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Gestioná tus obras de forma profesional",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(32.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Dimens.SpacingLarge)
+                .testTag("login_screen_content"),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = AppImages.Logo),
+                contentDescription = AppStrings.splashLogoDescription,
+                modifier = Modifier
+                    .size(Dimens.LoginLogoSize)
+                    .semantics { contentDescription = AppStrings.splashLogoDescription }
+            )
 
-        Button(onClick = {
-            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                // CORRECCIÓN 1 (parte 2): Usamos la variable local.
-                .requestIdToken(webClientId)
-                .requestEmail()
-                .build()
-            val googleSignInClient = GoogleSignIn.getClient(context, gso)
-            launcher.launch(googleSignInClient.signInIntent)
-        }) {
-            Text(text = "Ingresar con Google")
+            Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
+
+            Text(
+                text = AppStrings.appName,
+                style = MaterialTheme.typography.displaySmall, // De tu Typography.kt
+                color = MaterialTheme.colorScheme.primary // De tu Color.kt
+            )
+
+            Spacer(modifier = Modifier.height(Dimens.SpacingExtraLarge))
+
+            AppGoogleSignInButton(onClick = onSignInClick)
+
+            Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
+
+            if (error != null) {
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
+// Preview con parámetros para ver diferentes estados de la UI
+class LoginScreenPreviewParameterProvider : PreviewParameterProvider<String?> {
+    override val values = sequenceOf(
+        null, // Sin error
+        "No se pudo obtener el token de Google." // Con error
+    )
+}
 
-        // CORRECCIÓN 2: Usamos una variable local para el error.
-        val error = signInState.signInError
-        if (error != null) {
-            Text(text = error, color = MaterialTheme.colorScheme.error)
-        }
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Preview(name = "Compact Screen", widthDp = 320, heightDp = 640)
+@Composable
+private fun LoginScreenContentPreview(
+    @PreviewParameter(LoginScreenPreviewParameterProvider::class) error: String?
+) {
+    EnchuTheme {
+        LoginScreenContent(error = error, onSignInClick = {})
     }
 }
