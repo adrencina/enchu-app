@@ -4,9 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.adrencina.enchu.ui.screens.addobra.AddObraScreen
 import com.adrencina.enchu.ui.screens.home.HomeScreen
 import com.adrencina.enchu.ui.screens.login.LoginScreen
-import com.adrencina.enchu.ui.screens.splash.SplashScreen // <-- IMPORTAR SPLASH
+import com.adrencina.enchu.ui.screens.splash.SplashScreen
 
 @Composable
 fun AppNavigation() {
@@ -14,7 +15,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SPLASH_SCREEN // <-- CAMBIAR LA RUTA INICIAL
+        startDestination = Routes.SPLASH_SCREEN
     ) {
         composable(Routes.SPLASH_SCREEN) {
             SplashScreen(
@@ -41,8 +42,31 @@ fun AppNavigation() {
             )
         }
 
-        composable(Routes.HOME_SCREEN) {
-            HomeScreen()
+        composable(Routes.HOME_SCREEN) { backStackEntry ->
+            val newObraResult = backStackEntry.savedStateHandle.get<String>("new_obra_result")
+
+            HomeScreen(
+                newObraResult = newObraResult,
+                onClearNewObraResult = {
+                    backStackEntry.savedStateHandle.remove<String>("new_obra_result")
+                },
+                onAddObraClick = { navController.navigate(Routes.ADD_OBRA_SCREEN) },
+                onObraClick = { obraId ->
+                    navController.navigate(Routes.createObraDetailRoute(obraId))
+                }
+            )
+        }
+
+        composable(Routes.ADD_OBRA_SCREEN) {
+            AddObraScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateBackWithResult = { clientName ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("new_obra_result", clientName)
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

@@ -43,9 +43,9 @@ fun AppGoogleSignInButton(
             Icon(
                 painter = painterResource(id = AppIcons.GoogleLogo),
                 contentDescription = null, // El botón ya tiene descripción
-                modifier = Modifier.size(Dimens.GoogleButtonIconSize)
+                modifier = Modifier.size(Dimens.PaddingLarge)
             )
-            Spacer(modifier = Modifier.width(Dimens.SpacingSmall))
+            Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
             Text(
                 text = text,
                 style = MaterialTheme.typography.titleMedium
@@ -59,7 +59,7 @@ fun AppGoogleSignInButton(
 @Composable
 private fun AppGoogleSignInButtonPreview() {
     EnchuTheme {
-        Surface(modifier = Modifier.padding(Dimens.SpacingMedium)) {
+        Surface(modifier = Modifier.padding(Dimens.PaddingMedium)) {
             AppGoogleSignInButton(onClick = {})
         }
     }

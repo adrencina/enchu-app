@@ -1,121 +1,213 @@
 package com.adrencina.enchu.ui.screens.home
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.adrencina.enchu.R
+import com.adrencina.enchu.core.resources.AppIcons
+import com.adrencina.enchu.core.resources.AppStrings
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.ui.components.ObraCard
+import com.adrencina.enchu.ui.theme.Dimens
+import com.adrencina.enchu.ui.theme.EnchuTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    // A futuro, necesitaremos navegar. Añadimos los callbacks.
-    // onObraClick: (String) -> Unit,
-    // onAddObraClick: () -> Unit
+    newObraResult: String?,
+    onClearNewObraResult: () -> Unit,
+    onAddObraClick: () -> Unit,
+    onObraClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mis Obras") },
-                // Aquí irían los íconos de búsqueda y menú a futuro
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { /* onAddObraClick() */ }) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir Obra")
-            }
+    LaunchedEffect(newObraResult) {
+        if (newObraResult != null) {
+            viewModel.onNewObraCreated(newObraResult)
+            onClearNewObraResult()
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            when (val state = uiState) {
-                is HomeUiState.Loading -> {
-                    CircularProgressIndicator()
-                }
-                is HomeUiState.Success -> {
-                    if (state.obras.isEmpty()) {
-                        EmptyState()
-                    } else {
-                        ObrasGrid(obras = state.obras, onObraClick = { /* onObraClick(it) */ })
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEffect.collect { effect ->
+            when (effect) {
+                is HomeUiEffect.ShowObraCreatedSnackbar -> {
+                    // Aquí asumimos que tienes un string con formato en strings.xml
+                    // Ejemplo: <string name="obra_created_success_format">Obra para %s creada con éxito.</string>
+                    val message = context.getString(R.string.obra_created_success_format, effect.clientName)
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message)
                     }
-                }
-                is HomeUiState.Error -> {
-                    Text(
-                        text = "Error al cargar las obras: ${state.message}",
-                        modifier = Modifier.padding(16.dp),
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
         }
     }
+
+    Scaffold(
+        topBar = { HomeTopAppBar() },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddObraClick,
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            ) {
+                Icon(
+                    imageVector = AppIcons.Add,
+                    contentDescription = AppStrings.addObra
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) } // <-- UBICACIÓN CORRECTA
+    ) { paddingValues ->
+        HomeScreenContent(
+            uiState = uiState,
+            onObraClick = onObraClick,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 }
 
 @Composable
-fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+private fun HomeScreenContent(
+    uiState: HomeUiState,
+    onObraClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        items(obras) { obra ->
-            ObraCard(obra = obra, onClick = { onObraClick(obra.id) })
+        when (uiState) {
+            is HomeUiState.Loading -> LoadingState()
+            is HomeUiState.Success -> {
+                if (uiState.obras.isEmpty()) {
+                    EmptyState()
+                } else {
+                    ObrasGrid(obras = uiState.obras, onObraClick = onObraClick)
+                }
+            }
+            is HomeUiState.Error -> ErrorState(message = uiState.message)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ObraCard(obra: Obra, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.aspectRatio(1f) // Para que sea cuadrada
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                // TODO: Necesitamos traer el nombre del cliente. Por ahora mostramos el ID.
-                Text(text = obra.clienteId, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(text = obra.nombreObra, style = MaterialTheme.typography.bodyMedium)
+private fun HomeTopAppBar() {
+    TopAppBar(
+        title = { Text(AppStrings.homeScreenTitle) },
+        actions = {
+            IconButton(onClick = { /* TODO: Implement search */ }) {
+                Icon(imageVector = AppIcons.Search, contentDescription = AppStrings.search)
             }
-            // TODO: A futuro, mostrar la fecha y el ícono
-            Text(text = "Fecha", style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.End))
+            IconButton(onClick = { /* TODO: Implement menu */ }) {
+                Icon(imageVector = AppIcons.MoreVert, contentDescription = AppStrings.moreOptions)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+        )
+    )
+}
+
+@Composable
+private fun LoadingState() {
+    CircularProgressIndicator(
+        modifier = Modifier.size(Dimens.ProgressIndicatorSize),
+        color = MaterialTheme.colorScheme.secondary // Color Accion
+    )
+}
+
+@Composable
+private fun EmptyState() {
+    Text(
+        text = AppStrings.emptyObrasMessage,
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(Dimens.PaddingLarge)
+    )
+}
+
+@Composable
+private fun ErrorState(message: String) {
+    Text(
+        text = String.format(AppStrings.errorLoadingObras, message),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.error,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(Dimens.PaddingLarge)
+    )
+}
+
+@Composable
+private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(Dimens.PaddingMedium),
+        verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
+    ) {
+        items(items = obras, key = { it.id }) { obra ->
+            ObraCard(obra = obra, onClick = { onObraClick(obra.id) })
         }
     }
 }
 
-
-@Composable
-fun EmptyState() {
-    Text(
-        text = "Aún no tenés obras creadas.\n¡Tocá el botón '+' para empezar!",
-        style = MaterialTheme.typography.bodyLarge,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(16.dp)
+// --- PREVIEWS ---
+class HomeUiStatePreviewProvider : PreviewParameterProvider<HomeUiState> {
+    private val sampleObras = listOf(
+        Obra("1", "Ampliación Casa", "Cliente A"),
+        Obra("2", "Pintura Depto", "Cliente B"),
+        Obra("3", "Instalación Eléctrica", "Cliente C"),
+        Obra("4", "Proyecto Quincho", "Cliente D"),
     )
+
+    override val values = sequenceOf(
+        HomeUiState.Loading,
+        HomeUiState.Success(emptyList()),
+        HomeUiState.Success(sampleObras),
+        HomeUiState.Error("No se pudo conectar al servidor.")
+    )
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Composable
+private fun HomeScreenPreview(
+    @PreviewParameter(HomeUiStatePreviewProvider::class) uiState: HomeUiState
+) {
+    EnchuTheme {
+        Scaffold(
+            topBar = { HomeTopAppBar() },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                ) { Icon(AppIcons.Add, AppStrings.addObra) }
+            }
+        ) { padding ->
+            HomeScreenContent(uiState = uiState, onObraClick = {}, modifier = Modifier.padding(padding))
+        }
+    }
 }

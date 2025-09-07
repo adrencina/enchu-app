@@ -97,7 +97,7 @@ fun LoginScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = Dimens.SpacingLarge)
+                .padding(horizontal = Dimens.PaddingLarge)
                 .testTag("login_screen_content"),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -110,7 +110,7 @@ fun LoginScreenContent(
                     .semantics { contentDescription = AppStrings.splashLogoDescription }
             )
 
-            Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
+            Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
 
             Text(
                 text = AppStrings.appName,
@@ -118,11 +118,11 @@ fun LoginScreenContent(
                 color = MaterialTheme.colorScheme.primary // De tu Color.kt
             )
 
-            Spacer(modifier = Modifier.height(Dimens.SpacingExtraLarge))
+            Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
 
             AppGoogleSignInButton(onClick = onSignInClick)
 
-            Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
+            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
 
             if (error != null) {
                 Text(

@@ -6,17 +6,15 @@ import androidx.compose.ui.unit.dp
  * Centraliza las dimensiones usadas en la UI para consistencia y escalabilidad.
  */
 object Dimens {
-    // Splash
+    // General Padding
+    val PaddingSmall = 8.dp
+    val PaddingMedium = 16.dp
+    val PaddingLarge = 24.dp
+
+    val PaddingExtraLarge = 32.dp
+
+    // Component-specific
     val SplashLogoSize = 150.dp
-    val ProgressIndicatorSize = 48.dp
-
-    // Login
     val LoginLogoSize = 130.dp
-    val GoogleButtonIconSize = 24.dp
-
-    // Spacing
-    val SpacingSmall = 8.dp
-    val SpacingMedium = 16.dp
-    val SpacingLarge = 32.dp
-    val SpacingExtraLarge = 64.dp
+    val ProgressIndicatorSize = 48.dp
 }

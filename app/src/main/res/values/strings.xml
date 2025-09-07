@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Enchu</string>
     <string name="default_web_client_id">103026774261-71nmup3s19f715t81q2sshvsborrutfo.apps.googleusercontent.com</string>
+    <string name="obra_created_success_format">Obra para %s creada con éxito.</string>
 </resources>

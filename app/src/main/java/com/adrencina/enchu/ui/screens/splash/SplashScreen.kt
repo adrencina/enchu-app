@@ -75,7 +75,7 @@ fun SplashScreenContent(modifier: Modifier = Modifier) {
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
 
-            Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
+            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
 
             CircularProgressIndicator(
                 modifier = Modifier
