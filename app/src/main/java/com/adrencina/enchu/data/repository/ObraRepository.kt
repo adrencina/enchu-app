@@ -16,6 +16,8 @@ interface ObraRepository {
      */
     fun getObras(): Flow<List<Obra>>
 
+    suspend fun saveObra(obra: Obra): Result<Unit>
+
     // A futuro, aquí añadiremos más funciones como:
     // fun getObraById(obraId: String): Flow<Obra>
     // suspend fun addObra(obra: Obra)

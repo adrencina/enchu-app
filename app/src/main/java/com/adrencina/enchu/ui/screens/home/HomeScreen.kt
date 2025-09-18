@@ -40,17 +40,22 @@ fun HomeScreen(
 
     LaunchedEffect(newObraResult) {
         if (newObraResult != null) {
+            // 1. Le decimos al ViewModel que muestre el Snackbar.
             viewModel.onNewObraCreated(newObraResult)
+
+            // 2. CAMBIO: Eliminamos la llamada a viewModel.loadObras(). ¡Ya no es necesaria!
+            // El listener de Firestore se encargará de la actualización automáticamente.
+
+            // 3. Limpiamos el resultado.
             onClearNewObraResult()
         }
     }
 
+    // Efecto para mostrar el Snackbar (sin cambios)
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
             when (effect) {
                 is HomeUiEffect.ShowObraCreatedSnackbar -> {
-                    // Aquí asumimos que tienes un string con formato en strings.xml
-                    // Ejemplo: <string name="obra_created_success_format">Obra para %s creada con éxito.</string>
                     val message = context.getString(R.string.obra_created_success_format, effect.clientName)
                     scope.launch {
                         snackbarHostState.showSnackbar(message)
@@ -74,7 +79,7 @@ fun HomeScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) } // <-- UBICACIÓN CORRECTA
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         HomeScreenContent(
             uiState = uiState,

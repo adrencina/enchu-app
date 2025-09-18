@@ -6,12 +6,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.core.resources.AppStrings
+import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.ui.components.AppClientSelector
 import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.ui.components.EstadoObraChips
 import com.adrencina.enchu.ui.theme.Dimens
@@ -44,7 +45,7 @@ fun AddObraScreen(
     AddObraScreenContent(
         uiState = uiState,
         onNombreChange = viewModel::onNombreChange,
-        onClienteChange = viewModel::onClienteChange,
+        onClienteSelected = viewModel::onClienteSelected,
         onDescripcionChange = viewModel::onDescripcionChange,
         onTelefonoChange = viewModel::onTelefonoChange,
         onDireccionChange = viewModel::onDireccionChange,
@@ -61,7 +62,7 @@ fun AddObraScreen(
 fun AddObraScreenContent(
     uiState: AddObraUiState,
     onNombreChange: (String) -> Unit,
-    onClienteChange: (String) -> Unit,
+    onClienteSelected: (Cliente) -> Unit,
     onDescripcionChange: (String) -> Unit,
     onTelefonoChange: (String) -> Unit,
     onDireccionChange: (String) -> Unit,
@@ -85,7 +86,11 @@ fun AddObraScreenContent(
                         onClick = onSaveClick,
                         enabled = uiState.isSaveEnabled
                     ) {
-                        Text(AppStrings.save)
+                        if (uiState.isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(Dimens.ProgressIndicatorSize / 2))
+                        } else {
+                            Text(AppStrings.save)
+                        }
                     }
                 }
             )
@@ -99,16 +104,60 @@ fun AddObraScreenContent(
             verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
         ) {
             item { Spacer(Modifier.height(Dimens.PaddingSmall)) }
-            item { AppTextField(value = uiState.nombreObra, onValueChange = onNombreChange, label = AppStrings.obraNameLabel, placeholder = AppStrings.obraNamePlaceholder) }
-            item { AppTextField(value = uiState.cliente, onValueChange = onClienteChange, label = AppStrings.clientLabel, placeholder = AppStrings.clientPlaceholder) }
-            item { AppTextField(value = uiState.descripcion, onValueChange = onDescripcionChange, label = AppStrings.descriptionLabel, placeholder = AppStrings.descriptionPlaceholder, singleLine = false) }
-            item { AppTextField(value = uiState.telefono, onValueChange = onTelefonoChange, label = AppStrings.phoneLabel, placeholder = AppStrings.phonePlaceholder, keyboardType = KeyboardType.Phone) }
-            item { AppTextField(value = uiState.direccion, onValueChange = onDireccionChange, label = AppStrings.addressLabel, placeholder = AppStrings.addressPlaceholder, imeAction = ImeAction.Done) }
             item {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)) {
-                    Text(AppStrings.obraStateLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppTextField(
+                    value = uiState.nombreObra,
+                    onValueChange = onNombreChange,
+                    label = AppStrings.obraNameLabel,
+                    placeholder = AppStrings.obraNamePlaceholder
+                )
+            }
+            item {
+                AppClientSelector(
+                    clientes = uiState.clientes,
+                    selectedCliente = uiState.clienteSeleccionado,
+                    onClienteSelected = onClienteSelected,
+                    label = AppStrings.clientLabel
+                )
+            }
+            item {
+                AppTextField(
+                    value = uiState.descripcion,
+                    onValueChange = onDescripcionChange,
+                    label = AppStrings.descriptionLabel,
+                    placeholder = AppStrings.descriptionPlaceholder,
+                    singleLine = false
+                )
+            }
+            item {
+                AppTextField(
+                    value = uiState.telefono,
+                    onValueChange = onTelefonoChange,
+                    label = AppStrings.phoneLabel,
+                    placeholder = AppStrings.phonePlaceholder,
+                    keyboardType = KeyboardType.Phone
+                )
+            }
+            item {
+                AppTextField(
+                    value = uiState.direccion,
+                    onValueChange = onDireccionChange,
+                    label = AppStrings.addressLabel,
+                    placeholder = AppStrings.addressPlaceholder
+                )
+            }
+            item {
+                Column {
+                    Text(
+                        text = AppStrings.obraStateLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(Modifier.height(Dimens.PaddingSmall))
-                    EstadoObraChips(selectedState = uiState.estado, onStateSelected = onEstadoChange)
+                    EstadoObraChips(
+                        selectedState = uiState.estado,
+                        onStateSelected = onEstadoChange
+                    )
                 }
             }
             item { Spacer(Modifier.height(Dimens.PaddingSmall)) }
@@ -150,10 +199,21 @@ private fun DiscardChangesDialog(
 private fun AddObraScreenContentPreview() {
     EnchuTheme {
         AddObraScreenContent(
-            uiState = AddObraUiState(nombreObra = "Instalación Eléctrica", cliente = "Inversiones Alpha"),
-            onNombreChange = {}, onClienteChange = {}, onDescripcionChange = {}, onTelefonoChange = {},
-            onDireccionChange = {}, onEstadoChange = {}, onSaveClick = {}, onBackPress = {},
-            onDismissDialog = {}, onConfirmDiscard = {}
+            uiState = AddObraUiState(
+                nombreObra = "Instalación Eléctrica",
+                clientes = listOf(Cliente(id = "1", nombre = "Inversiones Alpha")),
+                clienteSeleccionado = Cliente(id = "1", nombre = "Inversiones Alpha")
+            ),
+            onNombreChange = {},
+            onClienteSelected = {},
+            onDescripcionChange = {},
+            onTelefonoChange = {},
+            onDireccionChange = {},
+            onEstadoChange = {},
+            onSaveClick = {},
+            onBackPress = {},
+            onDismissDialog = {},
+            onConfirmDiscard = {}
         )
     }
 }

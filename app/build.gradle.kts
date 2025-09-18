@@ -64,14 +64,12 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Firebase BOM (Bill of Materials) - Gestiona las versiones de las librerías de Firebase
+    // Firebase BOM (Bill of Materials)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    // Servicios de Firebase que necesitamos
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
-    // Cliente de Google Auth (para el login)
     implementation(libs.google.services.auth)
 
 
@@ -96,7 +94,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-// Hilt: aplica el plugin
 kapt {
     correctErrorTypes = true
 }

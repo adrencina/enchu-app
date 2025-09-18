@@ -5,22 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.repository.ObraRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// CORRECTO: Sealed class para los ESTADOS de la UI (lo que se ve permanentemente)
 sealed class HomeUiState {
     object Loading : HomeUiState()
     data class Success(val obras: List<Obra>) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
 
-// CORRECTO: Sealed class SEPARADA para los EFECTOS (eventos de un solo uso)
 sealed class HomeUiEffect {
     data class ShowObraCreatedSnackbar(val clientName: String) : HomeUiEffect()
 }
@@ -37,6 +31,8 @@ class HomeViewModel @Inject constructor(
     val uiEffect = _uiEffect.asSharedFlow()
 
     init {
+        // La única llamada a la carga de datos se hace aquí.
+        // El .collect se mantendrá escuchando cambios mientras el ViewModel viva.
         loadObras()
     }
 
@@ -46,15 +42,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // CAMBIO: La función vuelve a ser privada. La UI ya no necesita llamarla.
     private fun loadObras() {
-        // CORRECTO: La llamada a la base de datos debe estar dentro de un launch
         viewModelScope.launch {
-            _uiState.value = HomeUiState.Loading
             obraRepository.getObras()
                 .catch { exception ->
                     _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
                 }
                 .collect { obras ->
+                    // Cada vez que haya un cambio en Firestore, esta línea se ejecutará
+                    // y actualizará la UI con la nueva lista de obras.
                     _uiState.value = HomeUiState.Success(obras)
                 }
         }
