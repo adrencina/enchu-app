@@ -6,6 +6,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,5 +26,5 @@ object AppIcons {
     val ArrowBack = Icons.AutoMirrored.Filled.ArrowBack
     val Close = Icons.Default.Close
 
-    val Gallery: ImageVector = Icons.Default.FavoriteBorder
+    val Gallery: ImageVector = Icons.Default.Home
 }

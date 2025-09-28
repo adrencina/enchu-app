@@ -2,23 +2,18 @@ package com.adrencina.enchu.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Fondos
-val FondoPrincipal = Color(0xFFFFFFFF)
+// User-defined palette
+val AzulCorporativo = Color(0xFF1A237E)
+val NaranjaAccion = Color(0xFFFFAB00)
 
-// Textos
-val TextoPrincipal = Color(0xFF212121) // Negro
-val TextoSecundario = Color(0xFF757575) // Gris medio
+val FondoGrisClaro = Color(0xFFE0E0E0)
+val SuperficieBlanca = Color.White
 
-// Primarios
-val AzulCorporativo = Color(0xFF1A237E) // Azul definido en Figma
+val TextoNegro = Color(0xFF212121)
+val TextoGris = Color(0xFF919191)
 
-// Acentos
-val Accion = Color(0xFFFFC107) // Amarillo (Acción)
+val BordeGris = Color(0xFFE0E0E0)
 
-// Bordes
-val Divisor = Color(0xFFEEEEEE) // Gris claro
-
-// Feedback
-val Exito = Color(0xFF4CAF50)       // Verde
-val Error = Color(0xFFF44336)       // Rojo
-val Advertencia = Color(0xFFFF9800) // Naranja
+// Standard Material Colors
+val Error = Color(0xFFB00020)
+val OnError = Color.White

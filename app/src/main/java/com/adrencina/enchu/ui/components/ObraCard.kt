@@ -1,12 +1,12 @@
 package com.adrencina.enchu.ui.components
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,54 +26,54 @@ fun ObraCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.aspectRatio(1f), // Mantiene la tarjeta cuadrada
-        shape = MaterialTheme.shapes.large,
+        modifier = modifier
+            .height(130.dp) // Set a fixed height instead of aspect ratio
+            .fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium, // Corresponds to 8.dp by default
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface, // White background
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline) // Grey border
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(Dimens.PaddingMedium)
+                .padding(Dimens.PaddingMedium),
+            verticalArrangement = Arrangement.SpaceBetween // Pushes content to top and bottom
         ) {
-            // Sección de Títulos (ocupa el espacio superior)
-            Column(modifier = Modifier.weight(1f)) {
+            // Top section: Titles
+            Column {
                 Text(
-                    // CAMBIO: El título principal ahora es el nombre del cliente
-                    text = obra.clienteNombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = obra.clienteNombre.uppercase(), // Uppercase as per design
+                    style = MaterialTheme.typography.titleLarge, // 16.sp Bold
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    // CAMBIO: El subtítulo es el nombre de la obra
                     text = obra.nombreObra,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium, // 14.sp Regular
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Grey text
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Sección inferior (Fecha e Ícono)
+            // Bottom section: Date and Icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    // CAMBIO: Usamos la fecha real del objeto Obra
                     text = obra.fechaCreacion?.toFormattedString() ?: "",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant // Grey text
                 )
-                // CAMBIO: Añadimos el ícono de galería
                 Icon(
                     imageVector = AppIcons.Gallery,
                     contentDescription = "Galería de la obra",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant // Grey icon
                 )
             }
         }
@@ -86,19 +86,24 @@ private fun Date.toFormattedString(): String {
     return formatter.format(this)
 }
 
-@Preview(name = "Light Mode")
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 private fun ObraCardPreview() {
     EnchuTheme {
-        ObraCard(
-            obra = Obra(
-                id = "1",
-                nombreObra = "Ampliación Salón",
-                clienteNombre = "ESFORZAR S.A.", // Usamos el campo correcto
-                fechaCreacion = Date()
-            ),
-            onClick = {}
-        )
+        // The background color of the preview should be the app's background
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Box(modifier = Modifier.padding(Dimens.PaddingMedium)) {
+                ObraCard(
+                    obra = Obra(
+                        id = "preview-1",
+                        nombreObra = "Ampliación Salón Principal",
+                        clienteNombre = "ESFORZAR S.A.",
+                        fechaCreacion = Date()
+                    ),
+                    onClick = {}
+                )
+            }
+        }
     }
 }

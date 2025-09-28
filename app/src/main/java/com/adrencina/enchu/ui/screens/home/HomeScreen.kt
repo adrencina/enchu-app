@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
 import com.adrencina.enchu.core.resources.AppIcons
@@ -70,8 +71,8 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddObraClick,
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary
+                containerColor = MaterialTheme.colorScheme.secondary, // Orange
+                contentColor = MaterialTheme.colorScheme.onSecondary // White
             ) {
                 Icon(
                     imageVector = AppIcons.Add,
@@ -79,7 +80,8 @@ fun HomeScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background // Set background for the whole screen
     ) { paddingValues ->
         HomeScreenContent(
             uiState = uiState,
@@ -104,7 +106,8 @@ private fun HomeScreenContent(
             is HomeUiState.Success -> {
                 if (uiState.obras.isEmpty()) {
                     EmptyState()
-                } else {
+                }
+                else {
                     ObrasGrid(obras = uiState.obras, onObraClick = onObraClick)
                 }
             }
@@ -117,7 +120,13 @@ private fun HomeScreenContent(
 @Composable
 private fun HomeTopAppBar() {
     TopAppBar(
-        title = { Text(AppStrings.homeScreenTitle) },
+        title = {
+            Text(
+                text = AppStrings.homeScreenTitle, // "Mis obras"
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary // Corporate Blue
+            )
+        },
         actions = {
             IconButton(onClick = { /* TODO: Implement search */ }) {
                 Icon(imageVector = AppIcons.Search, contentDescription = AppStrings.search)
@@ -127,9 +136,9 @@ private fun HomeTopAppBar() {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+            containerColor = MaterialTheme.colorScheme.background, // Light grey background
+            titleContentColor = MaterialTheme.colorScheme.primary, // Blue title
+            actionIconContentColor = MaterialTheme.colorScheme.primary // Blue icons
         )
     )
 }
@@ -168,9 +177,9 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Dimens.PaddingMedium),
-        verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
+        contentPadding = PaddingValues(horizontal = Dimens.PaddingMediumSpecial),
+        verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMediumSpecial),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMediumSpecial)
     ) {
         items(items = obras, key = { it.id }) { obra ->
             ObraCard(obra = obra, onClick = { onObraClick(obra.id) })

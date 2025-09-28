@@ -11,22 +11,25 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColors = lightColorScheme(
-    primary = AzulCorporativo,
+    primary = AzulCorporativo,       // For main titles and icons
     onPrimary = Color.White,
-    secondary = Accion,
-    onSecondary = Color.Black,
-    background = FondoPrincipal,
-    onBackground = TextoPrincipal,
-    surface = FondoPrincipal,
-    onSurface = TextoPrincipal,
+    secondary = NaranjaAccion,       // For FloatingActionButton
+    onSecondary = Color.White,       // For icon inside FAB
+    background = FondoGrisClaro,     // App background
+    onBackground = TextoNegro,       // Main text color
+    surface = SuperficieBlanca,      // Card background
+    onSurface = TextoNegro,          // Text on cards
+    onSurfaceVariant = TextoGris,    // Secondary text (like subtitles)
+    outline = BordeGris,             // Card borders
     error = Error,
-    onError = Color.White,
+    onError = OnError,
 )
 
 private val DarkColors = darkColorScheme(
+    // Keeping dark theme as a fallback, but not the focus
     primary = AzulCorporativo,
     onPrimary = Color.White,
-    secondary = Accion,
+    secondary = NaranjaAccion,
     onSecondary = Color.Black,
     background = Color(0xFF121212),
     onBackground = Color.White,
@@ -38,8 +41,8 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun EnchuTheme(
-    darkTheme: Boolean = false, // si más adelante querés soportar el modo oscuro agregas: isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // si más adelante querés soportar colores dinámicos
+    darkTheme: Boolean = false, // Defaulting to light theme as per design
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -51,15 +54,16 @@ fun EnchuTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view)
-                .isAppearanceLightStatusBars = !darkTheme
+            // Set status bar to match the app background
+            window.statusBarColor = colorScheme.background.toArgb()
+            // Ensure status bar icons (clock, battery) are dark and visible
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = Typography, // Using the new Typography from Type.kt
         shapes = Shapes,
         content = content
     )
