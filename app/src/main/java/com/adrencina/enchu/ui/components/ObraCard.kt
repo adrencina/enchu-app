@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -27,39 +28,41 @@ fun ObraCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(130.dp) // Set a fixed height instead of aspect ratio
+            .height(130.dp) // Altura fija como en el diseño
             .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // Corresponds to 8.dp by default
+        shape = MaterialTheme.shapes.medium, // Bordes redondeados
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface, // White background
+            containerColor = MaterialTheme.colorScheme.surface, // Fondo blanco
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline) // Grey border
+        // CAMBIO: Añadimos el borde sutil
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(Dimens.PaddingMedium),
-            verticalArrangement = Arrangement.SpaceBetween // Pushes content to top and bottom
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top section: Titles
+            // Sección de Títulos
             Column {
                 Text(
-                    text = obra.clienteNombre.uppercase(), // Uppercase as per design
-                    style = MaterialTheme.typography.titleLarge, // 16.sp Bold
+                    text = obra.clienteNombre.uppercase(), // Mayúsculas como en el diseño
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = obra.nombreObra,
-                    style = MaterialTheme.typography.bodyMedium, // 14.sp Regular
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Grey text
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Texto gris
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Bottom section: Date and Icon
+            // Sección inferior
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -68,12 +71,12 @@ fun ObraCard(
                 Text(
                     text = obra.fechaCreacion?.toFormattedString() ?: "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant // Grey text
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
-                    imageVector = AppIcons.Gallery,
+                    painter = painterResource(id = AppIcons.Gallery), // Usamos el nuevo ícono
                     contentDescription = "Galería de la obra",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant // Grey icon
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

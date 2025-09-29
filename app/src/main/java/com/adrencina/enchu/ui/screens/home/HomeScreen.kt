@@ -1,6 +1,7 @@
 package com.adrencina.enchu.ui.screens.home
 
 import android.content.res.Configuration
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -9,12 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
 import com.adrencina.enchu.core.resources.AppIcons
@@ -71,6 +72,7 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddObraClick,
+                shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.secondary, // Orange
                 contentColor = MaterialTheme.colorScheme.onSecondary // White
             ) {
@@ -136,9 +138,9 @@ private fun HomeTopAppBar() {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background, // Light grey background
-            titleContentColor = MaterialTheme.colorScheme.primary, // Blue title
-            actionIconContentColor = MaterialTheme.colorScheme.primary // Blue icons
+            containerColor = Color.Transparent, 
+            titleContentColor = MaterialTheme.colorScheme.primary,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
 }
@@ -177,9 +179,9 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = Dimens.PaddingMediumSpecial),
-        verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMediumSpecial),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMediumSpecial)
+        contentPadding = PaddingValues(Dimens.PaddingMedium),
+        verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
     ) {
         items(items = obras, key = { it.id }) { obra ->
             ObraCard(obra = obra, onClick = { onObraClick(obra.id) })
