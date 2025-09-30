@@ -1,7 +1,6 @@
 package com.adrencina.enchu.ui.components
 
 import android.content.res.Configuration
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,14 +27,15 @@ fun ObraCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(130.dp) // Altura fija como en el diseño
+            .height(130.dp)
             .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // Bordes redondeados
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface, // Fondo blanco
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
-        // CAMBIO: Añadimos el borde sutil
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        )
     ) {
         Column(
             modifier = Modifier
@@ -43,10 +43,9 @@ fun ObraCard(
                 .padding(Dimens.PaddingMedium),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Sección de Títulos
             Column {
                 Text(
-                    text = obra.clienteNombre.uppercase(), // Mayúsculas como en el diseño
+                    text = obra.clienteNombre,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
@@ -56,13 +55,12 @@ fun ObraCard(
                 Text(
                     text = obra.nombreObra,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Texto gris
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Sección inferior
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -74,7 +72,7 @@ fun ObraCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
-                    painter = painterResource(id = AppIcons.Gallery), // Usamos el nuevo ícono
+                    painter = painterResource(id = AppIcons.Gallery),
                     contentDescription = "Galería de la obra",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -94,7 +92,7 @@ private fun Date.toFormattedString(): String {
 @Composable
 private fun ObraCardPreview() {
     EnchuTheme {
-        // The background color of the preview should be the app's background
+        // El color de fondo del preview debe ser el de la app.
         Surface(color = MaterialTheme.colorScheme.background) {
             Box(modifier = Modifier.padding(Dimens.PaddingMedium)) {
                 ObraCard(

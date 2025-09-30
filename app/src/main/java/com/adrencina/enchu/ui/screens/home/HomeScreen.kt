@@ -1,21 +1,45 @@
 package com.adrencina.enchu.ui.screens.home
 
-import android.content.res.Configuration
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
 import com.adrencina.enchu.core.resources.AppIcons
@@ -23,7 +47,6 @@ import com.adrencina.enchu.core.resources.AppStrings
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.ui.components.ObraCard
 import com.adrencina.enchu.ui.theme.Dimens
-import com.adrencina.enchu.ui.theme.EnchuTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,20 +63,15 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
     LaunchedEffect(newObraResult) {
         if (newObraResult != null) {
-            // 1. Le decimos al ViewModel que muestre el Snackbar.
             viewModel.onNewObraCreated(newObraResult)
-
-            // 2. CAMBIO: Eliminamos la llamada a viewModel.loadObras(). ¡Ya no es necesaria!
-            // El listener de Firestore se encargará de la actualización automáticamente.
-
-            // 3. Limpiamos el resultado.
             onClearNewObraResult()
         }
     }
 
-    // Efecto para mostrar el Snackbar (sin cambios)
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
             when (effect) {
@@ -68,13 +86,16 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = { HomeTopAppBar() },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            HomeTopAppBar(scrollBehavior = scrollBehavior)
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddObraClick,
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.secondary, // Orange
-                contentColor = MaterialTheme.colorScheme.onSecondary // White
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
             ) {
                 Icon(
                     imageVector = AppIcons.Add,
@@ -83,12 +104,19 @@ fun HomeScreen(
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background // Set background for the whole screen
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+        val newPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding(),
+            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = 0.dp
+        )
+
         HomeScreenContent(
             uiState = uiState,
             onObraClick = onObraClick,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(newPadding)
         )
     }
 }
@@ -108,8 +136,7 @@ private fun HomeScreenContent(
             is HomeUiState.Success -> {
                 if (uiState.obras.isEmpty()) {
                     EmptyState()
-                }
-                else {
+                } else {
                     ObrasGrid(obras = uiState.obras, onObraClick = onObraClick)
                 }
             }
@@ -120,13 +147,14 @@ private fun HomeScreenContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopAppBar() {
-    TopAppBar(
+private fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior) {
+    SmallTopAppBar(
         title = {
             Text(
-                text = AppStrings.homeScreenTitle, // "Mis obras"
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary // Corporate Blue
+                text = AppStrings.homeScreenTitle, 
+                style = MaterialTheme.typography.titleLarge, 
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 24.sp
             )
         },
         actions = {
@@ -137,11 +165,13 @@ private fun HomeTopAppBar() {
                 Icon(imageVector = AppIcons.MoreVert, contentDescription = AppStrings.moreOptions)
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent, 
+        colors = TopAppBarDefaults.smallTopAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background, 
+            scrolledContainerColor = MaterialTheme.colorScheme.background, 
             titleContentColor = MaterialTheme.colorScheme.primary,
             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        ),
+        scrollBehavior = scrollBehavior
     )
 }
 
@@ -149,7 +179,7 @@ private fun HomeTopAppBar() {
 private fun LoadingState() {
     CircularProgressIndicator(
         modifier = Modifier.size(Dimens.ProgressIndicatorSize),
-        color = MaterialTheme.colorScheme.secondary // Color Accion
+        color = MaterialTheme.colorScheme.secondary
     )
 }
 
@@ -179,51 +209,16 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Dimens.PaddingMedium),
+        contentPadding = PaddingValues(
+            start = Dimens.PaddingMedium,
+            end = Dimens.PaddingMedium,
+            bottom = Dimens.PaddingMedium
+        ),
         verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
         horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
-    ) {
+    ) { 
         items(items = obras, key = { it.id }) { obra ->
             ObraCard(obra = obra, onClick = { onObraClick(obra.id) })
-        }
-    }
-}
-
-// --- PREVIEWS ---
-class HomeUiStatePreviewProvider : PreviewParameterProvider<HomeUiState> {
-    private val sampleObras = listOf(
-        Obra("1", "Ampliación Casa", "Cliente A"),
-        Obra("2", "Pintura Depto", "Cliente B"),
-        Obra("3", "Instalación Eléctrica", "Cliente C"),
-        Obra("4", "Proyecto Quincho", "Cliente D"),
-    )
-
-    override val values = sequenceOf(
-        HomeUiState.Loading,
-        HomeUiState.Success(emptyList()),
-        HomeUiState.Success(sampleObras),
-        HomeUiState.Error("No se pudo conectar al servidor.")
-    )
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
-@Composable
-private fun HomeScreenPreview(
-    @PreviewParameter(HomeUiStatePreviewProvider::class) uiState: HomeUiState
-) {
-    EnchuTheme {
-        Scaffold(
-            topBar = { HomeTopAppBar() },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { },
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                ) { Icon(AppIcons.Add, AppStrings.addObra) }
-            }
-        ) { padding ->
-            HomeScreenContent(uiState = uiState, onObraClick = {}, modifier = Modifier.padding(padding))
         }
     }
 }

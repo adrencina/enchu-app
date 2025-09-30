@@ -1,10 +1,10 @@
 package com.adrencina.enchu.ui.theme
 
 import android.app.Activity
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -17,7 +17,7 @@ private val LightColors = lightColorScheme(
     onBackground = TextoNegro,
     surface = SuperficieBlanca,
     onSurface = TextoNegro,
-    onSurfaceVariant = TextoGris, // Perfecto para textos secundarios
+    onSurfaceVariant = TextoGris,
     outline = BordeGris,
     error = Error,
     onError = OnError,
@@ -25,7 +25,7 @@ private val LightColors = lightColorScheme(
 
 @Composable
 fun EnchuTheme(
-    darkTheme: Boolean = false, // Forzamos el tema claro como en la captura
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = LightColors
@@ -33,8 +33,9 @@ fun EnchuTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
