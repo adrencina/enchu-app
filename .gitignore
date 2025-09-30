@@ -92,3 +92,4 @@ media/
 tmp/
 temp/
 .cache/
+.gradle

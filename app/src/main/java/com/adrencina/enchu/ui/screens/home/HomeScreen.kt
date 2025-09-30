@@ -24,7 +24,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,12 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
 import com.adrencina.enchu.core.resources.AppIcons
@@ -86,10 +83,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            HomeTopAppBar(scrollBehavior = scrollBehavior)
-        },
+        topBar = { HomeTopAppBar() },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddObraClick,
@@ -147,16 +141,9 @@ private fun HomeScreenContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior) {
+private fun HomeTopAppBar() {
     SmallTopAppBar(
-        title = {
-            Text(
-                text = AppStrings.homeScreenTitle, 
-                style = MaterialTheme.typography.titleLarge, 
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 24.sp
-            )
-        },
+        title = { Text(AppStrings.homeScreenTitle) },
         actions = {
             IconButton(onClick = { /* TODO: Implement search */ }) {
                 Icon(imageVector = AppIcons.Search, contentDescription = AppStrings.search)
@@ -165,13 +152,11 @@ private fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior) {
                 Icon(imageVector = AppIcons.MoreVert, contentDescription = AppStrings.moreOptions)
             }
         },
-        colors = TopAppBarDefaults.smallTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background, 
-            scrolledContainerColor = MaterialTheme.colorScheme.background, 
-            titleContentColor = MaterialTheme.colorScheme.primary,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        scrollBehavior = scrollBehavior
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.error,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+        )
     )
 }
 
@@ -216,7 +201,7 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
         horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
-    ) { 
+    ) {
         items(items = obras, key = { it.id }) { obra ->
             ObraCard(obra = obra, onClick = { onObraClick(obra.id) })
         }
