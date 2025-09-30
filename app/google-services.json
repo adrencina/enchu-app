@@ -12,7 +12,20 @@
           "package_name": "com.adrencina.enchu"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "103026774261-gn28jd96kbp0jrqs78h7955hhgs7hi2f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.adrencina.enchu",
+            "certificate_hash": "f846059cbd2eeac5778db98c6a4d035609cccfcf"
+          }
+        },
+        {
+          "client_id": "103026774261-71nmup3s19f715t81q2sshvsborrutfo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyANoCb8bVcwHjZEvv_uHu6nJIxRnbJ6dXU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "103026774261-71nmup3s19f715t81q2sshvsborrutfo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

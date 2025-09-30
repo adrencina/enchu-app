@@ -4,17 +4,16 @@ kotlin = "1.9.23"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.3"
 activityCompose = "1.9.0"
+
+# Usamos la versión del BoM que ya tenías. Es estable.
 composeBom = "2024.02.02"
+
 firebaseBom = "33.1.2"
 googleServicesAuth = "21.2.0"
-
-# Otras librerías
 coil = "2.6.0"
-
 navigationCompose = "2.7.7"
 hilt = "2.49"
 hiltNavigationCompose = "1.2.0"
-
 googleServicesPlugin = "4.4.2"
 
 # Testing
@@ -28,9 +27,10 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 
 # Lifecycle & Activity
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+# La versión de activity-compose SÍ está gestionada por el BoM, por lo que se queda sin versión aquí.
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 
-# Compose BOM y dependencias (gestionadas por el BOM)
+# Compose BOM y dependencias
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
@@ -41,7 +41,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 # Navegación
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
-# Firebase BOM y dependencias (gestionadas por el BOM)
+# Firebase BOM y dependencias
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }

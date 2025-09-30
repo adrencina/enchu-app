@@ -5,43 +5,39 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.adrencina.enchu.ui.navigation.AppNavigation
 import com.adrencina.enchu.ui.theme.EnchuTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+import androidx.activity.SystemBarStyle
+import android.graphics.Color
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                Color.TRANSPARENT, Color.TRANSPARENT
+            ),
+            // Se aplica un scrim (capa de color) translúcido a la barra de navegación.
+            navigationBarStyle = SystemBarStyle.light(
+                Color.parseColor("#33FFFFFF"), Color.parseColor("#33FFFFFF")
+            )
+        )
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
         setContent {
             EnchuTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppNavigation()
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    EnchuTheme {
-        Greeting("Android")
     }
 }

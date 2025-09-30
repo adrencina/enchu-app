@@ -1,13 +1,14 @@
 package com.adrencina.enchu.data.model
 
+import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
  * Representa a un cliente en la base de datos (colección "clientes").
- * El ID del documento será el clienteId.
  */
 data class Cliente(
+    @DocumentId val id: String = "",
     val userId: String = "",
     val nombre: String = "",
     val telefono: String = "",
