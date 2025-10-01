@@ -18,4 +18,5 @@ object Dimens {
     val SplashLogoSize = 150.dp
     val LoginLogoSize = 130.dp
     val ProgressIndicatorSize = 48.dp
+    val TopBarHeight = 70.dp
 }

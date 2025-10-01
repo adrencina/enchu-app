@@ -18,24 +18,25 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
+private val obraDateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
  @OptIn(ExperimentalMaterial3Api::class)
  @Composable
 fun ObraCard(
-     obra: Obra,
-     onClick: () -> Unit,
-     modifier: Modifier = Modifier
+    obra: Obra,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(130.dp) // Altura fija como en el diseño
+            .height(130.dp)
             .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // Bordes redondeados
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface, // Fondo blanco
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
-        // CAMBIO: Añadimos el borde sutil
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Elevación añadida
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
@@ -44,38 +45,36 @@ fun ObraCard(
                 .padding(Dimens.PaddingMedium),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Sección de Títulos
             Column {
                 Text(
-                    text = obra.clienteNombre, // Mayúsculas eliminadas
+                    text = obra.clienteNombre,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = obra.nombreObra,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Texto gris
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Sección inferior
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = obra.fechaCreacion?.toFormattedString() ?: "",
+                    text = obra.fechaCreacion?.let { obraDateFormatter.format(it) } ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
-                    painter = painterResource(id = AppIcons.Gallery), // Usamos el nuevo ícono
+                    painter = painterResource(id = AppIcons.Gallery),
                     contentDescription = "Galería de la obra",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -84,14 +83,9 @@ fun ObraCard(
     }
 }
 
-fun Date.toFormattedString(): String {
-    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return sdf.format(this)
-}
-
-@Preview(showBackground = true)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
+ @Preview(showBackground = true)
+ @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+ @Composable
 fun ObraCardPreview() {
     EnchuTheme {
         ObraCard(

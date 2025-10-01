@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,8 +23,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,7 +32,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,9 +58,6 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // 1. El comportamiento de scroll que se conectará a la TopAppBar y al Scaffold
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-
     LaunchedEffect(newObraResult) {
         if (newObraResult != null) {
             viewModel.onNewObraCreated(newObraResult)
@@ -84,9 +79,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        // 2. Conectar el comportamiento de scroll al Scaffold
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { HomeTopAppBar(scrollBehavior = scrollBehavior) }, // 3. Pasar el behavior a la TopAppBar
+        topBar = { HomeTopAppBar() },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddObraClick,
@@ -106,7 +99,6 @@ fun HomeScreen(
         HomeScreenContent(
             uiState = uiState,
             onObraClick = onObraClick,
-            // 4. Pasar el padding del Scaffold al contenido
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -138,9 +130,10 @@ private fun HomeScreenContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior) { // 5. Recibir el behavior
+private fun HomeTopAppBar() {
     SmallTopAppBar(
-        title = { Text(AppStrings.homeScreenTitle, style = MaterialTheme.typography.headlineLarge) }, // Estilo aplicado
+        modifier = Modifier.height(Dimens.TopBarHeight).padding(vertical = Dimens.PaddingSmall),
+        title = { Text(AppStrings.homeScreenTitle, style = MaterialTheme.typography.headlineLarge) },
         actions = {
             IconButton(onClick = { /* TODO: Implement search */ }) {
                 Icon(imageVector = AppIcons.Search, contentDescription = AppStrings.search)
@@ -149,11 +142,9 @@ private fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior) { // 5. Recib
                 Icon(imageVector = AppIcons.MoreVert, contentDescription = AppStrings.moreOptions)
             }
         },
-        // 6. Pasarlo al `scrollBehavior` del componente de Material
-        scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent, // Asegura transparencia también con scroll
+            scrolledContainerColor = Color.Transparent,
             titleContentColor = MaterialTheme.colorScheme.primary,
             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -195,6 +186,7 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
+            top = Dimens.PaddingSmall,
             start = Dimens.PaddingMedium,
             end = Dimens.PaddingMedium,
             bottom = Dimens.PaddingMedium
