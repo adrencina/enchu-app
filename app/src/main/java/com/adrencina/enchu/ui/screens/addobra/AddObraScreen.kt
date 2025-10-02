@@ -1,13 +1,17 @@
 package com.adrencina.enchu.ui.screens.addobra
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.datasource.CollectionPreviewParameterProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.core.resources.AppStrings
@@ -73,18 +77,20 @@ fun AddObraScreenContent(
     onConfirmDiscard: () -> Unit
 ) {
     Scaffold(
+        // MODIFIED START: Alineación con el estilo de HomeScreen
         topBar = {
             TopAppBar(
                 title = { Text(AppStrings.createObraTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackPress) {
-                        Icon(AppIcons.ArrowBack, contentDescription = "Volver")
+                        Icon(AppIcons.ArrowBack, contentDescription = AppStrings.back)
                     }
                 },
                 actions = {
                     TextButton(
                         onClick = onSaveClick,
-                        enabled = uiState.isSaveEnabled
+                        enabled = uiState.isSaveEnabled,
+                        modifier = Modifier.testTag("save_button")
                     ) {
                         if (uiState.isSaving) {
                             CircularProgressIndicator(modifier = Modifier.size(Dimens.ProgressIndicatorSize / 2))
@@ -92,9 +98,19 @@ fun AddObraScreenContent(
                             Text(AppStrings.save)
                         }
                     }
-                }
+                },
+                // ADDED: Colores para la barra transparente, como en HomeScreen
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background // ADDED: Fondo gris claro
+        // MODIFIED END
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -126,7 +142,9 @@ fun AddObraScreenContent(
                     onValueChange = onDescripcionChange,
                     label = AppStrings.descriptionLabel,
                     placeholder = AppStrings.descriptionPlaceholder,
-                    singleLine = false
+                    singleLine = false,
+                    // MODIFIED: Mejorar UX en campos largos
+                    minLines = 3
                 )
             }
             item {
@@ -151,16 +169,16 @@ fun AddObraScreenContent(
                     Text(
                         text = AppStrings.obraStateLabel,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = Dimens.PaddingSmall, bottom = Dimens.PaddingSmall) // ADDED: Pequeño ajuste visual
                     )
-                    Spacer(Modifier.height(Dimens.PaddingSmall))
                     EstadoObraChips(
                         selectedState = uiState.estado,
                         onStateSelected = onEstadoChange
                     )
                 }
             }
-            item { Spacer(Modifier.height(Dimens.PaddingSmall)) }
+            item { Spacer(Modifier.height(Dimens.PaddingLarge)) } // ADDED: Más espacio al final
         }
     }
 
@@ -190,20 +208,35 @@ private fun DiscardChangesDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(AppStrings.cancel) }
         },
+        // MODIFIED: Icono más apropiado para una advertencia
         icon = { Icon(AppIcons.Close, contentDescription = null) }
     )
 }
 
-@Preview(showBackground = true)
+// ADDED START: Previews más completas
+private class AddObraUiStateProvider : CollectionPreviewParameterProvider<AddObraUiState>(
+    listOf(
+        AddObraUiState(
+            nombreObra = "Instalación Eléctrica Completa",
+            clientes = listOf(Cliente(id = "1", nombre = "Constructora del Sol S.A.")),
+            clienteSeleccionado = Cliente(id = "1", nombre = "Constructora del Sol S.A.")
+        ),
+        AddObraUiState(
+            isSaving = true
+        )
+    )
+)
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
+@Preview(name = "Small Device", widthDp = 320, showBackground = true)
 @Composable
-private fun AddObraScreenContentPreview() {
+private fun AddObraScreenContentPreview(
+    @PreviewParameter(AddObraUiStateProvider::class) uiState: AddObraUiState
+) {
     EnchuTheme {
         AddObraScreenContent(
-            uiState = AddObraUiState(
-                nombreObra = "Instalación Eléctrica",
-                clientes = listOf(Cliente(id = "1", nombre = "Inversiones Alpha")),
-                clienteSeleccionado = Cliente(id = "1", nombre = "Inversiones Alpha")
-            ),
+            uiState = uiState,
             onNombreChange = {},
             onClienteSelected = {},
             onDescripcionChange = {},
@@ -217,3 +250,4 @@ private fun AddObraScreenContentPreview() {
         )
     }
 }
+// ADDED END
