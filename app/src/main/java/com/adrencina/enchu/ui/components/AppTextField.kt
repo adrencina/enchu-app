@@ -1,6 +1,5 @@
 package com.adrencina.enchu.ui.components
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -17,21 +16,24 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 fun AppTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    // MODIFIED START: La 'label' ya no es necesaria aquí, la gestiona FormSection.
+    // Se mantiene solo 'placeholder'. ¡Esto es un cambio en la firma del componente!
     placeholder: String,
+    // MODIFIED END
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     singleLine: Boolean = true,
-    minLines: Int = 1 // ADDED: Para campos de texto multilínea
+    minLines: Int = 1
 ) {
+    // MODIFIED START: Se ajustan los colores para que el fondo sea blanco y el borde sutil.
+    // Ya no se necesita una 'label' dentro del OutlinedTextField.
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
-            .testTag("app_text_field_$label"), // ADDED: testTag para UI tests
-        label = { Text(label) },
+            .testTag("app_text_field_$placeholder"),
         placeholder = { Text(placeholder) },
         shape = MaterialTheme.shapes.medium,
         keyboardOptions = KeyboardOptions(
@@ -40,30 +42,25 @@ fun AppTextField(
             capitalization = KeyboardCapitalization.Sentences
         ),
         singleLine = singleLine,
-        minLines = minLines, // ADDED
-        // MODIFIED START: Uso del método correcto para OutlinedTextField y colores de tema
+        minLines = minLines,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
         )
-        // MODIFIED END
     )
+    // MODIFIED END
 }
 
-// ADDED START: Preview para el componente aislado
 @Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 private fun AppTextFieldPreview() {
     EnchuTheme {
         AppTextField(
-            value = "Texto de ejemplo",
+            value = "",
             onValueChange = {},
-            label = "Etiqueta",
-            placeholder = "Placeholder"
+            placeholder = "Ej: Juan Pérez"
         )
     }
 }
-// ADDED END

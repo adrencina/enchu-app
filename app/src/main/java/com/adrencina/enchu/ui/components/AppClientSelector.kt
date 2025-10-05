@@ -1,6 +1,5 @@
 package com.adrencina.enchu.ui.components
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,12 +15,11 @@ fun AppClientSelector(
     clientes: List<Cliente>,
     selectedCliente: Cliente?,
     onClienteSelected: (Cliente) -> Unit,
-    label: String,
+    // MODIFIED: Adaptado para no usar 'label' y en su lugar un placeholder.
+    placeholder: String,
     modifier: Modifier = Modifier
 ) {
-    // MODIFIED START: Corregido el typo de mutableState of a mutableStateOf
     var isExpanded by remember { mutableStateOf(false) }
-    // MODIFIED END
 
     ExposedDropdownMenuBox(
         expanded = isExpanded,
@@ -32,14 +30,15 @@ fun AppClientSelector(
             value = selectedCliente?.nombre ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text(label) },
+            // MODIFIED: Usando placeholder en lugar de label
+            placeholder = { Text(placeholder) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
             shape = MaterialTheme.shapes.medium,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
             ),
             modifier = Modifier
                 .menuAnchor()
@@ -64,7 +63,6 @@ fun AppClientSelector(
 }
 
 @Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 private fun AppClientSelectorPreview() {
     EnchuTheme {
@@ -74,9 +72,9 @@ private fun AppClientSelectorPreview() {
         )
         AppClientSelector(
             clientes = clientes,
-            selectedCliente = clientes.first(),
+            selectedCliente = null,
             onClienteSelected = {},
-            label = "Cliente"
+            placeholder = "Ej: Juan Pérez"
         )
     }
 }

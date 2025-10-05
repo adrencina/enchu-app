@@ -2,16 +2,19 @@ package com.adrencina.enchu.ui.screens.addobra
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.datasource.CollectionPreviewParameterProvider
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.core.resources.AppStrings
@@ -19,6 +22,7 @@ import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.ui.components.AppClientSelector
 import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.ui.components.EstadoObraChips
+import com.adrencina.enchu.ui.components.FormSection
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.viewmodel.AddObraSideEffect
@@ -60,7 +64,6 @@ fun AddObraScreen(
         onConfirmDiscard = viewModel::onConfirmDiscard
     )
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddObraScreenContent(
@@ -77,13 +80,15 @@ fun AddObraScreenContent(
     onConfirmDiscard: () -> Unit
 ) {
     Scaffold(
-        // MODIFIED START: Alineación con el estilo de HomeScreen
         topBar = {
-            TopAppBar(
-                title = { Text(AppStrings.createObraTitle) },
+            // MODIFIED START: Usando CenterAlignedTopAppBar para que coincida con el diseño
+            CenterAlignedTopAppBar(
+                title = {
+                    Text("Crear Nueva Obra", fontWeight = FontWeight.Bold)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackPress) {
-                        Icon(AppIcons.ArrowBack, contentDescription = AppStrings.back)
+                        Icon(AppIcons.Close, contentDescription = AppStrings.close)
                     }
                 },
                 actions = {
@@ -95,91 +100,96 @@ fun AddObraScreenContent(
                         if (uiState.isSaving) {
                             CircularProgressIndicator(modifier = Modifier.size(Dimens.ProgressIndicatorSize / 2))
                         } else {
-                            Text(AppStrings.save)
+                            Text("GUARDAR", fontWeight = FontWeight.Bold)
                         }
                     }
                 },
-                // ADDED: Colores para la barra transparente, como en HomeScreen
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.primary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    actionIconContentColor = MaterialTheme.colorScheme.primary
                 )
             )
+            // MODIFIED END
         },
-        containerColor = MaterialTheme.colorScheme.background // ADDED: Fondo gris claro
-        // MODIFIED END
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+        // MODIFIED START: Layout reconstruido con LazyColumn y el nuevo componente FormSection
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = Dimens.PaddingMedium),
-            verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
+            verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
         ) {
-            item { Spacer(Modifier.height(Dimens.PaddingSmall)) }
+            item { Spacer(Modifier.height(4.dp)) }
+
             item {
-                AppTextField(
-                    value = uiState.nombreObra,
-                    onValueChange = onNombreChange,
-                    label = AppStrings.obraNameLabel,
-                    placeholder = AppStrings.obraNamePlaceholder
-                )
-            }
-            item {
-                AppClientSelector(
-                    clientes = uiState.clientes,
-                    selectedCliente = uiState.clienteSeleccionado,
-                    onClienteSelected = onClienteSelected,
-                    label = AppStrings.clientLabel
-                )
-            }
-            item {
-                AppTextField(
-                    value = uiState.descripcion,
-                    onValueChange = onDescripcionChange,
-                    label = AppStrings.descriptionLabel,
-                    placeholder = AppStrings.descriptionPlaceholder,
-                    singleLine = false,
-                    // MODIFIED: Mejorar UX en campos largos
-                    minLines = 3
-                )
-            }
-            item {
-                AppTextField(
-                    value = uiState.telefono,
-                    onValueChange = onTelefonoChange,
-                    label = AppStrings.phoneLabel,
-                    placeholder = AppStrings.phonePlaceholder,
-                    keyboardType = KeyboardType.Phone
-                )
-            }
-            item {
-                AppTextField(
-                    value = uiState.direccion,
-                    onValueChange = onDireccionChange,
-                    label = AppStrings.addressLabel,
-                    placeholder = AppStrings.addressPlaceholder
-                )
-            }
-            item {
-                Column {
-                    Text(
-                        text = AppStrings.obraStateLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = Dimens.PaddingSmall, bottom = Dimens.PaddingSmall) // ADDED: Pequeño ajuste visual
+                FormSection(title = "Nombre de la obra") {
+                    AppTextField(
+                        value = uiState.nombreObra,
+                        onValueChange = onNombreChange,
+                        placeholder = "Ej: Instalacion portero"
                     )
+                }
+            }
+
+            item {
+                FormSection(title = "Cliente") {
+                    AppClientSelector(
+                        clientes = uiState.clientes,
+                        selectedCliente = uiState.clienteSeleccionado,
+                        onClienteSelected = onClienteSelected,
+                        placeholder = "Ej: Juan Pérez"
+                    )
+                }
+            }
+
+            item {
+                FormSection(title = "Descripción (opcional)") {
+                    AppTextField(
+                        value = uiState.descripcion,
+                        onValueChange = onDescripcionChange,
+                        placeholder = "Ej: cableado e instalación de portero video planta baja y primer piso.",
+                        singleLine = false,
+                        minLines = 3
+                    )
+                }
+            }
+
+            item {
+                FormSection(title = "Teléfono (opcional)") {
+                    AppTextField(
+                        value = uiState.telefono,
+                        onValueChange = onTelefonoChange,
+                        placeholder = "Ej: 221 3616161",
+                        keyboardType = KeyboardType.Phone
+                    )
+                }
+            }
+
+            item {
+                FormSection(title = "Dirección (opcional)") {
+                    AppTextField(
+                        value = uiState.direccion,
+                        onValueChange = onDireccionChange,
+                        placeholder = "Ej: Cabred 1900"
+                    )
+                }
+            }
+
+            item {
+                FormSection(title = "Estado de la obra (opcional)") {
                     EstadoObraChips(
                         selectedState = uiState.estado,
                         onStateSelected = onEstadoChange
                     )
                 }
             }
-            item { Spacer(Modifier.height(Dimens.PaddingLarge)) } // ADDED: Más espacio al final
+
+            item { Spacer(Modifier.height(Dimens.PaddingLarge)) }
         }
+        // MODIFIED END
     }
 
     if (uiState.showDiscardDialog) {

@@ -44,6 +44,8 @@ object AppStrings {
 
     const val back = "ATRAS"
 
+    const val close = "CERRAR"
+
     // Discard Dialog
     const val discardObraTitle = "¿Descartar Obra?"
     const val discardObraMessage = "Si salís ahora, la información que ingresaste se perderá."
