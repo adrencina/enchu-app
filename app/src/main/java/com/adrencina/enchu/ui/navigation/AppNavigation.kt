@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.adrencina.enchu.ui.screens.addobra.AddObraScreen
 import com.adrencina.enchu.ui.screens.home.HomeScreen
 import com.adrencina.enchu.ui.screens.login.LoginScreen
+import com.adrencina.enchu.ui.screens.obra_detail.ObraDetailScreen
 import com.adrencina.enchu.ui.screens.splash.SplashScreen
 
 @Composable
@@ -66,6 +67,15 @@ fun AppNavigation() {
                         ?.set("new_obra_result", clientName)
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable(Routes.OBRA_DETAIL_SCREEN) { backStackEntry ->
+            val obraId = backStackEntry.arguments?.getString("obraId")
+            requireNotNull(obraId) { "obraId no puede ser nulo" }
+            ObraDetailScreen(
+                obraId = obraId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
