@@ -50,4 +50,19 @@ class ObraRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override fun getObraById(obraId: String): Flow<Obra> {
+        // Por ahora, devolvemos una obra de ejemplo para desarrollo.
+        // TODO: Implementar la lógica para fetchear desde Firestore
+        val sampleObra = Obra(
+            id = obraId,
+            clienteNombre = "Cliente de Ejemplo",
+            nombreObra = "Nombre de Obra de Ejemplo",
+            descripcion = "Esta es una descripción de ejemplo para la obra.",
+            estado = "En Progreso",
+            fechaCreacion = java.util.Date(),
+            userId = auth.currentUser?.uid ?: ""
+        )
+        return flowOf(sampleObra)
+    }
 }
