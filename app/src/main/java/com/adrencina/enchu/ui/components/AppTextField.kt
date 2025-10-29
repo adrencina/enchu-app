@@ -18,18 +18,14 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 fun AppTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    // MODIFIED START: La 'label' ya no es necesaria aquí, la gestiona FormSection.
-    // Se mantiene solo 'placeholder'. ¡Esto es un cambio en la firma del componente!
     placeholder: String,
-    // MODIFIED END
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     singleLine: Boolean = true,
-    minLines: Int = 1
+    minLines: Int = 1,
+    isError: Boolean = false
 ) {
-    // MODIFIED START: Se ajustan los colores para que el fondo sea blanco y el borde sutil.
-    // Ya no se necesita una 'label' dentro del OutlinedTextField.
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -45,6 +41,7 @@ fun AppTextField(
         ),
         singleLine = singleLine,
         minLines = minLines,
+        isError = isError,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -52,17 +49,4 @@ fun AppTextField(
             unfocusedBorderColor = MaterialTheme.colorScheme.outline
         )
     )
-    // MODIFIED END
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Composable
-private fun AppTextFieldPreview() {
-    EnchuTheme {
-        AppTextField(
-            value = "",
-            onValueChange = {},
-            placeholder = "Ej: Juan Pérez"
-        )
-    }
 }

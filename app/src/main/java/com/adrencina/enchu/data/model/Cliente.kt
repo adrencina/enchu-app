@@ -11,6 +11,7 @@ data class Cliente(
     @DocumentId val id: String = "",
     val userId: String = "",
     val nombre: String = "",
+    val dni: String = "",
     val telefono: String = "",
     val email: String = "",
     val direccion: String = "",

@@ -52,7 +52,6 @@ fun FormSection(
     }
 }
 
-// ADDED START: Vista previa para el componente FormSection
 @Preview(name = "Light Mode", showBackground = true)
 @Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
@@ -67,4 +66,3 @@ private fun FormSectionPreview() {
         }
     }
 }
-// ADDED END

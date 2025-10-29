@@ -5,8 +5,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +64,13 @@ fun AddObraScreen(
         onSaveClick = viewModel::onSaveClick,
         onBackPress = viewModel::onBackPress,
         onDismissDialog = viewModel::onDismissDialog,
-        onConfirmDiscard = viewModel::onConfirmDiscard
+        onConfirmDiscard = viewModel::onConfirmDiscard,
+        // Add Client Dialog actions
+        onAddClientClick = viewModel::onAddClientClick,
+        onDismissAddClientDialog = viewModel::onDismissAddClientDialog,
+        onNewClientNameChange = viewModel::onNewClientNameChange,
+        onNewClientDniChange = viewModel::onNewClientDniChange,
+        onSaveNewClient = viewModel::onSaveNewClient
     )
 }
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,11 +86,16 @@ fun AddObraScreenContent(
     onSaveClick: () -> Unit,
     onBackPress: () -> Unit,
     onDismissDialog: () -> Unit,
-    onConfirmDiscard: () -> Unit
+    onConfirmDiscard: () -> Unit,
+    // Add Client Dialog actions
+    onAddClientClick: () -> Unit,
+    onDismissAddClientDialog: () -> Unit,
+    onNewClientNameChange: (String) -> Unit,
+    onNewClientDniChange: (String) -> Unit,
+    onSaveNewClient: () -> Unit
 ) {
     Scaffold(
         topBar = {
-            // MODIFIED START: Usando CenterAlignedTopAppBar para que coincida con el diseño
             CenterAlignedTopAppBar(
                 title = {
                     Text("Crear Nueva Obra", fontWeight = FontWeight.Bold)
@@ -110,11 +124,9 @@ fun AddObraScreenContent(
                     actionIconContentColor = MaterialTheme.colorScheme.primary
                 )
             )
-            // MODIFIED END
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        // MODIFIED START: Layout reconstruido con LazyColumn y el nuevo componente FormSection
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -136,12 +148,24 @@ fun AddObraScreenContent(
 
             item {
                 FormSection(title = "Cliente") {
-                    AppClientSelector(
-                        clientes = uiState.clientes,
-                        selectedCliente = uiState.clienteSeleccionado,
-                        onClienteSelected = onClienteSelected,
-                        placeholder = "Ej: Juan Pérez"
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            AppClientSelector(
+                                clientes = uiState.clientes,
+                                selectedCliente = uiState.clienteSeleccionado,
+                                onClienteSelected = onClienteSelected,
+                                placeholder = "Ej: Juan Pérez"
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                        IconButton(onClick = onAddClientClick) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Añadir nuevo cliente",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
 
@@ -189,13 +213,22 @@ fun AddObraScreenContent(
 
             item { Spacer(Modifier.height(Dimens.PaddingLarge)) }
         }
-        // MODIFIED END
     }
 
     if (uiState.showDiscardDialog) {
         DiscardChangesDialog(
             onDismiss = onDismissDialog,
             onConfirm = onConfirmDiscard
+        )
+    }
+
+    if (uiState.showAddClientDialog) {
+        AddClientDialog(
+            uiState = uiState,
+            onDismiss = onDismissAddClientDialog,
+            onNameChange = onNewClientNameChange,
+            onDniChange = onNewClientDniChange,
+            onSave = onSaveNewClient
         )
     }
 }
@@ -218,12 +251,71 @@ private fun DiscardChangesDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(AppStrings.cancel) }
         },
-        // MODIFIED: Icono más apropiado para una advertencia
         icon = { Icon(AppIcons.Close, contentDescription = null) }
     )
 }
 
-// ADDED START: Previews más completas
+@Composable
+private fun AddClientDialog(
+    uiState: AddObraUiState,
+    onDismiss: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onDniChange: (String) -> Unit,
+    onSave: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nuevo Cliente") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)) {
+                AppTextField(
+                    value = uiState.newClientNameInput,
+                    onValueChange = onNameChange,
+                    placeholder = "Nombre del cliente",
+                    isError = uiState.saveClientError != null,
+                    singleLine = true
+                )
+                AppTextField(
+                    value = uiState.newClientDniInput,
+                    onValueChange = { newValue -> onDniChange(newValue.filter { it.isDigit() }) },
+                    placeholder = "DNI del cliente",
+                    isError = uiState.saveClientError != null,
+                    singleLine = true,
+                    keyboardType = KeyboardType.Number
+                )
+                if (uiState.saveClientError != null) {
+                    Text(
+                        text = uiState.saveClientError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = Dimens.PaddingExtraSmall)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onSave,
+                enabled = uiState.newClientNameInput.isNotBlank() &&
+                        uiState.newClientDniInput.isNotBlank() &&
+                        !uiState.isSavingClient
+            ) {
+                if (uiState.isSavingClient) {
+                    CircularProgressIndicator(Modifier.size(Dimens.ProgressIndicatorSize / 2))
+                } else {
+                    Text("Guardar")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+
 private class AddObraUiStateProvider : CollectionPreviewParameterProvider<AddObraUiState>(
     listOf(
         AddObraUiState(
@@ -233,6 +325,21 @@ private class AddObraUiStateProvider : CollectionPreviewParameterProvider<AddObr
         ),
         AddObraUiState(
             isSaving = true
+        ),
+        AddObraUiState(
+            showAddClientDialog = true,
+            newClientNameInput = "Nuevo Cliente de Preview",
+            newClientDniInput = "12345678"
+        ),
+        AddObraUiState(
+            showAddClientDialog = true,
+            isSavingClient = true
+        ),
+        AddObraUiState(
+            showAddClientDialog = true,
+            newClientNameInput = "Error",
+            newClientDniInput = "12345678",
+            saveClientError = "El DNI ingresado ya existe."
         )
     )
 )
@@ -256,8 +363,12 @@ private fun AddObraScreenContentPreview(
             onSaveClick = {},
             onBackPress = {},
             onDismissDialog = {},
-            onConfirmDiscard = {}
+            onConfirmDiscard = {},
+            onAddClientClick = {},
+            onDismissAddClientDialog = {},
+            onNewClientNameChange = {},
+            onNewClientDniChange = {},
+            onSaveNewClient = {}
         )
     }
 }
-// ADDED END
