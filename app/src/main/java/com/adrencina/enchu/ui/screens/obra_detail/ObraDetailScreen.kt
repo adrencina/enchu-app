@@ -6,8 +6,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.data.model.Obra
@@ -121,8 +124,16 @@ private fun ObraDetailTopAppBar(
     onBackPressed: () -> Unit,
     onMenuPressed: () -> Unit
 ) {
-    TopAppBar(
-        title = { Text(obra?.clienteNombre ?: "Cargando...") },
+    SmallTopAppBar(
+        title = {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = obra?.clienteNombre ?: "Cargando...",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            }
+        },
         navigationIcon = {
             IconButton(onClick = onBackPressed) {
                 Icon(imageVector = AppIcons.ArrowBack, contentDescription = "Volver")
@@ -144,21 +155,23 @@ private fun ObraDetailTopAppBar(
 
 @Composable
 private fun ObraInfoSection(obra: Obra) {
-    Column(modifier = Modifier.padding(Dimens.PaddingMedium)) {
+    Column(modifier = Modifier.padding(start = Dimens.PaddingMedium, end = Dimens.PaddingMedium, top = 0.dp, bottom = 0.dp)) {
         Text(
             text = obra.nombreObra,
-            style = MaterialTheme.typography.bodyLarge,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onBackground
         )
         if (obra.descripcion.isNotBlank()) {
-            Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = obra.descripcion,
-                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+        Spacer(modifier = Modifier.height(2.dp))
         SuggestionChip(
             onClick = { /* No action */ },
             label = { Text(obra.estado) },
@@ -186,7 +199,13 @@ private fun ObraDetailTabs(
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onTabSelected(index) },
-                text = { Text(title) },
+                                text = {
+                                    Text(
+                                        modifier = Modifier.offset(y = 4.dp),                        text = title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                },
                 selectedContentColor = MaterialTheme.colorScheme.primary,
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )

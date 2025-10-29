@@ -52,17 +52,28 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override fun getObraById(obraId: String): Flow<Obra> {
-        // Por ahora, devolvemos una obra de ejemplo para desarrollo.
-        // TODO: Implementar la lógica para fetchear desde Firestore
-        val sampleObra = Obra(
-            id = obraId,
-            clienteNombre = "Cliente de Ejemplo",
-            nombreObra = "Nombre de Obra de Ejemplo",
-            descripcion = "Esta es una descripción de ejemplo para la obra.",
-            estado = "En Progreso",
-            fechaCreacion = java.util.Date(),
-            userId = auth.currentUser?.uid ?: ""
-        )
-        return flowOf(sampleObra)
+        return callbackFlow {
+            val docRef = firestore.collection("obras").document(obraId)
+
+            val listener = docRef.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    val obra = snapshot.toObject(Obra::class.java)
+                    if (obra != null) {
+                        trySend(obra).isSuccess
+                    } else {
+                        close(Exception("Error al parsear los datos de la obra."))
+                    }
+                } else {
+                    close(Exception("La obra con el ID especificado no existe."))
+                }
+            }
+
+            awaitClose { listener.remove() }
+        }
     }
 }
