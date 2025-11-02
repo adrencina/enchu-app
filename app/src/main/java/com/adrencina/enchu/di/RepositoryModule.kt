@@ -2,8 +2,10 @@ package com.adrencina.enchu.di
 
 import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.data.repository.ClienteRepositoryImpl
+import com.adrencina.enchu.data.repository.FileRepositoryImpl
 import com.adrencina.enchu.data.repository.ObraRepository
 import com.adrencina.enchu.data.repository.ObraRepositoryImpl
+import com.adrencina.enchu.domain.repository.FileRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -22,4 +24,9 @@ abstract class RepositoryModule {
     abstract fun bindClienteRepository(
         impl: ClienteRepositoryImpl
     ): ClienteRepository
+
+    @Binds
+    abstract fun bindFileRepository(
+        impl: FileRepositoryImpl
+    ): FileRepository
 }

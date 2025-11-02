@@ -1,10 +1,12 @@
 package com.adrencina.enchu.ui.screens.obra_detail
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.use_case.SaveFileToWorkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -22,11 +24,13 @@ sealed class ObraDetailUiState {
 
 sealed class ObraDetailEffect {
     object NavigateBack : ObraDetailEffect()
+    object LaunchFilePicker : ObraDetailEffect()
 }
 
 @HiltViewModel
 class ObraDetailViewModel @Inject constructor(
     private val repository: ObraRepository,
+    private val saveFileToWorkUseCase: SaveFileToWorkUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -63,7 +67,15 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onFabPressed() {
-        // TODO: Implementar lógica del FAB según la pestaña seleccionada
+        if ((_uiState.value as? ObraDetailUiState.Success)?.selectedTabIndex == 1) {
+            viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
+        }
+    }
+
+    fun onFileSelected(uri: Uri) {
+        viewModelScope.launch {
+            saveFileToWorkUseCase(obraId, uri)
+        }
     }
 
     private fun loadObraDetails() {

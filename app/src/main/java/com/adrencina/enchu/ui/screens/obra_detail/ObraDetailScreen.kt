@@ -1,5 +1,7 @@
 package com.adrencina.enchu.ui.screens.obra_detail
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.ui.screens.obra_detail.files.FilesScreen
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
@@ -26,10 +29,18 @@ fun ObraDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let { viewModel.onFileSelected(it) }
+        }
+    )
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 ObraDetailEffect.NavigateBack -> onNavigateBack()
+                ObraDetailEffect.LaunchFilePicker -> filePickerLauncher.launch("*/*")
             }
         }
     }
@@ -219,17 +230,24 @@ private fun TabContentArea(
     tabTitles: List<String>,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(Dimens.PaddingMedium),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            "Contenido para ${tabTitles[selectedTabIndex]}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    when (selectedTabIndex) {
+        1 -> {
+            FilesScreen()
+        }
+        else -> {
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(Dimens.PaddingMedium),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Contenido para ${tabTitles[selectedTabIndex]}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

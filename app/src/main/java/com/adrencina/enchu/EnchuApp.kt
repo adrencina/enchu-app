@@ -1,10 +1,19 @@
 package com.adrencina.enchu
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class EnchuApp : Application() {
-    // Por ahora, el cuerpo de la clase puede estar vacío.
-    // Hilt se encarga de generar el código necesario.
+class EnchuApp : Application(), Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }

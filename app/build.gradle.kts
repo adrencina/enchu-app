@@ -81,8 +81,26 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
+    // Paging
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
+
+    // Startup
+    implementation(libs.androidx.startup.runtime)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+
+    // Room (Base de datos local)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
+    kapt(libs.room.compiler)
+
     // Coil (Carga de imágenes)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.exifinterface)
 
     // Dependencias de Test
     testImplementation(libs.junit)
