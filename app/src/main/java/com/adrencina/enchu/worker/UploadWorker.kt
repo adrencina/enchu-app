@@ -9,6 +9,7 @@ import com.adrencina.enchu.data.local.FileDao
 import com.adrencina.enchu.data.model.SyncState
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.tasks.await
@@ -26,41 +27,51 @@ class UploadWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val fileId = inputData.getString("fileId") ?: return Result.failure()
 
-        try {
+        return try {
+            // 1. Marcar como UPLOADING en Room
             fileDao.updateSyncState(fileId, SyncState.UPLOADING)
 
+            // 2. Obtener entidad local
             val fileEntity = fileDao.getFileById(fileId) ?: return Result.failure()
-
-            // Deduplication check (simplified)
-            val existingFile = firestore.collectionGroup("files")
-                .whereEqualTo("checksum", fileEntity.checksum)
-                .limit(1)
-                .get()
-                .await()
-
-            if (existingFile.documents.isNotEmpty()) {
-                val remoteUrl = existingFile.documents[0].getString("remoteUrl") ?: ""
-                fileDao.updateFileStatus(fileId, remoteUrl, SyncState.SYNCED)
-                return Result.success()
-            }
-
             val file = File(fileEntity.localPath)
-            val storageRef = storage.reference.child("users/${fileEntity.userId}/${fileEntity.workId}/${file.name}")
-            val uploadTask = storageRef.putFile(Uri.fromFile(file)).await()
-            val remoteUrl = uploadTask.storage.downloadUrl.await().toString()
 
-            val firestoreDoc = firestore.collection("users").document(fileEntity.userId)
-                .collection("works").document(fileEntity.workId)
-                .collection("files").document(fileId)
+            // 3. Subir a Firebase Storage
+            val workId = fileEntity.workId
+            val fileName = file.name
+            val storageRef = storage.reference.child("obras/$workId/files/$fileName")
 
-            firestoreDoc.set(fileEntity.copy(remoteUrl = remoteUrl, syncState = SyncState.SYNCED)).await()
+            // Adjuntar metadatos con el userId para la regla de seguridad
+            val storageMetadata = StorageMetadata.Builder()
+                .setCustomMetadata("userId", fileEntity.userId)
+                .build()
 
+            storageRef.putFile(Uri.fromFile(file), storageMetadata).await()
+            val remoteUrl = storageRef.downloadUrl.await().toString()
+
+            // 4. Guardar metadata en Firestore
+            val firestoreDoc = firestore.collection("obras")
+                .document(workId)
+                .collection("files")
+                .document(fileId)
+
+            val metadata = fileEntity.copy(
+                remoteUrl = remoteUrl,
+                syncState = SyncState.SYNCED,
+                updatedAt = java.util.Date()
+            )
+
+            firestoreDoc.set(metadata).await()
+
+            // 5. Actualizar estado en Room
             fileDao.updateFileStatus(fileId, remoteUrl, SyncState.SYNCED)
 
-            return Result.success()
+            Result.success()
+
         } catch (e: Exception) {
-            fileDao.updateSyncState(fileId, SyncState.PENDING) // Revert to PENDING for retry
-            return Result.retry()
+            e.printStackTrace()
+            // Si algo falla, volver a estado PENDING para reintentar
+            fileDao.updateSyncState(fileId, SyncState.PENDING)
+            Result.retry()
         }
     }
 }

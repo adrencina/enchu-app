@@ -2,10 +2,12 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Los usuarios solo pueden escribir en su propia carpeta de usuario.
-    // La ruta del archivo debe coincidir con el UID del usuario, el ID de la obra y el ID del archivo.
-    match /users/{userId}/{workId}/{fileId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /obras/{workId}/files/{allPaths=**} {
+      // La regla de ESCRITURA verifica los metadatos del archivo que se sube
+      allow write: if request.auth != null && request.auth.uid == request.resource.metadata.userId;
+
+      // La regla de LECTURA verifica los metadatos del archivo que ya existe
+      allow read: if request.auth != null && resource.metadata.userId == request.auth.uid;
     }
   }
 }

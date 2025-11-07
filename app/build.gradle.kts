@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.appcheck)
+    implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.google.services.auth)
 
 
@@ -79,7 +81,9 @@ dependencies {
 
     // Hilt (Inyección de Dependencias)
     implementation(libs.hilt.android)
+    implementation(libs.google.firebase.appcheck.playintegrity)
     kapt(libs.hilt.compiler)
+    kapt(libs.androidx.hilt.compiler) // <-- ESTA ES LA LÍNEA NUEVA
     implementation(libs.androidx.hilt.navigation.compose)
 
     // Paging

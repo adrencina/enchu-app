@@ -33,7 +33,13 @@ class SaveFileToWorkUseCase @Inject constructor(
 
             val fileId = UUID.randomUUID().toString()
             val fileName = getFileName(sourceUri) ?: fileId
-            val fileExtension = fileName.substringAfterLast('.', "")
+            // Manejo más seguro de la extensión
+            val fileExtension = fileName.substringAfterLast('.', "").ifEmpty {
+                // Intentar obtener la extensión desde el MIME type si no está en el nombre
+                context.contentResolver.getType(sourceUri)?.let { mime ->
+                    android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+                } ?: ""
+            }
 
             val destinationDir = File(context.getExternalFilesDir(null), "works/$workId/files")
             if (!destinationDir.exists()) destinationDir.mkdirs()
@@ -52,23 +58,30 @@ class SaveFileToWorkUseCase @Inject constructor(
             val fileEntity = FileEntity(
                 fileId = fileId,
                 workId = workId,
-                userId = userId,
+                userId = userId, // Asegúrate que tu FileEntity tenga este campo si lo usas
                 fileName = fileName,
-                mimeType = context.contentResolver.getType(sourceUri) ?: "",
+                mimeType = context.contentResolver.getType(sourceUri) ?: "application/octet-stream",
                 size = size,
                 checksum = checksum,
                 localPath = destinationFile.absolutePath,
                 thumbnailPath = thumbnailPath,
+                remoteUrl = null, // Inicia como null
                 syncState = SyncState.PENDING,
                 createdAt = Date(),
                 updatedAt = Date()
             )
 
+            // Asumiendo que saveFileEntity es un método en tu Impl (aunque es mejor hacerlo vía interfaz)
+            // Esta línea es la que guarda en Room
             (fileRepository as com.adrencina.enchu.data.repository.FileRepositoryImpl).saveFileEntity(fileEntity)
+
+            // Esta línea es la que encola el trabajo de subida
             fileRepository.enqueueUpload(fileId)
 
             Result.success(fileEntity)
         } catch (e: Exception) {
+            // Loguear el error es buena idea
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -103,7 +116,7 @@ class SaveFileToWorkUseCase @Inject constructor(
     private fun calculateSHA256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         FileInputStream(file).use { fis ->
-            val byteArray = ByteArray(1024)
+            val byteArray = ByteArray(8192) // Buffer más grande
             var bytesCount = fis.read(byteArray)
             while (bytesCount != -1) {
                 digest.update(byteArray, 0, bytesCount)
@@ -114,26 +127,41 @@ class SaveFileToWorkUseCase @Inject constructor(
     }
 
     private fun generateThumbnail(file: File, fileId: String): String? {
-        val mimeType = context.contentResolver.getType(Uri.fromFile(file)) ?: return null
-        if (!mimeType.startsWith("image/")) return null
+        // Usar un URI del archivo para obtener el mime-type de forma más fiable
+        val fileUri = Uri.fromFile(file)
+        val mimeType = context.contentResolver.getType(fileUri) ?: return null
 
-        val thumbnailDir = File(context.getExternalFilesDir(null), "works/thumbnails")
-        if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
-        val thumbnailFile = File(thumbnailDir, "$fileId.jpg")
+        if (!mimeType.startsWith("image/")) return null // Solo para imágenes
 
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, options)
+        try {
+            val thumbnailDir = File(context.getExternalFilesDir(null), "works/thumbnails")
+            if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
+            val thumbnailFile = File(thumbnailDir, "$fileId.jpg")
 
-        options.inSampleSize = calculateInSampleSize(options, 150, 150)
-        options.inJustDecodeBounds = false
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, options)
 
-        val bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
-        val rotatedBitmap = rotateImageIfRequired(bitmap, file.absolutePath)
+            options.inSampleSize = calculateInSampleSize(options, 150, 150)
+            options.inJustDecodeBounds = false
 
-        thumbnailFile.outputStream().use { out ->
-            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+            val rotatedBitmap = rotateImageIfRequired(bitmap, file.absolutePath)
+
+            thumbnailFile.outputStream().use { out ->
+                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+            }
+
+            // Reciclar bitmaps si no estás en una versión muy nueva de Android
+            bitmap.recycle()
+            if (rotatedBitmap != bitmap) {
+                rotatedBitmap.recycle()
+            }
+
+            return thumbnailFile.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null // Falló la generación del thumbnail
         }
-        return thumbnailFile.absolutePath
     }
 
     private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
@@ -150,7 +178,14 @@ class SaveFileToWorkUseCase @Inject constructor(
     }
 
     private fun rotateImageIfRequired(img: Bitmap, path: String): Bitmap {
-        val ei = ExifInterface(path)
+        val ei: ExifInterface
+        try {
+            ei = ExifInterface(path)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return img // No se pudo leer EXIF, devolver original
+        }
+
         val orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
 
         return when (orientation) {
@@ -161,9 +196,9 @@ class SaveFileToWorkUseCase @Inject constructor(
         }
     }
 
-    private fun rotateImage(img: Bitmap, degree: Float): Bitmap {
+    private fun rotateImage(source: Bitmap, angle: Float): Bitmap {
         val matrix = Matrix()
-        matrix.postRotate(degree)
-        return Bitmap.createBitmap(img, 0, 0, img.width, img.height, matrix, true)
+        matrix.postRotate(angle)
+        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
     }
 }
