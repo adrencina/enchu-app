@@ -1,5 +1,6 @@
 package com.adrencina.enchu.ui.screens.obra_detail.files
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
@@ -25,8 +26,12 @@ import kotlin.math.ln
 import kotlin.math.pow
 
 @Composable
-fun FileItem(file: FileEntity) {
+fun FileItem(
+    file: FileEntity, 
+    onClick: () -> Unit
+) {
     ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
         headlineContent = {
             Text(
                 text = file.fileName,
