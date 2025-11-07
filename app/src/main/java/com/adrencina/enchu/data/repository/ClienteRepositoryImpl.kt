@@ -48,4 +48,23 @@ class ClienteRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun doesDniExist(dni: String): Boolean {
+        return try {
+            val userId = auth.currentUser?.uid ?: return false // No check if user is not logged in
+
+            val query = firestore.collection("clientes")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("dni", dni)
+                .limit(1)
+                .get()
+                .await()
+
+            !query.isEmpty
+        } catch (e: Exception) {
+            // On error, assume it doesn't exist to avoid blocking user.
+            // Consider logging the exception.
+            false
+        }
+    }
 }

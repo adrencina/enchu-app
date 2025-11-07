@@ -7,4 +7,6 @@ interface ClienteRepository {
     fun getClientes(): Flow<List<Cliente>>
 
     suspend fun saveCliente(cliente: Cliente): Result<Unit>
+
+    suspend fun doesDniExist(dni: String): Boolean
 }

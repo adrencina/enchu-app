@@ -1,6 +1,7 @@
 package com.adrencina.enchu.ui.components
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,8 +18,10 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
+private val obraDateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
 fun ObraCard(
     obra: Obra,
     onClick: () -> Unit,
@@ -33,9 +36,8 @@ fun ObraCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier
@@ -67,7 +69,7 @@ fun ObraCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = obra.fechaCreacion?.toFormattedString() ?: "",
+                    text = obra.fechaCreacion?.let { obraDateFormatter.format(it) } ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -81,30 +83,19 @@ fun ObraCard(
     }
 }
 
-// Función de extensión para formatear la fecha de forma limpia
-private fun Date.toFormattedString(): String {
-    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    return formatter.format(this)
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
-@Composable
-private fun ObraCardPreview() {
+ @Preview(showBackground = true)
+ @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+ @Composable
+fun ObraCardPreview() {
     EnchuTheme {
-        // El color de fondo del preview debe ser el de la app.
-        Surface(color = MaterialTheme.colorScheme.background) {
-            Box(modifier = Modifier.padding(Dimens.PaddingMedium)) {
-                ObraCard(
-                    obra = Obra(
-                        id = "preview-1",
-                        nombreObra = "Ampliación Salón Principal",
-                        clienteNombre = "ESFORZAR S.A.",
-                        fechaCreacion = Date()
-                    ),
-                    onClick = {}
-                )
-            }
-        }
+        ObraCard(
+            obra = Obra(
+                id = "preview-id",
+                nombreObra = "Reforma integral de un baño moderno",
+                clienteNombre = "Constructora Acme",
+                fechaCreacion = Date()
+            ),
+            onClick = {}
+        )
     }
 }

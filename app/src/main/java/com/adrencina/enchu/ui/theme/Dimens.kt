@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
  */
 object Dimens {
     // General Padding
+    val PaddingExtraSmall = 4.dp
     val PaddingSmall = 8.dp
 
     val PaddingMedium = 16.dp
@@ -18,4 +19,5 @@ object Dimens {
     val SplashLogoSize = 150.dp
     val LoginLogoSize = 130.dp
     val ProgressIndicatorSize = 48.dp
+    val TopBarHeight = 70.dp
 }

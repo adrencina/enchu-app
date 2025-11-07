@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
 
     // Firebase BOM (Bill of Materials)
     implementation(platform(libs.firebase.bom))
@@ -70,6 +71,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.appcheck)
+    implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.google.services.auth)
 
 
@@ -78,11 +81,31 @@ dependencies {
 
     // Hilt (Inyección de Dependencias)
     implementation(libs.hilt.android)
+    implementation(libs.google.firebase.appcheck.playintegrity)
     kapt(libs.hilt.compiler)
+    kapt(libs.androidx.hilt.compiler) // <-- ESTA ES LA LÍNEA NUEVA
     implementation(libs.androidx.hilt.navigation.compose)
+
+    // Paging
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
+
+    // Startup
+    implementation(libs.androidx.startup.runtime)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+
+    // Room (Base de datos local)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
+    kapt(libs.room.compiler)
 
     // Coil (Carga de imágenes)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.exifinterface)
 
     // Dependencias de Test
     testImplementation(libs.junit)

@@ -21,7 +21,14 @@ data class AddObraUiState(
     val estado: String = "Presupuestado",
     val showDiscardDialog: Boolean = false,
     val isSaving: Boolean = false,
-    val saveError: String? = null
+    val saveError: String? = null,
+
+    // State for the Add Client Dialog
+    val showAddClientDialog: Boolean = false,
+    val newClientNameInput: String = "",
+    val newClientDniInput: String = "",
+    val isSavingClient: Boolean = false,
+    val saveClientError: String? = null
 ) {
     val isSaveEnabled: Boolean get() = nombreObra.isNotBlank() && clienteSeleccionado != null
     val hasUnsavedChanges: Boolean get() = nombreObra.isNotEmpty()
@@ -119,4 +126,80 @@ class AddObraViewModel @Inject constructor(
         _uiState.update { it.copy(showDiscardDialog = false) }
         viewModelScope.launch { _sideEffect.emit(AddObraSideEffect.NavigateBack) }
     }
+
+    //region Add Client Dialog
+    fun onAddClientClick() {
+        _uiState.update { it.copy(showAddClientDialog = true, saveClientError = null) }
+    }
+
+    fun onDismissAddClientDialog() {
+        _uiState.update { it.copy(
+            showAddClientDialog = false,
+            newClientNameInput = "",
+            newClientDniInput = ""
+        ) }
+    }
+
+    fun onNewClientNameChange(name: String) {
+        _uiState.update { it.copy(newClientNameInput = name) }
+    }
+
+    fun onNewClientDniChange(dni: String) {
+        _uiState.update { it.copy(newClientDniInput = dni) }
+    }
+
+    fun onSaveNewClient() {
+        val state = _uiState.value
+        val newClientName = state.newClientNameInput
+        val newClientDni = state.newClientDniInput
+
+        if (newClientName.isBlank() || newClientDni.isBlank() || state.isSavingClient) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingClient = true, saveClientError = null) }
+
+            // DNI Validation
+            val dniNumber = newClientDni.toLongOrNull()
+            if (dniNumber == null || dniNumber < 1000000) {
+                _uiState.update {
+                    it.copy(
+                        isSavingClient = false,
+                        saveClientError = "El DNI debe ser un número mayor a 1.000.000."
+                    )
+                }
+                return@launch
+            }
+
+            if (clienteRepository.doesDniExist(newClientDni)) {
+                _uiState.update {
+                    it.copy(
+                        isSavingClient = false,
+                        saveClientError = "El DNI ingresado ya existe."
+                    )
+                }
+                return@launch
+            }
+
+            val result = clienteRepository.saveCliente(Cliente(nombre = newClientName, dni = newClientDni))
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isSavingClient = false,
+                        showAddClientDialog = false,
+                        newClientNameInput = "",
+                        newClientDniInput = ""
+                    )
+                }
+                // No need to manually select, the flow will update the list.
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isSavingClient = false,
+                        saveClientError = result.exceptionOrNull()?.message ?: "Error desconocido"
+                    )
+                }
+            }
+        }
+    }
+    //endregion
 }

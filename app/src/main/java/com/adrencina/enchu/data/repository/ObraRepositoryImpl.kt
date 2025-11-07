@@ -50,4 +50,30 @@ class ObraRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override fun getObraById(obraId: String): Flow<Obra> {
+        return callbackFlow {
+            val docRef = firestore.collection("obras").document(obraId)
+
+            val listener = docRef.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    val obra = snapshot.toObject(Obra::class.java)
+                    if (obra != null) {
+                        trySend(obra).isSuccess
+                    } else {
+                        close(Exception("Error al parsear los datos de la obra."))
+                    }
+                } else {
+                    close(Exception("La obra con el ID especificado no existe."))
+                }
+            }
+
+            awaitClose { listener.remove() }
+        }
+    }
 }
