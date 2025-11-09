@@ -14,15 +14,26 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
 sealed class FileViewEffect {
     data class OpenFile(val intent: Intent) : FileViewEffect()
+    data class ShareFile(val intent: Intent) : FileViewEffect()
     data class ShowError(val message: String) : FileViewEffect()
 }
+
+data class FilesUiState(
+    val fileToModify: FileEntity? = null,
+    val showRenameDialog: Boolean = false,
+    val showDeleteConfirmDialog: Boolean = false
+)
 
 @HiltViewModel
 class FilesViewModel @Inject constructor(
@@ -36,6 +47,9 @@ class FilesViewModel @Inject constructor(
     val files: Flow<PagingData<FileEntity>> = fileRepository
         .observeFilesForWork(workId)
         .cachedIn(viewModelScope)
+
+    private val _uiState = MutableStateFlow(FilesUiState())
+    val uiState: StateFlow<FilesUiState> = _uiState.asStateFlow()
 
     private val _viewEffect = Channel<FileViewEffect>()
     val viewEffect = _viewEffect.receiveAsFlow()
@@ -69,5 +83,77 @@ class FilesViewModel @Inject constructor(
                 _viewEffect.send(FileViewEffect.ShowError("No se pudo abrir el archivo: ${e.message}"))
             }
         }
+    }
+
+    fun onRenameRequest(file: FileEntity) {
+        _uiState.update { it.copy(fileToModify = file, showRenameDialog = true) }
+    }
+
+    fun onDeleteRequest(file: FileEntity) {
+        _uiState.update { it.copy(fileToModify = file, showDeleteConfirmDialog = true) }
+    }
+
+    fun onShareRequest(file: FileEntity) {
+        viewModelScope.launch {
+            if (file.localPath == null) {
+                _viewEffect.send(FileViewEffect.ShowError("El archivo no tiene una ruta local para compartir."))
+                return@launch
+            }
+
+            val fileOnDisk = File(file.localPath)
+            if (!fileOnDisk.exists()) {
+                _viewEffect.send(FileViewEffect.ShowError("El archivo no se encontró en el dispositivo."))
+                return@launch
+            }
+
+            try {
+                val authority = "${context.packageName}.provider"
+                val uri = FileProvider.getUriForFile(context, authority, fileOnDisk)
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = file.mimeType
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                val chooserIntent = Intent.createChooser(shareIntent, "Compartir archivo...")
+                _viewEffect.send(FileViewEffect.ShareFile(chooserIntent))
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _viewEffect.send(FileViewEffect.ShowError("No se pudo compartir el archivo: ${e.message}"))
+            }
+        }
+    }
+
+    fun onDismissDialog() {
+        _uiState.update {
+            it.copy(
+                fileToModify = null,
+                showRenameDialog = false,
+                showDeleteConfirmDialog = false
+            )
+        }
+    }
+
+    fun onConfirmRename(newName: String) {
+        val fileToRename = _uiState.value.fileToModify
+        if (fileToRename != null) {
+            viewModelScope.launch {
+                // Aquí iría la llamada al repositorio para renombrar
+                fileRepository.renameFile(fileToRename, newName)
+            }
+        }
+        onDismissDialog()
+    }
+
+    fun onConfirmDelete() {
+        val fileToDelete = _uiState.value.fileToModify
+        if (fileToDelete != null) {
+            viewModelScope.launch {
+                fileRepository.deleteFile(fileToDelete)
+            }
+        }
+        onDismissDialog()
     }
 }
