@@ -14,4 +14,8 @@ interface FileRepository {
     suspend fun enqueueUpload(fileId: String)
 
     suspend fun downloadFile(fileId: String): Result<FileEntity>
+
+    suspend fun deleteFile(file: FileEntity)
+
+    suspend fun renameFile(file: FileEntity, newName: String)
 }
