@@ -17,7 +17,8 @@ sealed class ObraDetailUiState {
     object Loading : ObraDetailUiState()
     data class Success(
         val obra: Obra,
-        val selectedTabIndex: Int = 0
+        val selectedTabIndex: Int = 0,
+        val isMenuExpanded: Boolean = false
     ) : ObraDetailUiState()
     data class Error(val message: String) : ObraDetailUiState()
 }
@@ -63,7 +64,33 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onMenuPressed() {
-        // TODO: Implementar lógica del menú (ej: mostrar dropdown)
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(isMenuExpanded = true)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onDismissMenu() {
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(isMenuExpanded = false)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onEditObra() {
+        onDismissMenu()
+        // TODO: Navigate to Edit screen
+    }
+
+    fun onArchiveObra() {
+        onDismissMenu()
+        // TODO: Implement archive logic
     }
 
     fun onFabPressed() {
