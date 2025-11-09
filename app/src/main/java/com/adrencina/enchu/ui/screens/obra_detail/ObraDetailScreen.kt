@@ -49,6 +49,9 @@ fun ObraDetailScreen(
         uiState = uiState,
         onBackPressed = viewModel::onBackPressed,
         onMenuPressed = viewModel::onMenuPressed,
+        onDismissMenu = viewModel::onDismissMenu,
+        onEditObra = viewModel::onEditObra,
+        onArchiveObra = viewModel::onArchiveObra,
         onTabSelected = viewModel::onTabSelected,
         onFabPressed = viewModel::onFabPressed
     )
@@ -60,6 +63,9 @@ fun ObraDetailScreenContent(
     uiState: ObraDetailUiState,
     onBackPressed: () -> Unit,
     onMenuPressed: () -> Unit,
+    onDismissMenu: () -> Unit,
+    onEditObra: () -> Unit,
+    onArchiveObra: () -> Unit,
     onTabSelected: (Int) -> Unit,
     onFabPressed: () -> Unit
 ) {
@@ -67,14 +73,36 @@ fun ObraDetailScreenContent(
 
     Scaffold(
         topBar = {
-            val obra = when (uiState) {
-                is ObraDetailUiState.Success -> uiState.obra
-                else -> null
+            val (obra, isMenuExpanded) = when (uiState) {
+                is ObraDetailUiState.Success -> uiState.obra to uiState.isMenuExpanded
+                else -> null to false
             }
             ObraDetailTopAppBar(
                 obra = obra,
                 onBackPressed = onBackPressed,
-                onMenuPressed = onMenuPressed
+                actions = {
+                    Box {
+                        IconButton(onClick = onMenuPressed) {
+                            Icon(
+                                imageVector = AppIcons.MoreVert,
+                                contentDescription = "Menú de opciones"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = onDismissMenu
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Editar Obra") },
+                                onClick = onEditObra
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Archivar Obra") },
+                                onClick = onArchiveObra
+                            )
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -128,38 +156,40 @@ fun ObraDetailScreenContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun ObraDetailTopAppBar(
     obra: Obra?,
     onBackPressed: () -> Unit,
-    onMenuPressed: () -> Unit
+    actions: @Composable RowScope.() -> Unit
 ) {
-    SmallTopAppBar(
+    TopAppBar(
         title = {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = obra?.clienteNombre ?: "Cargando...",
+                    text = obra?.nombre?.uppercase() ?: "Cargando...",
+                    textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         },
         navigationIcon = {
             IconButton(onClick = onBackPressed) {
-                Icon(imageVector = AppIcons.ArrowBack, contentDescription = "Volver")
+                Icon(
+                    imageVector = AppIcons.ArrowBack,
+                    contentDescription = "Atrás",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
             }
         },
-        actions = {
-            IconButton(onClick = onMenuPressed) {
-                Icon(imageVector = AppIcons.MoreVert, contentDescription = "Más opciones")
-            }
-        },
+        actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            titleContentColor = MaterialTheme.colorScheme.onBackground,
-            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-            actionIconContentColor = MaterialTheme.colorScheme.onBackground
+            containerColor = MaterialTheme.colorScheme.primary
         )
     )
 }
@@ -269,6 +299,9 @@ private fun ObraDetailScreenContentPreview() {
             ),
             onBackPressed = {},
             onMenuPressed = {},
+            onDismissMenu = {},
+            onEditObra = {},
+            onArchiveObra = {},
             onTabSelected = {},
             onFabPressed = {}
         )
