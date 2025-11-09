@@ -2,9 +2,35 @@ package com.adrencina.enchu.ui.screens.obra_detail
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +48,7 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
 import java.util.Date
 
+// Main entry point
 @Composable
 fun ObraDetailScreen(
     viewModel: ObraDetailViewModel = hiltViewModel(),
@@ -57,6 +84,7 @@ fun ObraDetailScreen(
     )
 }
 
+// Content composable
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ObraDetailScreenContent(
@@ -147,7 +175,6 @@ fun ObraDetailScreenContent(
 
                     TabContentArea(
                         selectedTabIndex = uiState.selectedTabIndex,
-                        tabTitles = tabTitles,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -156,6 +183,7 @@ fun ObraDetailScreenContent(
     }
 }
 
+// TopAppBar
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ObraDetailTopAppBar(
@@ -170,11 +198,11 @@ private fun ObraDetailTopAppBar(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = obra?.nombre?.uppercase() ?: "Cargando...",
+                    text = obra?.clienteNombre?.uppercase() ?: "Cargando...",
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
@@ -183,17 +211,18 @@ private fun ObraDetailTopAppBar(
                 Icon(
                     imageVector = AppIcons.ArrowBack,
                     contentDescription = "Atrás",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
         actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = Color.Transparent
         )
     )
 }
 
+// Info Section
 @Composable
 private fun ObraInfoSection(obra: Obra) {
     Column(modifier = Modifier.padding(start = Dimens.PaddingMedium, end = Dimens.PaddingMedium, top = 0.dp, bottom = 0.dp)) {
@@ -220,82 +249,64 @@ private fun ObraInfoSection(obra: Obra) {
                 containerColor = Exito.copy(alpha = 0.8f),
                 labelColor = Color.White
             ),
-            border = null
+            border = null,
+            modifier = Modifier.padding(vertical = 4.dp)
         )
+        Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
     }
 }
 
+// Tabs
 @Composable
-private fun ObraDetailTabs(
-    selectedTabIndex: Int,
-    tabTitles: List<String>,
-    onTabSelected: (Int) -> Unit
-) {
+private fun ObraDetailTabs(selectedTabIndex: Int, tabTitles: List<String>, onTabSelected: (Int) -> Unit) {
     TabRow(
         selectedTabIndex = selectedTabIndex,
-        containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.primary
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground
     ) {
         tabTitles.forEachIndexed { index, title ->
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onTabSelected(index) },
-                                text = {
-                                    Text(
-                                        modifier = Modifier.offset(y = 4.dp),                        text = title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                },
-                selectedContentColor = MaterialTheme.colorScheme.primary,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                text = { Text(text = title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
             )
         }
     }
 }
 
+// Tab Content
 @Composable
-private fun TabContentArea(
-    selectedTabIndex: Int,
-    tabTitles: List<String>,
-    modifier: Modifier = Modifier
-) {
-    when (selectedTabIndex) {
-        1 -> {
-            FilesScreen()
-        }
-        else -> {
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(Dimens.PaddingMedium),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "Contenido para ${tabTitles[selectedTabIndex]}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+private fun TabContentArea(selectedTabIndex: Int, modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        when (selectedTabIndex) {
+            0 -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Registros") }
+            1 -> FilesScreen()
+            2 -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Tareas") }
         }
     }
 }
 
+// Preview
 @Preview(showBackground = true)
 @Composable
-private fun ObraDetailScreenContentPreview() {
+fun ObraDetailScreenPreview() {
     EnchuTheme {
         ObraDetailScreenContent(
             uiState = ObraDetailUiState.Success(
                 obra = Obra(
                     id = "1",
-                    clienteNombre = "ESFORZAR S.A.",
-                    nombreObra = "Ampliación del salón de informática.",
-                    descripcion = "Cableado e instalación general.",
+                    userId = "",
+                    clienteId = "1",
+                    clienteNombre = "CASA CENTRAL",
+                    nombreObra = "Remodelación Cocina",
+                    descripcion = "Cambio de azulejos y mesada",
+                    telefono = "",
+                    direccion = "",
                     estado = "En Progreso",
                     fechaCreacion = Date()
                 ),
-                selectedTabIndex = 0
+                selectedTabIndex = 1,
+                isMenuExpanded = true
             ),
             onBackPressed = {},
             onMenuPressed = {},
