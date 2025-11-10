@@ -80,15 +80,7 @@ fun ObraDetailScreen(
         onEditObra = viewModel::onEditObra,
         onArchiveObra = viewModel::onArchiveObra,
         onTabSelected = viewModel::onTabSelected,
-        onFabPressed = viewModel::onFabPressed,
-        onDismissEditDialog = viewModel::onDismissEditDialog,
-        onConfirmEdit = viewModel::onConfirmEdit,
-        onNameChanged = viewModel::onNameChanged,
-        onDescriptionChanged = viewModel::onDescriptionChanged,
-        onEstadoChanged = viewModel::onEstadoChanged,
-        onTelefonoChanged = viewModel::onTelefonoChanged,
-        onDireccionChanged = viewModel::onDireccionChanged,
-        onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog
+        onFabPressed = viewModel::onFabPressed
     )
 }
 
@@ -103,15 +95,7 @@ fun ObraDetailScreenContent(
     onEditObra: () -> Unit,
     onArchiveObra: () -> Unit,
     onTabSelected: (Int) -> Unit,
-    onFabPressed: () -> Unit,
-    onDismissEditDialog: () -> Unit,
-    onConfirmEdit: () -> Unit,
-    onNameChanged: (String) -> Unit,
-    onDescriptionChanged: (String) -> Unit,
-    onEstadoChanged: (String) -> Unit,
-    onTelefonoChanged: (String) -> Unit,
-    onDireccionChanged: (String) -> Unit,
-    onToggleExpandEditDialog: () -> Unit
+    onFabPressed: () -> Unit
 ) {
     val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS")
 
@@ -181,20 +165,6 @@ fun ObraDetailScreenContent(
                     }
                 }
                 is ObraDetailUiState.Success -> {
-                    if (uiState.showEditDialog) {
-                        EditObraDialog(
-                            uiState = uiState,
-                            onDismiss = onDismissEditDialog,
-                            onConfirm = onConfirmEdit,
-                            onNameChanged = onNameChanged,
-                            onDescriptionChanged = onDescriptionChanged,
-                            onEstadoChanged = onEstadoChanged,
-                            onTelefonoChanged = onTelefonoChanged,
-                            onDireccionChanged = onDireccionChanged,
-                            onToggleExpand = onToggleExpandEditDialog
-                        )
-                    }
-
                     ObraInfoSection(obra = uiState.obra)
 
                     ObraDetailTabs(
@@ -319,17 +289,24 @@ private fun TabContentArea(selectedTabIndex: Int, modifier: Modifier = Modifier)
 // Preview
 @Preview(showBackground = true)
 @Composable
-fun ObraDetailScreenContentPreview() {
+fun ObraDetailScreenPreview() {
     EnchuTheme {
         ObraDetailScreenContent(
             uiState = ObraDetailUiState.Success(
                 obra = Obra(
-                    clienteNombre = "Cliente de Prueba",
-                    nombreObra = "Nombre de la Obra",
-                    descripcion = "Esta es una descripción de ejemplo para la obra que es un poco más larga para ver cómo se ajusta.",
-                    estado = "En Proceso",
+                    id = "1",
+                    userId = "",
+                    clienteId = "1",
+                    clienteNombre = "CASA CENTRAL",
+                    nombreObra = "Remodelación Cocina",
+                    descripcion = "Cambio de azulejos y mesada",
+                    telefono = "",
+                    direccion = "",
+                    estado = "En Progreso",
                     fechaCreacion = Date()
-                )
+                ),
+                selectedTabIndex = 1,
+                isMenuExpanded = true
             ),
             onBackPressed = {},
             onMenuPressed = {},
@@ -337,15 +314,7 @@ fun ObraDetailScreenContentPreview() {
             onEditObra = {},
             onArchiveObra = {},
             onTabSelected = {},
-            onFabPressed = {},
-            onDismissEditDialog = {},
-            onConfirmEdit = {},
-            onNameChanged = {},
-            onDescriptionChanged = {},
-            onEstadoChanged = {},
-            onTelefonoChanged = {},
-            onDireccionChanged = {},
-            onToggleExpandEditDialog = {}
+            onFabPressed = {}
         )
     }
 }
