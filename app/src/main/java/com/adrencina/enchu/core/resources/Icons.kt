@@ -5,6 +5,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -18,6 +20,8 @@ object AppIcons {
     val Add: ImageVector = Icons.Default.Add
     val Search: ImageVector = Icons.Default.Search
     val MoreVert: ImageVector = Icons.Default.MoreVert
+    val ExpandLess: ImageVector = Icons.Default.ExpandLess
+    val ExpandMore: ImageVector = Icons.Default.ExpandMore
 
     val ArrowBack = Icons.AutoMirrored.Filled.ArrowBack
     val Close = Icons.Default.Close

@@ -76,4 +76,26 @@ class ObraRepositoryImpl @Inject constructor(
             awaitClose { listener.remove() }
         }
     }
+
+    override suspend fun updateObra(obra: Obra): Result<Unit> {
+        return try {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                return Result.failure(Exception("Usuario no autenticado."))
+            }
+            // Actualizamos solo los campos que pueden ser modificados
+            firestore.collection("obras").document(obra.id).update(
+                mapOf(
+                    "nombreObra" to obra.nombreObra,
+                    "descripcion" to obra.descripcion,
+                    "estado" to obra.estado,
+                    "telefono" to obra.telefono,
+                    "direccion" to obra.direccion
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
