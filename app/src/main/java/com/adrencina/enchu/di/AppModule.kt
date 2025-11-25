@@ -2,6 +2,7 @@ package com.adrencina.enchu.di
 
 import android.content.Context
 import androidx.room.Room
+import com.adrencina.enchu.data.encryption.PassphraseProvider
 import com.adrencina.enchu.data.local.AppDatabase
 import com.adrencina.enchu.data.local.FileDao
 import com.adrencina.enchu.data.repository.AuthRepository
@@ -14,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.sqlcipher.database.SupportFactory
 import javax.inject.Singleton
 
 @Module
@@ -34,12 +36,21 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+    fun provideAppDatabase(
+        @ApplicationContext context: Context,
+        passphraseProvider: PassphraseProvider
+    ): AppDatabase {
+        val passphrase = passphraseProvider.getPassphrase()
+        val factory = SupportFactory(passphrase)
+
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "enchu-db"
-        ).build()
+        )
+            .openHelperFactory(factory)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

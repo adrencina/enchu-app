@@ -10,10 +10,7 @@ work = "2.9.0"
 hiltWork = "1.2.0"
 paging = "3.3.0"
 startup = "1.1.1"
-
-# Usamos la versión del BoM que ya tenías. Es estable.
 composeBom = "2024.02.02"
-
 firebaseBom = "33.1.2"
 googleServicesAuth = "21.2.0"
 coil = "2.6.0"
@@ -21,12 +18,13 @@ navigationCompose = "2.7.7"
 hilt = "2.49"
 hiltNavigationCompose = "1.2.0"
 googleServicesPlugin = "4.4.2"
-
-# Testing
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 firebaseAppcheckPlayintegrity = "19.0.1"
+sqlcipher = "4.5.4"
+androidxSqlite = "2.4.0"
+androidxSecurity = "1.1.0-alpha06"
 
 [libraries]
 # Core KTX
@@ -78,12 +76,17 @@ google-services-auth = { group = "com.google.android.gms", name = "play-services
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" } # <-- ESTA ES LA LÍNEA NUEVA
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "androidxExifinterface" }
+
+# SQLCipher & Security
+sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "androidxSqlite" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "androidxSecurity" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

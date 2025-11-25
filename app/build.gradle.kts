@@ -25,7 +25,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -48,6 +48,15 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            pickFirsts.addAll(listOf(
+                "lib/arm64-v8a/libsqlcipher.so",
+                "lib/armeabi-v7a/libsqlcipher.so",
+                "lib/x86/libsqlcipher.so",
+                "lib/x86_64/libsqlcipher.so"
+            ))
+            useLegacyPackaging = true
         }
     }
 }
@@ -102,6 +111,11 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.paging)
     kapt(libs.room.compiler)
+
+    // Cifrado de Base de Datos y Keystore
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    implementation(libs.androidx.sqlite)
+    implementation(libs.androidx.security.crypto)
 
     // Coil (Carga de imágenes)
     implementation(libs.coil.compose)
