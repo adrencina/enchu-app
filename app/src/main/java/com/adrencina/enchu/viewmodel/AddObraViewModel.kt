@@ -27,6 +27,7 @@ data class AddObraUiState(
     val showAddClientDialog: Boolean = false,
     val newClientNameInput: String = "",
     val newClientDniInput: String = "",
+    val isAutoDniChecked: Boolean = false,
     val isSavingClient: Boolean = false,
     val saveClientError: String? = null
 ) {
@@ -136,7 +137,8 @@ class AddObraViewModel @Inject constructor(
         _uiState.update { it.copy(
             showAddClientDialog = false,
             newClientNameInput = "",
-            newClientDniInput = ""
+            newClientDniInput = "",
+            isAutoDniChecked = false
         ) }
     }
 
@@ -148,36 +150,63 @@ class AddObraViewModel @Inject constructor(
         _uiState.update { it.copy(newClientDniInput = dni.take(15)) }
     }
 
+    fun onAutoDniCheckedChange(isChecked: Boolean) {
+        _uiState.update {
+            it.copy(
+                isAutoDniChecked = isChecked,
+                newClientDniInput = if (isChecked) "" else it.newClientDniInput
+            )
+        }
+    }
+
+    private fun generateProvisionalDni(): String {
+        val currentProvisionalDnis = _uiState.value.clientes
+            .mapNotNull { it.dni.toLongOrNull() }
+            .filter { it < 1000000 }
+
+        val nextId = if (currentProvisionalDnis.isEmpty()) {
+            1L
+        } else {
+            currentProvisionalDnis.max() + 1
+        }
+        // Format with leading zeros to 8 digits
+        return nextId.toString().padStart(8, '0')
+    }
+
     fun onSaveNewClient() {
         val state = _uiState.value
         val newClientName = state.newClientNameInput
-        val newClientDni = state.newClientDniInput
+        var newClientDni = state.newClientDniInput
 
-        if (newClientName.isBlank() || newClientDni.isBlank() || state.isSavingClient) return
+        if (newClientName.isBlank() || (newClientDni.isBlank() && !state.isAutoDniChecked) || state.isSavingClient) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingClient = true, saveClientError = null) }
 
-            // DNI Validation
-            val dniNumber = newClientDni.toLongOrNull()
-            if (dniNumber == null || dniNumber < 1000000) {
-                _uiState.update {
-                    it.copy(
-                        isSavingClient = false,
-                        saveClientError = "El DNI debe ser un número mayor a 1.000.000."
-                    )
+            if (state.isAutoDniChecked) {
+                newClientDni = generateProvisionalDni()
+            } else {
+                // Standard DNI Validation
+                val dniNumber = newClientDni.toLongOrNull()
+                if (dniNumber == null || dniNumber < 1000000) {
+                    _uiState.update {
+                        it.copy(
+                            isSavingClient = false,
+                            saveClientError = "El DNI debe ser un número mayor a 1.000.000."
+                        )
+                    }
+                    return@launch
                 }
-                return@launch
-            }
 
-            if (clienteRepository.doesDniExist(newClientDni)) {
-                _uiState.update {
-                    it.copy(
-                        isSavingClient = false,
-                        saveClientError = "El DNI ingresado ya existe."
-                    )
+                if (clienteRepository.doesDniExist(newClientDni)) {
+                    _uiState.update {
+                        it.copy(
+                            isSavingClient = false,
+                            saveClientError = "El DNI ingresado ya existe."
+                        )
+                    }
+                    return@launch
                 }
-                return@launch
             }
 
             val result = clienteRepository.saveCliente(Cliente(nombre = newClientName, dni = newClientDni))
@@ -187,10 +216,10 @@ class AddObraViewModel @Inject constructor(
                         isSavingClient = false,
                         showAddClientDialog = false,
                         newClientNameInput = "",
-                        newClientDniInput = ""
+                        newClientDniInput = "",
+                        isAutoDniChecked = false
                     )
                 }
-                // No need to manually select, the flow will update the list.
             } else {
                 _uiState.update {
                     it.copy(

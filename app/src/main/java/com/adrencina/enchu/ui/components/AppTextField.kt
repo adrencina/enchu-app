@@ -24,7 +24,8 @@ fun AppTextField(
     imeAction: ImeAction = ImeAction.Next,
     singleLine: Boolean = true,
     minLines: Int = 1,
-    isError: Boolean = false
+    isError: Boolean = false,
+    enabled: Boolean = true
 ) {
     OutlinedTextField(
         value = value,
@@ -32,6 +33,7 @@ fun AppTextField(
         modifier = modifier
             .fillMaxWidth()
             .testTag("app_text_field_$placeholder"),
+        enabled = enabled,
         placeholder = { Text(placeholder) },
         shape = MaterialTheme.shapes.medium,
         keyboardOptions = KeyboardOptions(

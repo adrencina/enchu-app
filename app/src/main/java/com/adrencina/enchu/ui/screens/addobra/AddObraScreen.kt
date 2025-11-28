@@ -70,6 +70,7 @@ fun AddObraScreen(
         onDismissAddClientDialog = viewModel::onDismissAddClientDialog,
         onNewClientNameChange = viewModel::onNewClientNameChange,
         onNewClientDniChange = viewModel::onNewClientDniChange,
+        onAutoDniCheckedChange = viewModel::onAutoDniCheckedChange,
         onSaveNewClient = viewModel::onSaveNewClient
     )
 }
@@ -92,6 +93,7 @@ fun AddObraScreenContent(
     onDismissAddClientDialog: () -> Unit,
     onNewClientNameChange: (String) -> Unit,
     onNewClientDniChange: (String) -> Unit,
+    onAutoDniCheckedChange: (Boolean) -> Unit,
     onSaveNewClient: () -> Unit
 ) {
     Scaffold(
@@ -228,6 +230,7 @@ fun AddObraScreenContent(
             onDismiss = onDismissAddClientDialog,
             onNameChange = onNewClientNameChange,
             onDniChange = onNewClientDniChange,
+            onAutoDniCheckedChange = onAutoDniCheckedChange,
             onSave = onSaveNewClient
         )
     }
@@ -261,6 +264,7 @@ private fun AddClientDialog(
     onDismiss: () -> Unit,
     onNameChange: (String) -> Unit,
     onDniChange: (String) -> Unit,
+    onAutoDniCheckedChange: (Boolean) -> Unit,
     onSave: () -> Unit
 ) {
     AlertDialog(
@@ -275,13 +279,30 @@ private fun AddClientDialog(
                     isError = uiState.saveClientError != null,
                     singleLine = true
                 )
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = uiState.isAutoDniChecked,
+                        onCheckedChange = onAutoDniCheckedChange
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingExtraSmall))
+                    Text(
+                        text = "No tengo el DNI / Generar automático",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 AppTextField(
                     value = uiState.newClientDniInput,
                     onValueChange = { newValue -> onDniChange(newValue.filter { it.isDigit() }) },
-                    placeholder = "DNI del cliente",
-                    isError = uiState.saveClientError != null,
+                    placeholder = if(uiState.isAutoDniChecked) "DNI (Automático)" else "DNI del cliente",
+                    isError = uiState.saveClientError != null && !uiState.isAutoDniChecked,
                     singleLine = true,
-                    keyboardType = KeyboardType.Number
+                    keyboardType = KeyboardType.Number,
+                    enabled = !uiState.isAutoDniChecked
                 )
                 if (uiState.saveClientError != null) {
                     Text(
@@ -297,7 +318,7 @@ private fun AddClientDialog(
             Button(
                 onClick = onSave,
                 enabled = uiState.newClientNameInput.isNotBlank() &&
-                        uiState.newClientDniInput.isNotBlank() &&
+                        (uiState.newClientDniInput.isNotBlank() || uiState.isAutoDniChecked) &&
                         !uiState.isSavingClient
             ) {
                 if (uiState.isSavingClient) {
@@ -368,6 +389,7 @@ private fun AddObraScreenContentPreview(
             onDismissAddClientDialog = {},
             onNewClientNameChange = {},
             onNewClientDniChange = {},
+            onAutoDniCheckedChange = {},
             onSaveNewClient = {}
         )
     }
