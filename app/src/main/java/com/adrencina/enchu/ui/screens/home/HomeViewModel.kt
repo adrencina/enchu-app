@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 sealed class HomeUiState {
     object Loading : HomeUiState()
-    data class Success(val obras: List<Obra>) : HomeUiState()
+    data class Success(val obras: List<Obra>, val archivedCount: Int = 0) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
 
@@ -31,8 +31,6 @@ class HomeViewModel @Inject constructor(
     val uiEffect = _uiEffect.asSharedFlow()
 
     init {
-        // La única llamada a la carga de datos se hace aquí.
-        // El .collect se mantendrá escuchando cambios mientras el ViewModel viva.
         loadObras()
     }
 
@@ -42,18 +40,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // CAMBIO: La función vuelve a ser privada. La UI ya no necesita llamarla.
     private fun loadObras() {
         viewModelScope.launch {
-            obraRepository.getObras()
-                .catch { exception ->
-                    _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
-                }
-                .collect { obras ->
-                    // Cada vez que haya un cambio en Firestore, esta línea se ejecutará
-                    // y actualizará la UI con la nueva lista de obras.
-                    _uiState.value = HomeUiState.Success(obras)
-                }
+            combine(
+                obraRepository.getObras(),
+                obraRepository.getArchivedObras()
+            ) { activeObras, archivedObras ->
+                HomeUiState.Success(activeObras, archivedObras.size)
+            }
+            .catch { exception ->
+                _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
+            }
+            .collect { newState ->
+                _uiState.value = newState
+            }
         }
     }
 }

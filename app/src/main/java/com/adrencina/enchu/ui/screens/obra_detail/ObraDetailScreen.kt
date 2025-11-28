@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,6 +27,7 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -88,7 +91,9 @@ fun ObraDetailScreen(
         onEstadoChanged = viewModel::onEstadoChanged,
         onTelefonoChanged = viewModel::onTelefonoChanged,
         onDireccionChanged = viewModel::onDireccionChanged,
-        onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog
+        onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog,
+        onDismissArchiveDialog = viewModel::onDismissArchiveDialog,
+        onConfirmArchive = viewModel::onConfirmArchive
     )
 }
 
@@ -111,7 +116,9 @@ fun ObraDetailScreenContent(
     onEstadoChanged: (String) -> Unit,
     onTelefonoChanged: (String) -> Unit,
     onDireccionChanged: (String) -> Unit,
-    onToggleExpandEditDialog: () -> Unit
+    onToggleExpandEditDialog: () -> Unit,
+    onDismissArchiveDialog: () -> Unit,
+    onConfirmArchive: () -> Unit
 ) {
     val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS")
 
@@ -192,6 +199,13 @@ fun ObraDetailScreenContent(
                             onTelefonoChanged = onTelefonoChanged,
                             onDireccionChanged = onDireccionChanged,
                             onToggleExpand = onToggleExpandEditDialog
+                        )
+                    }
+
+                    if (uiState.showArchiveDialog) {
+                        ArchiveConfirmationDialog(
+                            onDismiss = onDismissArchiveDialog,
+                            onConfirm = onConfirmArchive
                         )
                     }
 
@@ -316,6 +330,28 @@ private fun TabContentArea(selectedTabIndex: Int, modifier: Modifier = Modifier)
     }
 }
 
+@Composable
+private fun ArchiveConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Archivar Obra") },
+        text = { Text("¿Estás seguro? La obra se moverá a la sección de archivados.") },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Archivar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
 // Preview
 @Preview(showBackground = true)
 @Composable
@@ -345,7 +381,9 @@ fun ObraDetailScreenContentPreview() {
             onEstadoChanged = {},
             onTelefonoChanged = {},
             onDireccionChanged = {},
-            onToggleExpandEditDialog = {}
+            onToggleExpandEditDialog = {},
+            onDismissArchiveDialog = {},
+            onConfirmArchive = {}
         )
     }
 }

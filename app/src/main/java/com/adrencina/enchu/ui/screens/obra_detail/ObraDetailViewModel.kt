@@ -20,6 +20,7 @@ sealed class ObraDetailUiState {
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
+        val showArchiveDialog: Boolean = false,
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
@@ -199,7 +200,31 @@ class ObraDetailViewModel @Inject constructor(
 
     fun onArchiveObra() {
         onDismissMenu()
-        // TODO: Implement archive logic
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(showArchiveDialog = true)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onDismissArchiveDialog() {
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(showArchiveDialog = false)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onConfirmArchive() {
+        viewModelScope.launch {
+            repository.archiveObra(obraId)
+            onDismissArchiveDialog()
+            _effect.emit(ObraDetailEffect.NavigateBack)
+        }
     }
 
     fun onFabPressed() {

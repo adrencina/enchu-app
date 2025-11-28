@@ -51,7 +51,8 @@ fun HomeScreen(
     newObraResult: String?,
     onClearNewObraResult: () -> Unit,
     onAddObraClick: () -> Unit,
-    onObraClick: (String) -> Unit
+    onObraClick: (String) -> Unit,
+    onArchivedObrasClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -94,6 +95,21 @@ fun HomeScreen(
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            val state = uiState
+            if (state is HomeUiState.Success && state.archivedCount > 0) {
+                androidx.compose.material3.BottomAppBar(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    androidx.compose.material3.TextButton(onClick = onArchivedObrasClick) {
+                        Icon(imageVector = AppIcons.Archive, contentDescription = null)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
+                        Text("Obras archivadas (${state.archivedCount})")
+                    }
+                }
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         HomeScreenContent(

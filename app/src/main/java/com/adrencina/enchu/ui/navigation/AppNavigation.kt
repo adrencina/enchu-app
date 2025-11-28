@@ -56,7 +56,8 @@ fun AppNavigation() {
                 onAddObraClick = { navController.navigate(Routes.ADD_OBRA_SCREEN) },
                 onObraClick = { obraId ->
                     navController.navigate(Routes.createObraDetailRoute(obraId))
-                }
+                },
+                onArchivedObrasClick = { navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN) }
             )
         }
 
@@ -68,6 +69,15 @@ fun AppNavigation() {
                         ?.savedStateHandle
                         ?.set("new_obra_result", clientName)
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.ARCHIVED_OBRAS_SCREEN) {
+            com.adrencina.enchu.ui.screens.archived_obras.ArchivedObrasScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onObraClick = { obraId ->
+                    navController.navigate(Routes.createObraDetailRoute(obraId))
                 }
             )
         }

@@ -15,26 +15,54 @@ class ObraRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : ObraRepository {
 
-    override fun getObras(): Flow<List<Obra>> {
-        val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
-
-        return callbackFlow {
-            val listener = firestore.collection("obras")
-                .whereEqualTo("userId", userId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        close(error)
-                        return@addSnapshotListener
+        override fun getObras(): Flow<List<Obra>> {
+            val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+    
+            return callbackFlow {
+                val listener = firestore.collection("obras")
+                    .whereEqualTo("userId", userId)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            close(error)
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            val obras = snapshot.toObjects(Obra::class.java)
+                            trySend(obras.filter { !it.isArchived }).isSuccess
+                        }
                     }
-                    if (snapshot != null) {
-                        val obras = snapshot.toObjects(Obra::class.java)
-                        trySend(obras).isSuccess
-                    }
-                }
-            awaitClose { listener.remove() }
+                awaitClose { listener.remove() }
+            }
         }
-    }
-
+    
+        override fun getArchivedObras(): Flow<List<Obra>> {
+            val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+    
+            return callbackFlow {
+                val listener = firestore.collection("obras")
+                    .whereEqualTo("userId", userId)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            close(error)
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            val obras = snapshot.toObjects(Obra::class.java)
+                            trySend(obras.filter { it.isArchived }).isSuccess
+                        }
+                    }
+                awaitClose { listener.remove() }
+            }
+        }
+    
+        override suspend fun archiveObra(obraId: String): Result<Unit> {
+            return try {
+                firestore.collection("obras").document(obraId).update("isArchived", true).await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     override suspend fun saveObra(obra: Obra): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid

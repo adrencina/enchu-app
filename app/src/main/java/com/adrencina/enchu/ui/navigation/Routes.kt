@@ -11,6 +11,7 @@ object Routes {
 
     // Rutas para futuras pantallas
     const val ADD_OBRA_SCREEN = "add_obra_screen"
+    const val ARCHIVED_OBRAS_SCREEN = "archived_obras_screen"
     // Ruta con un argumento para el ID de la obra
     const val OBRA_DETAIL_SCREEN = "obra_detail_screen/{obraId}"
 

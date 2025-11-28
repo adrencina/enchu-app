@@ -3,6 +3,7 @@ package com.adrencina.enchu.core.resources
 import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
@@ -18,6 +19,7 @@ object AppIcons {
 
     // Material Icons
     val Add: ImageVector = Icons.Default.Add
+    val Archive: ImageVector = Icons.Default.Archive
     val Search: ImageVector = Icons.Default.Search
     val MoreVert: ImageVector = Icons.Default.MoreVert
     val ExpandLess: ImageVector = Icons.Default.ExpandLess

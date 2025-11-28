@@ -16,13 +16,13 @@ interface ObraRepository {
      */
     fun getObras(): Flow<List<Obra>>
 
+    fun getArchivedObras(): Flow<List<Obra>>
+
     suspend fun saveObra(obra: Obra): Result<Unit>
 
     fun getObraById(obraId: String): Flow<Obra>
 
     suspend fun updateObra(obra: Obra): Result<Unit>
 
-    // A futuro, aquí añadiremos más funciones como:
-    // suspend fun addObra(obra: Obra)
-    // suspend fun deleteObra(obraId: String)
+    suspend fun archiveObra(obraId: String): Result<Unit>
 }
