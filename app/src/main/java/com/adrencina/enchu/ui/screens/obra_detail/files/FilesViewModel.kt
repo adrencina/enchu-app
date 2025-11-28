@@ -141,7 +141,7 @@ class FilesViewModel @Inject constructor(
         if (fileToRename != null) {
             viewModelScope.launch {
                 // Aquí iría la llamada al repositorio para renombrar
-                fileRepository.renameFile(fileToRename, newName)
+                fileRepository.renameFile(fileToRename, newName.take(100))
             }
         }
         onDismissDialog()

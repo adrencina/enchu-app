@@ -132,7 +132,7 @@ class ObraDetailViewModel @Inject constructor(
     fun onNameChanged(newName: String) {
         _uiState.update { currentState ->
             if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedObraName = newName)
+                currentState.copy(editedObraName = newName.take(50))
             } else {
                 currentState
             }
@@ -142,7 +142,7 @@ class ObraDetailViewModel @Inject constructor(
     fun onDescriptionChanged(newDescription: String) {
         _uiState.update { currentState ->
             if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedObraDescription = newDescription)
+                currentState.copy(editedObraDescription = newDescription.take(200))
             } else {
                 currentState
             }
@@ -162,7 +162,7 @@ class ObraDetailViewModel @Inject constructor(
     fun onTelefonoChanged(newTelefono: String) {
         _uiState.update { currentState ->
             if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedTelefono = newTelefono)
+                currentState.copy(editedTelefono = newTelefono.take(20))
             } else {
                 currentState
             }
@@ -172,7 +172,7 @@ class ObraDetailViewModel @Inject constructor(
     fun onDireccionChanged(newDireccion: String) {
         _uiState.update { currentState ->
             if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedDireccion = newDireccion)
+                currentState.copy(editedDireccion = newDireccion.take(100))
             } else {
                 currentState
             }

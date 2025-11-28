@@ -77,10 +77,10 @@ class AddObraViewModel @Inject constructor(
         }
     }
 
-    fun onNombreChange(newValue: String) { _uiState.update { it.copy(nombreObra = newValue) } }
-    fun onDescripcionChange(newValue: String) { _uiState.update { it.copy(descripcion = newValue) } }
-    fun onTelefonoChange(newValue: String) { _uiState.update { it.copy(telefono = newValue) } }
-    fun onDireccionChange(newValue: String) { _uiState.update { it.copy(direccion = newValue) } }
+    fun onNombreChange(newValue: String) { _uiState.update { it.copy(nombreObra = newValue.take(50)) } }
+    fun onDescripcionChange(newValue: String) { _uiState.update { it.copy(descripcion = newValue.take(200)) } }
+    fun onTelefonoChange(newValue: String) { _uiState.update { it.copy(telefono = newValue.take(20)) } }
+    fun onDireccionChange(newValue: String) { _uiState.update { it.copy(direccion = newValue.take(100)) } }
     fun onEstadoChange(newState: String) { _uiState.update { it.copy(estado = newState) } }
     fun onClienteSelected(cliente: Cliente) { _uiState.update { it.copy(clienteSeleccionado = cliente) } }
 
@@ -141,11 +141,11 @@ class AddObraViewModel @Inject constructor(
     }
 
     fun onNewClientNameChange(name: String) {
-        _uiState.update { it.copy(newClientNameInput = name) }
+        _uiState.update { it.copy(newClientNameInput = name.take(50)) }
     }
 
     fun onNewClientDniChange(dni: String) {
-        _uiState.update { it.copy(newClientDniInput = dni) }
+        _uiState.update { it.copy(newClientDniInput = dni.take(15)) }
     }
 
     fun onSaveNewClient() {
