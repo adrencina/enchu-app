@@ -19,3 +19,17 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# -----------------------------------------------------------------------------------
+# Reglas para los Modelos de Datos de Firebase
+# Mantiene todas las clases en el paquete data.model y todos sus miembros (campos y métodos).
+# Esto evita que R8/ProGuard los renombre o elimine.
+# Es CRÍTICO para Firebase, que usa los nombres de estas clases y campos para mapear los datos.
+# Si fueran renombrados, Firebase no los encontraría y la app fallaría al leer/escribir datos.
+-keep class com.adrencina.enchu.data.model.** { *; }
+
+# Esta regla es una seguridad adicional. Asegura que los nombres de las clases y sus
+# miembros no sean ofuscados, incluso si R8 pensara que puede hacerlo.
+-keepnames class com.adrencina.enchu.data.model.** { *; }
+# -----------------------------------------------------------------------------------
+
