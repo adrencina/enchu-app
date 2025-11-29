@@ -2,14 +2,20 @@ package com.adrencina.enchu.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -18,21 +24,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +69,8 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
     LaunchedEffect(newObraResult) {
         if (newObraResult != null) {
             viewModel.onNewObraCreated(newObraResult)
@@ -80,36 +92,58 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = { HomeTopAppBar() },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddObraClick,
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-            ) {
-                Icon(
-                    imageVector = AppIcons.Add,
-                    contentDescription = AppStrings.addObra
-                )
-            }
+        topBar = {
+            MisObrasTopBar(
+                searchQuery = searchQuery,
+                onSearchQueryChanged = { query ->
+                    searchQuery = query
+                    viewModel.onSearchQueryChanged(query)
+                },
+                onMenuClick = { /* TODO: Implement menu */ }
+            )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
+        floatingActionButton = {
             val state = uiState
-            if (state is HomeUiState.Success && state.archivedCount > 0) {
-                androidx.compose.material3.BottomAppBar(
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    androidx.compose.material3.TextButton(onClick = onArchivedObrasClick) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = Dimens.PaddingLarge),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                if (state is HomeUiState.Success && state.archivedCount > 0) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onArchivedObrasClick,
+                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(bottom = 20.dp)
+                    ) {
                         Icon(imageVector = AppIcons.Archive, contentDescription = null)
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
                         Text("Obras archivadas (${state.archivedCount})")
                     }
                 }
+
+                FloatingActionButton(
+                    onClick = onAddObraClick,
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        // Ajuste para posición estándar visual (16dp lateral, 32dp inferior para seguridad en edge-to-edge)
+                        .padding(end = Dimens.PaddingMedium, bottom = 82.dp)
+                ) {
+                    Icon(
+                        imageVector = AppIcons.Add,
+                        contentDescription = AppStrings.addObra
+                    )
+                }
             }
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         HomeScreenContent(
@@ -144,27 +178,100 @@ private fun HomeScreenContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopAppBar() {
-    SmallTopAppBar(
-        modifier = Modifier.height(Dimens.TopBarHeight).padding(vertical = Dimens.PaddingSmall),
-        title = { Text(AppStrings.homeScreenTitle, style = MaterialTheme.typography.headlineLarge) },
-        actions = {
-            IconButton(onClick = { /* TODO: Implement search */ }) {
-                Icon(imageVector = AppIcons.Search, contentDescription = AppStrings.search)
+fun MisObrasTopBar(
+    modifier: Modifier = Modifier,
+    searchQuery: String,
+    onSearchQueryChanged: (String) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimens.PaddingLarge)
+    ) {
+        // Fila del Título y el botón de menú
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Dimens.PaddingMedium, end = Dimens.PaddingExtraSmall)
+                .padding(bottom = Dimens.PaddingExtraSmall),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = AppStrings.homeScreenTitle,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Row {
+                IconButton(onClick = { /* TODO: Implement notifications */ }) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notificaciones", // TODO: Add to AppStrings
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = AppIcons.MoreVert,
+                        contentDescription = AppStrings.moreOptions,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            IconButton(onClick = { /* TODO: Implement menu */ }) {
-                Icon(imageVector = AppIcons.MoreVert, contentDescription = AppStrings.moreOptions)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent,
-            titleContentColor = MaterialTheme.colorScheme.primary,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
+        // Barra de Búsqueda
+        TextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChanged,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+                .height(56.dp),
+            placeholder = {
+                Text(
+                    text = "Buscar en mis obras...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = AppIcons.Search,
+                    contentDescription = AppStrings.search,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChanged("") }) {
+                        Icon(
+                            imageVector = AppIcons.Close,
+                            contentDescription = AppStrings.close,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            shape = CircleShape,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+            ),
+            singleLine = true
         )
-    )
+    }
 }
 
 @Composable

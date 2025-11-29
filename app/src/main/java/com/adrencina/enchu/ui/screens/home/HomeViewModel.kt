@@ -30,6 +30,8 @@ class HomeViewModel @Inject constructor(
     private val _uiEffect = MutableSharedFlow<HomeUiEffect>()
     val uiEffect = _uiEffect.asSharedFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+
     init {
         loadObras()
     }
@@ -40,13 +42,32 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
+
     private fun loadObras() {
         viewModelScope.launch {
             combine(
                 obraRepository.getObras(),
-                obraRepository.getArchivedObras()
-            ) { activeObras, archivedObras ->
-                HomeUiState.Success(activeObras, archivedObras.size)
+                obraRepository.getArchivedObras(),
+                _searchQuery
+            ) { activeObras, archivedObras, query ->
+                if (query.isBlank()) {
+                    HomeUiState.Success(activeObras, archivedObras.size)
+                } else {
+                    val allObras = activeObras + archivedObras
+                    val filteredObras = allObras.filter { obra ->
+                        obra.nombreObra.contains(query, ignoreCase = true) ||
+                        obra.clienteNombre.contains(query, ignoreCase = true) ||
+                        obra.estado.contains(query, ignoreCase = true) ||
+                        obra.direccion.contains(query, ignoreCase = true)
+                    }
+                    // Cuando se busca, mostramos todo junto y ocultamos la barra inferior de archivados (archivedCount = 0)
+                    // o podríamos mantenerla, pero conceptualmente estamos viendo resultados mezclados.
+                    // Dejaremos archivedCount en 0 para que no confunda la navegación.
+                    HomeUiState.Success(filteredObras, 0)
+                }
             }
             .catch { exception ->
                 _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
