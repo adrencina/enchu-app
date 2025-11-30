@@ -44,8 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
+import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.Tarea
 import com.adrencina.enchu.ui.screens.obra_detail.files.FilesScreen
+import com.adrencina.enchu.ui.screens.obra_detail.registros.AddAvanceDialog
+import com.adrencina.enchu.ui.screens.obra_detail.registros.RegistrosScreen
+import com.adrencina.enchu.ui.screens.obra_detail.tareas.TareasScreen
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
@@ -93,7 +98,13 @@ fun ObraDetailScreen(
         onDireccionChanged = viewModel::onDireccionChanged,
         onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog,
         onDismissArchiveDialog = viewModel::onDismissArchiveDialog,
-        onConfirmArchive = viewModel::onConfirmArchive
+        onConfirmArchive = viewModel::onConfirmArchive,
+        onAddTarea = viewModel::onAddTarea,
+        onToggleTarea = viewModel::onToggleTarea,
+        onDeleteTarea = viewModel::onDeleteTarea,
+        onDismissAddAvanceDialog = viewModel::onDismissAddAvanceDialog,
+        onConfirmAddAvance = viewModel::onConfirmAddAvance,
+        onDeleteAvance = viewModel::onDeleteAvance
     )
 }
 
@@ -118,7 +129,13 @@ fun ObraDetailScreenContent(
     onDireccionChanged: (String) -> Unit,
     onToggleExpandEditDialog: () -> Unit,
     onDismissArchiveDialog: () -> Unit,
-    onConfirmArchive: () -> Unit
+    onConfirmArchive: () -> Unit,
+    onAddTarea: (String) -> Unit,
+    onToggleTarea: (Tarea) -> Unit,
+    onDeleteTarea: (Tarea) -> Unit,
+    onDismissAddAvanceDialog: () -> Unit,
+    onConfirmAddAvance: (String, List<android.net.Uri>) -> Unit,
+    onDeleteAvance: (Avance) -> Unit
 ) {
     val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS")
 
@@ -209,6 +226,13 @@ fun ObraDetailScreenContent(
                         )
                     }
 
+                    if (uiState.showAddAvanceDialog) {
+                        AddAvanceDialog(
+                            onDismiss = onDismissAddAvanceDialog,
+                            onConfirm = onConfirmAddAvance
+                        )
+                    }
+
                     ObraInfoSection(obra = uiState.obra)
 
                     ObraDetailTabs(
@@ -219,6 +243,12 @@ fun ObraDetailScreenContent(
 
                     TabContentArea(
                         selectedTabIndex = uiState.selectedTabIndex,
+                        tareas = uiState.tareas,
+                        avances = uiState.avances,
+                        onAddTarea = onAddTarea,
+                        onToggleTarea = onToggleTarea,
+                        onDeleteTarea = onDeleteTarea,
+                        onDeleteAvance = onDeleteAvance,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -320,12 +350,29 @@ private fun ObraDetailTabs(selectedTabIndex: Int, tabTitles: List<String>, onTab
 
 // Tab Content
 @Composable
-private fun TabContentArea(selectedTabIndex: Int, modifier: Modifier = Modifier) {
+private fun TabContentArea(
+    selectedTabIndex: Int,
+    tareas: List<Tarea>,
+    avances: List<Avance>,
+    onAddTarea: (String) -> Unit,
+    onToggleTarea: (Tarea) -> Unit,
+    onDeleteTarea: (Tarea) -> Unit,
+    onDeleteAvance: (Avance) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(modifier = modifier) {
         when (selectedTabIndex) {
-            0 -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Registros") }
+            0 -> RegistrosScreen(
+                avances = avances,
+                onDeleteAvance = onDeleteAvance
+            )
             1 -> FilesScreen()
-            2 -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Tareas") }
+            2 -> TareasScreen(
+                tareas = tareas,
+                onAddTarea = onAddTarea,
+                onToggleTarea = onToggleTarea,
+                onDeleteTarea = onDeleteTarea
+            )
         }
     }
 }
@@ -383,7 +430,13 @@ fun ObraDetailScreenContentPreview() {
             onDireccionChanged = {},
             onToggleExpandEditDialog = {},
             onDismissArchiveDialog = {},
-            onConfirmArchive = {}
+            onConfirmArchive = {},
+            onAddTarea = {},
+            onToggleTarea = {},
+            onDeleteTarea = {},
+            onDismissAddAvanceDialog = {},
+            onConfirmAddAvance = { _, _ -> },
+            onDeleteAvance = {}
         )
     }
 }

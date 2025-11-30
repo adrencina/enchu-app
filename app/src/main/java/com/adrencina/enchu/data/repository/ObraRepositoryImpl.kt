@@ -1,6 +1,8 @@
 package com.adrencina.enchu.data.repository
 
+import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.Tarea
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
@@ -121,6 +123,92 @@ class ObraRepositoryImpl @Inject constructor(
                     "direccion" to obra.direccion
                 )
             ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getTareas(obraId: String): Flow<List<Tarea>> {
+        return callbackFlow {
+            val listener = firestore.collection("obras").document(obraId).collection("tareas")
+                .orderBy("fechaCreacion") // Ordenamos por fecha
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val tareas = snapshot.toObjects(Tarea::class.java)
+                        trySend(tareas).isSuccess
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    override suspend fun addTarea(obraId: String, tarea: Tarea): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("tareas")
+                .add(tarea).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("tareas").document(tareaId)
+                .update("completada", completada).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("tareas").document(tareaId)
+                .delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getAvances(obraId: String): Flow<List<Avance>> {
+        return callbackFlow {
+            val listener = firestore.collection("obras").document(obraId).collection("avances")
+                .orderBy("fecha", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val avances = snapshot.toObjects(Avance::class.java)
+                        trySend(avances).isSuccess
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    override suspend fun addAvance(obraId: String, avance: Avance): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("avances")
+                .add(avance).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("avances").document(avanceId)
+                .delete().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

@@ -31,5 +31,9 @@
 # Esta regla es una seguridad adicional. Asegura que los nombres de las clases y sus
 # miembros no sean ofuscados, incluso si R8 pensara que puede hacerlo.
 -keepnames class com.adrencina.enchu.data.model.** { *; }
+
+# Reglas explicitas para Avance y Tarea para evitar problemas de serializacion
+-keep class com.adrencina.enchu.data.model.Avance { *; }
+-keep class com.adrencina.enchu.data.model.Tarea { *; }
 # -----------------------------------------------------------------------------------
 

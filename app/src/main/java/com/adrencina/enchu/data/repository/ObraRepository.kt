@@ -1,6 +1,8 @@
 package com.adrencina.enchu.data.repository
 
+import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.Tarea
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -25,4 +27,15 @@ interface ObraRepository {
     suspend fun updateObra(obra: Obra): Result<Unit>
 
     suspend fun archiveObra(obraId: String): Result<Unit>
+
+    // Tareas
+    fun getTareas(obraId: String): Flow<List<Tarea>>
+    suspend fun addTarea(obraId: String, tarea: Tarea): Result<Unit>
+    suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit>
+    suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit>
+
+    // Avances
+    fun getAvances(obraId: String): Flow<List<Avance>>
+    suspend fun addAvance(obraId: String, avance: Avance): Result<Unit>
+    suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit>
 }

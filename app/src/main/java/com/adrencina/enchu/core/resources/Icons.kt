@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
@@ -27,6 +28,7 @@ object AppIcons {
 
     val ArrowBack = Icons.AutoMirrored.Filled.ArrowBack
     val Close = Icons.Default.Close
+    val Delete = Icons.Default.Delete
 
     @DrawableRes
     val Gallery = R.drawable.ic_gallery

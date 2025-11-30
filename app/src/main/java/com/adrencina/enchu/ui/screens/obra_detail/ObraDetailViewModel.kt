@@ -4,8 +4,11 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.Tarea
 import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.use_case.SaveAvanceUseCase
 import com.adrencina.enchu.domain.use_case.SaveFileToWorkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,10 +20,13 @@ sealed class ObraDetailUiState {
     object Loading : ObraDetailUiState()
     data class Success(
         val obra: Obra,
+        val tareas: List<Tarea> = emptyList(),
+        val avances: List<Avance> = emptyList(),
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
         val showArchiveDialog: Boolean = false,
+        val showAddAvanceDialog: Boolean = false, // Nuevo estado para diálogo de avance
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
@@ -40,6 +46,7 @@ sealed class ObraDetailEffect {
 class ObraDetailViewModel @Inject constructor(
     private val repository: ObraRepository,
     private val saveFileToWorkUseCase: SaveFileToWorkUseCase,
+    private val saveAvanceUseCase: SaveAvanceUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -228,8 +235,49 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onFabPressed() {
-        if ((_uiState.value as? ObraDetailUiState.Success)?.selectedTabIndex == 1) {
-            viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
+        when (currentState.selectedTabIndex) {
+            0 -> { // Registros (Avances)
+                _uiState.update { currentState.copy(showAddAvanceDialog = true) }
+            }
+            1 -> { // Archivos
+                viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
+            }
+        }
+    }
+
+    fun onDismissAddAvanceDialog() {
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(showAddAvanceDialog = false)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onConfirmAddAvance(descripcion: String, uris: List<Uri>) {
+        viewModelScope.launch {
+            // Mostrar loading si se desea, por ahora cerramos dialogo y procesamos en bg
+            onDismissAddAvanceDialog()
+            try {
+                saveAvanceUseCase(obraId, descripcion, uris)
+            } catch (e: Exception) {
+                e.printStackTrace() // Log error to console
+                _uiState.update { currentState ->
+                     if (currentState is ObraDetailUiState.Success) {
+                         ObraDetailUiState.Error("Error al crear avance: ${e.message}")
+                     } else {
+                         currentState
+                     }
+                }
+            }
+        }
+    }
+
+    fun onDeleteAvance(avance: Avance) {
+        viewModelScope.launch {
+            repository.deleteAvance(obraId, avance.id)
         }
     }
 
@@ -239,15 +287,47 @@ class ObraDetailViewModel @Inject constructor(
         }
     }
 
+    fun onAddTarea(descripcion: String) {
+        if (descripcion.isBlank()) return
+        viewModelScope.launch {
+            val nuevaTarea = Tarea(descripcionTarea = descripcion)
+            repository.addTarea(obraId, nuevaTarea)
+        }
+    }
+
+    fun onToggleTarea(tarea: Tarea) {
+        viewModelScope.launch {
+            repository.updateTareaStatus(obraId, tarea.id, !tarea.completada)
+        }
+    }
+
+    fun onDeleteTarea(tarea: Tarea) {
+        viewModelScope.launch {
+            repository.deleteTarea(obraId, tarea.id)
+        }
+    }
+
     private fun loadObraDetails() {
         viewModelScope.launch {
-            repository.getObraById(obraId)
-                .catch { exception ->
-                    _uiState.value = ObraDetailUiState.Error(exception.message ?: "Error desconocido")
+            combine(
+                repository.getObraById(obraId),
+                repository.getTareas(obraId),
+                repository.getAvances(obraId)
+            ) { obra, tareas, avances ->
+                Triple(obra, tareas, avances)
+            }
+            .catch { exception ->
+                _uiState.value = ObraDetailUiState.Error(exception.message ?: "Error desconocido")
+            }
+            .collect { (obra, tareas, avances) ->
+                _uiState.update { currentState ->
+                    if (currentState is ObraDetailUiState.Success) {
+                        currentState.copy(obra = obra, tareas = tareas, avances = avances)
+                    } else {
+                        ObraDetailUiState.Success(obra = obra, tareas = tareas, avances = avances)
+                    }
                 }
-                .collect { obra ->
-                    _uiState.value = ObraDetailUiState.Success(obra)
-                }
+            }
         }
     }
 }
