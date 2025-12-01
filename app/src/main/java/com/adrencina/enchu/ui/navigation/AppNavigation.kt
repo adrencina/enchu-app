@@ -12,6 +12,10 @@ import com.adrencina.enchu.ui.screens.login.LoginScreen
 import com.adrencina.enchu.ui.screens.obra_detail.ObraDetailScreen
 import com.adrencina.enchu.ui.screens.splash.SplashScreen
 
+import android.util.Log
+
+import com.adrencina.enchu.ui.screens.main.MainScreen
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -28,7 +32,7 @@ fun AppNavigation() {
                     }
                 },
                 onNavigateToHome = {
-                    navController.navigate(Routes.HOME_SCREEN) {
+                    navController.navigate(Routes.MAIN_WRAPPER) {
                         popUpTo(Routes.SPLASH_SCREEN) { inclusive = true }
                     }
                 }
@@ -38,26 +42,31 @@ fun AppNavigation() {
         composable(Routes.LOGIN_SCREEN) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Routes.HOME_SCREEN) {
+                    navController.navigate(Routes.MAIN_WRAPPER) {
                         popUpTo(Routes.LOGIN_SCREEN) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(Routes.HOME_SCREEN) { backStackEntry ->
-            val newObraResult = backStackEntry.savedStateHandle.get<String>("new_obra_result")
-
-            HomeScreen(
-                newObraResult = newObraResult,
-                onClearNewObraResult = {
-                    backStackEntry.savedStateHandle.remove<String>("new_obra_result")
-                },
-                onAddObraClick = { navController.navigate(Routes.ADD_OBRA_SCREEN) },
+        composable(Routes.MAIN_WRAPPER) {
+            MainScreen(
                 onObraClick = { obraId ->
                     navController.navigate(Routes.createObraDetailRoute(obraId))
                 },
-                onArchivedObrasClick = { navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN) }
+                onAddObraClick = {
+                    try {
+                        navController.navigate(Routes.ADD_OBRA_SCREEN)
+                    } catch (e: Exception) {
+                        Log.e("AppNavigation", "Failed to navigate to AddObra", e)
+                    }
+                },
+                onArchivedObrasClick = { navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN) },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN_SCREEN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 

@@ -102,45 +102,47 @@ fun HomeScreen(
                 onMenuClick = { /* TODO: Implement menu */ }
             )
         },
-        floatingActionButton = {
+        bottomBar = {
+            // Barra inferior personalizada SOLO para el botón de Archivadas
             val state = uiState
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = Dimens.PaddingLarge),
-                contentAlignment = Alignment.BottomEnd
-            ) {
-                if (state is HomeUiState.Success && state.archivedCount > 0) {
-                    androidx.compose.material3.TextButton(
-                        onClick = onArchivedObrasClick,
-                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
+            if (state is HomeUiState.Success && state.archivedCount > 0) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.background,
+//                    shadowElevation = 4.dp
+                ) {
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(bottom = 20.dp)
+                            .fillMaxWidth()
+                            .padding(start = Dimens.PaddingMedium, end = Dimens.PaddingMedium, bottom = 2.dp, top = 2.dp)
                     ) {
-                        Icon(imageVector = AppIcons.Archive, contentDescription = null)
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
-                        Text("Obras archivadas (${state.archivedCount})")
+                        androidx.compose.material3.TextButton(
+                            onClick = onArchivedObrasClick,
+                            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        ) {
+                            Icon(imageVector = AppIcons.Archive, contentDescription = null)
+                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
+                            Text("Obras archivadas (${state.archivedCount})")
+                        }
                     }
                 }
-
-                FloatingActionButton(
-                    onClick = onAddObraClick,
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        // Ajuste para posición estándar visual (16dp lateral, 32dp inferior para seguridad en edge-to-edge)
-                        .padding(end = Dimens.PaddingMedium, bottom = 82.dp)
-                ) {
-                    Icon(
-                        imageVector = AppIcons.Add,
-                        contentDescription = AppStrings.addObra
-                    )
-                }
+            }
+        },
+        floatingActionButton = {
+            // FAB en su posición estándar
+            FloatingActionButton(
+                onClick = onAddObraClick,
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+            ) {
+                Icon(
+                    imageVector = AppIcons.Add,
+                    contentDescription = AppStrings.addObra
+                )
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -188,35 +190,41 @@ fun MisObrasTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Dimens.PaddingLarge)
+            .padding(top = Dimens.PaddingMedium, bottom = Dimens.PaddingSmall) // Reducido padding vertical
     ) {
         // Fila del Título y el botón de menú
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = Dimens.PaddingMedium, end = Dimens.PaddingExtraSmall)
-                .padding(bottom = Dimens.PaddingExtraSmall),
+                .padding(horizontal = Dimens.PaddingMedium)
+                .padding(bottom = 2.dp), // Espacio reducido entre título y búsqueda
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = AppStrings.homeScreenTitle,
-                style = MaterialTheme.typography.headlineLarge.copy(
+                style = MaterialTheme.typography.titleLarge.copy( // Título más compacto
                     fontWeight = FontWeight.Bold
                 ),
                 color = MaterialTheme.colorScheme.onBackground
             )
 
             Row {
-                IconButton(onClick = { /* TODO: Implement notifications */ }) {
+                IconButton(
+                    onClick = { /* TODO: Implement notifications */ },
+                    modifier = Modifier.size(40.dp) // Iconos un poco más compactos
+                ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notificaciones", // TODO: Add to AppStrings
+                        contentDescription = "Notificaciones",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                IconButton(onClick = onMenuClick) {
+                IconButton(
+                    onClick = onMenuClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
                     Icon(
                         imageVector = AppIcons.MoreVert,
                         contentDescription = AppStrings.moreOptions,
@@ -226,18 +234,18 @@ fun MisObrasTopBar(
             }
         }
 
-        // Barra de Búsqueda
+        // Barra de Búsqueda Compacta
         TextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .height(56.dp),
+                .padding(horizontal = Dimens.PaddingMedium)
+                .height(48.dp), // Altura forzada más pequeña (48dp vs 56dp estándar)
             placeholder = {
                 Text(
-                    text = "Buscar en mis obras...",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Buscar...", // Texto más corto
+                    style = MaterialTheme.typography.bodyMedium, // Texto más pequeño
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
@@ -245,16 +253,18 @@ fun MisObrasTopBar(
                 Icon(
                     imageVector = AppIcons.Search,
                     contentDescription = AppStrings.search,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp) // Icono más pequeño
                 )
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChanged("") }) {
+                    IconButton(onClick = { onSearchQueryChanged("") }, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = AppIcons.Close,
                             contentDescription = AppStrings.close,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -269,7 +279,8 @@ fun MisObrasTopBar(
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             ),
-            singleLine = true
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium
         )
     }
 }

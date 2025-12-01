@@ -2,6 +2,7 @@ package com.adrencina.enchu.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.repository.ClienteRepository
@@ -56,24 +57,28 @@ class AddObraViewModel @Inject constructor(
     private val _sideEffect = MutableSharedFlow<AddObraSideEffect>()
     val sideEffect = _sideEffect.asSharedFlow()
 
-    private var defaultClientCheckDone = false
-
-    init {
-        viewModelScope.launch {
-            clienteRepository.getClientes().collect { clientesFromRepo ->
-                if (clientesFromRepo.isEmpty() && !defaultClientCheckDone) {
-                    defaultClientCheckDone = true
-                    val defaultClient = Cliente(nombre = "Consumidor Final")
-                    clienteRepository.saveCliente(defaultClient)
-                } else {
-                    val defaultClient = clientesFromRepo.find { it.nombre == "Consumidor Final" }
-                    _uiState.update {
-                        it.copy(
-                            clientes = clientesFromRepo,
-                            clienteSeleccionado = it.clienteSeleccionado ?: defaultClient
-                        )
+        private var defaultClientCheckDone = false
+    
+        init {        viewModelScope.launch {
+            try {
+                clienteRepository.getClientes().collect { clientesFromRepo ->
+                    if (clientesFromRepo.isEmpty() && !defaultClientCheckDone) {
+                        defaultClientCheckDone = true
+                        val defaultClient = Cliente(nombre = "Consumidor Final")
+                        clienteRepository.saveCliente(defaultClient)
+                    } else {
+                        val defaultClient = clientesFromRepo.find { it.nombre == "Consumidor Final" }
+                        _uiState.update {
+                            it.copy(
+                                clientes = clientesFromRepo,
+                                clienteSeleccionado = it.clienteSeleccionado ?: defaultClient
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("AddObraViewModel", "Error loading clients", e)
+                // Optionally update UI state to show error
             }
         }
     }
