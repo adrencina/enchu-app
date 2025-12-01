@@ -109,7 +109,6 @@ fun HomeScreen(
                 androidx.compose.material3.Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.background,
-//                    shadowElevation = 4.dp
                 ) {
                     Box(
                         modifier = Modifier

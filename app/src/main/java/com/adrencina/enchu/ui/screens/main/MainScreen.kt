@@ -29,7 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.adrencina.enchu.ui.navigation.BottomNavItem
 import com.adrencina.enchu.ui.navigation.Routes
-import com.adrencina.enchu.ui.screens.clientes.ClientesScreen
+import com.adrencina.enchu.ui.screens.clients.ClientsScreen
 import com.adrencina.enchu.ui.screens.home.HomeScreen
 import com.adrencina.enchu.ui.screens.profile.ProfileScreen
 
@@ -37,6 +37,8 @@ import com.adrencina.enchu.ui.screens.profile.ProfileScreen
 fun MainScreen(
     onObraClick: (String) -> Unit,
     onAddObraClick: () -> Unit,
+    onAddClientClick: () -> Unit,
+    onClientClick: (String) -> Unit,
     onArchivedObrasClick: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -122,7 +124,10 @@ fun MainScreen(
             }
 
             composable(Routes.CLIENTES_SCREEN) {
-                ClientesScreen()
+                ClientsScreen(
+                    onAddClientClick = onAddClientClick,
+                    onClientClick = onClientClick
+                )
             }
 
             composable(Routes.PROFILE_SCREEN) {

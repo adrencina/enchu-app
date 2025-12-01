@@ -16,7 +16,10 @@ object Routes {
 
     // Rutas para futuras pantallas
     const val ADD_OBRA_SCREEN = "add_obra_screen"
+    const val ADD_CLIENT_SCREEN = "add_client_screen"
+    const val CLIENT_DETAIL_SCREEN = "client_detail_screen/{clientId}"
     const val ARCHIVED_OBRAS_SCREEN = "archived_obras_screen"
+
     // Ruta con un argumento para el ID de la obra
     const val OBRA_DETAIL_SCREEN = "obra_detail_screen/{obraId}"
 
@@ -26,4 +29,6 @@ object Routes {
      * Uso: Routes.createObraDetailRoute(obra.id)
      */
     fun createObraDetailRoute(obraId: String) = "obra_detail_screen/$obraId"
+
+    fun createClientDetailRoute(clientId: String) = "client_detail_screen/$clientId"
 }

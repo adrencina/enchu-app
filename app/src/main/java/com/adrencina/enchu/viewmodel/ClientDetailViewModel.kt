@@ -1,0 +1,77 @@
+package com.adrencina.enchu.viewmodel
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.repository.ClienteRepository
+import com.adrencina.enchu.data.repository.ObraRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class ClientDetailUiState(
+    val cliente: Cliente? = null,
+    val obras: List<Obra> = emptyList(),
+    val isLoading: Boolean = true,
+    val error: String? = null
+)
+
+@HiltViewModel
+class ClientDetailViewModel @Inject constructor(
+    private val clienteRepository: ClienteRepository,
+    private val obraRepository: ObraRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
+
+    private val clientId: String = checkNotNull(savedStateHandle["clientId"])
+
+    private val _uiState = MutableStateFlow(ClientDetailUiState())
+    val uiState: StateFlow<ClientDetailUiState> = _uiState.asStateFlow()
+
+    init {
+        loadData()
+    }
+
+    private fun loadData() {
+        viewModelScope.launch {
+            try {
+                // Combinamos el cliente específico y todas las obras para filtrar
+                // Nota: Idealmente repo.getObrasByClientId(id), pero filtramos aquí por ahora
+                
+                val safeClientFlow = clienteRepository.getClientes()
+                val obrasFlow = obraRepository.getObras()
+                
+                combine(safeClientFlow, obrasFlow) { clientes, obras ->
+                    val cliente = clientes.find { it.id == clientId }
+                    val obrasDelCliente = obras.filter { it.clienteId == clientId }
+                    
+                    if (cliente != null) {
+                        ClientDetailUiState(
+                            cliente = cliente,
+                            obras = obrasDelCliente,
+                            isLoading = false
+                        )
+                    } else {
+                        ClientDetailUiState(
+                            isLoading = false,
+                            error = "Cliente no encontrado"
+                        )
+                    }
+                }.collect { state ->
+                    _uiState.value = state
+                }
+
+            } catch (e: Exception) {
+                _uiState.value = ClientDetailUiState(isLoading = false, error = e.message)
+            }
+        }
+    }
+}

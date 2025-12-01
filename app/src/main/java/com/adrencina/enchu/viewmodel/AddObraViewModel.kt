@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.UUID
 
 data class AddObraUiState(
     val nombreObra: String = "",
@@ -28,6 +29,10 @@ data class AddObraUiState(
     val showAddClientDialog: Boolean = false,
     val newClientNameInput: String = "",
     val newClientDniInput: String = "",
+    val newClientPhoneInput: String = "",
+    val newClientEmailInput: String = "",
+    val newClientAddressInput: String = "",
+    val isClientFormExpanded: Boolean = false, // Default collapsed for "Add Obra" flow
     val isAutoDniChecked: Boolean = false,
     val isSavingClient: Boolean = false,
     val saveClientError: String? = null
@@ -57,9 +62,10 @@ class AddObraViewModel @Inject constructor(
     private val _sideEffect = MutableSharedFlow<AddObraSideEffect>()
     val sideEffect = _sideEffect.asSharedFlow()
 
-        private var defaultClientCheckDone = false
-    
-        init {        viewModelScope.launch {
+    private var defaultClientCheckDone = false
+
+    init {
+        viewModelScope.launch {
             try {
                 clienteRepository.getClientes().collect { clientesFromRepo ->
                     if (clientesFromRepo.isEmpty() && !defaultClientCheckDone) {
@@ -78,7 +84,6 @@ class AddObraViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("AddObraViewModel", "Error loading clients", e)
-                // Optionally update UI state to show error
             }
         }
     }
@@ -95,8 +100,7 @@ class AddObraViewModel @Inject constructor(
         if (!currentState.isSaveEnabled || currentState.isSaving) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true) }
-
+            _uiState.update { it.copy(isSaving = true, saveError = null) }
             val newObra = Obra(
                 nombreObra = currentState.nombreObra,
                 clienteId = currentState.clienteSeleccionado!!.id,
@@ -143,17 +147,20 @@ class AddObraViewModel @Inject constructor(
             showAddClientDialog = false,
             newClientNameInput = "",
             newClientDniInput = "",
+            newClientPhoneInput = "",
+            newClientEmailInput = "",
+            newClientAddressInput = "",
+            isClientFormExpanded = false,
             isAutoDniChecked = false
         ) }
     }
 
-    fun onNewClientNameChange(name: String) {
-        _uiState.update { it.copy(newClientNameInput = name.take(50)) }
-    }
-
-    fun onNewClientDniChange(dni: String) {
-        _uiState.update { it.copy(newClientDniInput = dni.take(15)) }
-    }
+    fun onNewClientNameChange(name: String) { _uiState.update { it.copy(newClientNameInput = name.take(50)) } }
+    fun onNewClientDniChange(dni: String) { _uiState.update { it.copy(newClientDniInput = dni.take(15)) } }
+    fun onNewClientPhoneChange(phone: String) { _uiState.update { it.copy(newClientPhoneInput = phone.take(20)) } }
+    fun onNewClientEmailChange(email: String) { _uiState.update { it.copy(newClientEmailInput = email.take(50)) } }
+    fun onNewClientAddressChange(address: String) { _uiState.update { it.copy(newClientAddressInput = address.take(100)) } }
+    fun onToggleClientFormExpand() { _uiState.update { it.copy(isClientFormExpanded = !it.isClientFormExpanded) } }
 
     fun onAutoDniCheckedChange(isChecked: Boolean) {
         _uiState.update {
@@ -165,17 +172,7 @@ class AddObraViewModel @Inject constructor(
     }
 
     private fun generateProvisionalDni(): String {
-        val currentProvisionalDnis = _uiState.value.clientes
-            .mapNotNull { it.dni.toLongOrNull() }
-            .filter { it < 1000000 }
-
-        val nextId = if (currentProvisionalDnis.isEmpty()) {
-            1L
-        } else {
-            currentProvisionalDnis.max() + 1
-        }
-        // Format with leading zeros to 8 digits
-        return nextId.toString().padStart(8, '0')
+        return "AUTO-${UUID.randomUUID().toString().take(8).uppercase()}"
     }
 
     fun onSaveNewClient() {
@@ -191,20 +188,9 @@ class AddObraViewModel @Inject constructor(
             if (state.isAutoDniChecked) {
                 newClientDni = generateProvisionalDni()
             } else {
-                // Standard DNI Validation
-                val dniNumber = newClientDni.toLongOrNull()
-                if (dniNumber == null || dniNumber < 1000000) {
-                    _uiState.update {
-                        it.copy(
-                            isSavingClient = false,
-                            saveClientError = "El DNI debe ser un número mayor a 1.000.000."
-                        )
-                    }
-                    return@launch
-                }
-
+                // Check if DNI exists only if NOT auto
                 if (clienteRepository.doesDniExist(newClientDni)) {
-                    _uiState.update {
+                     _uiState.update {
                         it.copy(
                             isSavingClient = false,
                             saveClientError = "El DNI ingresado ya existe."
@@ -214,7 +200,15 @@ class AddObraViewModel @Inject constructor(
                 }
             }
 
-            val result = clienteRepository.saveCliente(Cliente(nombre = newClientName, dni = newClientDni))
+            val newClient = Cliente(
+                nombre = newClientName,
+                dni = newClientDni,
+                telefono = state.newClientPhoneInput,
+                email = state.newClientEmailInput,
+                direccion = state.newClientAddressInput
+            )
+
+            val result = clienteRepository.saveCliente(newClient)
             if (result.isSuccess) {
                 _uiState.update {
                     it.copy(
@@ -222,9 +216,15 @@ class AddObraViewModel @Inject constructor(
                         showAddClientDialog = false,
                         newClientNameInput = "",
                         newClientDniInput = "",
+                        newClientPhoneInput = "",
+                        newClientEmailInput = "",
+                        newClientAddressInput = "",
+                        isClientFormExpanded = false,
                         isAutoDniChecked = false
                     )
                 }
+                // Select the newly created client?
+                onClienteSelected(newClient)
             } else {
                 _uiState.update {
                     it.copy(

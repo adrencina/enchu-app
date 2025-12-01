@@ -2,7 +2,6 @@ package com.adrencina.enchu.ui.screens.addobra
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -13,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.datasource.CollectionPreviewParameterProvider
@@ -24,6 +22,7 @@ import com.adrencina.enchu.core.resources.AppStrings
 import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.ui.components.AppClientSelector
 import com.adrencina.enchu.ui.components.AppTextField
+import com.adrencina.enchu.ui.components.ClientForm
 import com.adrencina.enchu.ui.components.EstadoObraChips
 import com.adrencina.enchu.ui.components.FormSection
 import com.adrencina.enchu.ui.theme.Dimens
@@ -70,10 +69,15 @@ fun AddObraScreen(
         onDismissAddClientDialog = viewModel::onDismissAddClientDialog,
         onNewClientNameChange = viewModel::onNewClientNameChange,
         onNewClientDniChange = viewModel::onNewClientDniChange,
+        onNewClientPhoneChange = viewModel::onNewClientPhoneChange,
+        onNewClientEmailChange = viewModel::onNewClientEmailChange,
+        onNewClientAddressChange = viewModel::onNewClientAddressChange,
+        onToggleClientFormExpand = viewModel::onToggleClientFormExpand,
         onAutoDniCheckedChange = viewModel::onAutoDniCheckedChange,
         onSaveNewClient = viewModel::onSaveNewClient
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddObraScreenContent(
@@ -93,6 +97,10 @@ fun AddObraScreenContent(
     onDismissAddClientDialog: () -> Unit,
     onNewClientNameChange: (String) -> Unit,
     onNewClientDniChange: (String) -> Unit,
+    onNewClientPhoneChange: (String) -> Unit,
+    onNewClientEmailChange: (String) -> Unit,
+    onNewClientAddressChange: (String) -> Unit,
+    onToggleClientFormExpand: () -> Unit,
     onAutoDniCheckedChange: (Boolean) -> Unit,
     onSaveNewClient: () -> Unit
 ) {
@@ -176,166 +184,119 @@ fun AddObraScreenContent(
                     AppTextField(
                         value = uiState.descripcion,
                         onValueChange = onDescripcionChange,
-                        placeholder = "Ej: cableado e instalación de portero video planta baja y primer piso.",
-                        singleLine = false,
+                        placeholder = "Detalles adicionales...",
                         minLines = 3
                     )
                 }
             }
 
             item {
-                FormSection(title = "Teléfono (opcional)") {
+                FormSection(title = "Contacto (opcional)") {
                     AppTextField(
                         value = uiState.telefono,
                         onValueChange = onTelefonoChange,
-                        placeholder = "Ej: 221 3616161",
-                        keyboardType = KeyboardType.Phone
+                        placeholder = "Teléfono alternativo"
                     )
                 }
             }
 
             item {
-                FormSection(title = "Dirección (opcional)") {
+                FormSection(title = "Dirección de obra") {
                     AppTextField(
                         value = uiState.direccion,
                         onValueChange = onDireccionChange,
-                        placeholder = "Ej: Cabred 1900"
+                        placeholder = "Ej: Av. Siempreviva 742"
                     )
                 }
             }
 
             item {
-                FormSection(title = "Estado de la obra (opcional)") {
+                FormSection(title = "Estado inicial") {
                     EstadoObraChips(
                         selectedState = uiState.estado,
                         onStateSelected = onEstadoChange
                     )
                 }
             }
-
+            
             item { Spacer(Modifier.height(Dimens.PaddingLarge)) }
         }
     }
 
     if (uiState.showDiscardDialog) {
-        DiscardChangesDialog(
-            onDismiss = onDismissDialog,
-            onConfirm = onConfirmDiscard
+        AlertDialog(
+            onDismissRequest = onDismissDialog,
+            title = { Text(text = "¿Descartar cambios?") },
+            text = { Text("Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?") },
+            confirmButton = {
+                TextButton(onClick = onConfirmDiscard) {
+                    Text("Descartar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissDialog) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 
     if (uiState.showAddClientDialog) {
-        AddClientDialog(
-            uiState = uiState,
-            onDismiss = onDismissAddClientDialog,
-            onNameChange = onNewClientNameChange,
-            onDniChange = onNewClientDniChange,
-            onAutoDniCheckedChange = onAutoDniCheckedChange,
-            onSave = onSaveNewClient
+        AlertDialog(
+            onDismissRequest = onDismissAddClientDialog,
+            title = { Text(text = "Nuevo Cliente") },
+            text = {
+                Column {
+                    ClientForm(
+                        name = uiState.newClientNameInput,
+                        onNameChange = onNewClientNameChange,
+                        dni = uiState.newClientDniInput,
+                        onDniChange = onNewClientDniChange,
+                        isAutoDni = uiState.isAutoDniChecked,
+                        onAutoDniChange = onAutoDniCheckedChange,
+                        phone = uiState.newClientPhoneInput,
+                        onPhoneChange = onNewClientPhoneChange,
+                        email = uiState.newClientEmailInput,
+                        onEmailChange = onNewClientEmailChange,
+                        address = uiState.newClientAddressInput,
+                        onAddressChange = onNewClientAddressChange,
+                        isExpanded = uiState.isClientFormExpanded,
+                        onToggleExpand = onToggleClientFormExpand,
+                        showExpandButton = true
+                    )
+
+                    if (uiState.saveClientError != null) {
+                        Text(
+                            text = uiState.saveClientError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = Dimens.PaddingExtraSmall)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onSaveNewClient,
+                    enabled = uiState.newClientNameInput.isNotBlank() &&
+                            (uiState.newClientDniInput.isNotBlank() || uiState.isAutoDniChecked) &&
+                            !uiState.isSavingClient
+                ) {
+                    if (uiState.isSavingClient) {
+                        CircularProgressIndicator(Modifier.size(Dimens.ProgressIndicatorSize / 2))
+                    } else {
+                        Text("Guardar")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissAddClientDialog) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 }
-
-@Composable
-private fun DiscardChangesDialog(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(AppStrings.discardObraTitle) },
-        text = { Text(AppStrings.discardObraMessage) },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text(AppStrings.discard) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(AppStrings.cancel) }
-        },
-        icon = { Icon(AppIcons.Close, contentDescription = null) }
-    )
-}
-
-@Composable
-private fun AddClientDialog(
-    uiState: AddObraUiState,
-    onDismiss: () -> Unit,
-    onNameChange: (String) -> Unit,
-    onDniChange: (String) -> Unit,
-    onAutoDniCheckedChange: (Boolean) -> Unit,
-    onSave: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Nuevo Cliente") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)) {
-                AppTextField(
-                    value = uiState.newClientNameInput,
-                    onValueChange = onNameChange,
-                    placeholder = "Nombre del cliente",
-                    isError = uiState.saveClientError != null,
-                    singleLine = true
-                )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = uiState.isAutoDniChecked,
-                        onCheckedChange = onAutoDniCheckedChange
-                    )
-                    Spacer(modifier = Modifier.width(Dimens.PaddingExtraSmall))
-                    Text(
-                        text = "No tengo el DNI / Generar automático",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                AppTextField(
-                    value = uiState.newClientDniInput,
-                    onValueChange = { newValue -> onDniChange(newValue.filter { it.isDigit() }) },
-                    placeholder = if(uiState.isAutoDniChecked) "DNI (Automático)" else "DNI del cliente",
-                    isError = uiState.saveClientError != null && !uiState.isAutoDniChecked,
-                    singleLine = true,
-                    keyboardType = KeyboardType.Number,
-                    enabled = !uiState.isAutoDniChecked
-                )
-                if (uiState.saveClientError != null) {
-                    Text(
-                        text = uiState.saveClientError,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = Dimens.PaddingExtraSmall)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onSave,
-                enabled = uiState.newClientNameInput.isNotBlank() &&
-                        (uiState.newClientDniInput.isNotBlank() || uiState.isAutoDniChecked) &&
-                        !uiState.isSavingClient
-            ) {
-                if (uiState.isSavingClient) {
-                    CircularProgressIndicator(Modifier.size(Dimens.ProgressIndicatorSize / 2))
-                } else {
-                    Text("Guardar")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
 
 private class AddObraUiStateProvider : CollectionPreviewParameterProvider<AddObraUiState>(
     listOf(
@@ -343,31 +304,11 @@ private class AddObraUiStateProvider : CollectionPreviewParameterProvider<AddObr
             nombreObra = "Instalación Eléctrica Completa",
             clientes = listOf(Cliente(id = "1", nombre = "Constructora del Sol S.A.")),
             clienteSeleccionado = Cliente(id = "1", nombre = "Constructora del Sol S.A.")
-        ),
-        AddObraUiState(
-            isSaving = true
-        ),
-        AddObraUiState(
-            showAddClientDialog = true,
-            newClientNameInput = "Nuevo Cliente de Preview",
-            newClientDniInput = "12345678"
-        ),
-        AddObraUiState(
-            showAddClientDialog = true,
-            isSavingClient = true
-        ),
-        AddObraUiState(
-            showAddClientDialog = true,
-            newClientNameInput = "Error",
-            newClientDniInput = "12345678",
-            saveClientError = "El DNI ingresado ya existe."
         )
     )
 )
 
 @Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
-@Preview(name = "Small Device", widthDp = 320, showBackground = true)
 @Composable
 private fun AddObraScreenContentPreview(
     @PreviewParameter(AddObraUiStateProvider::class) uiState: AddObraUiState
@@ -389,6 +330,10 @@ private fun AddObraScreenContentPreview(
             onDismissAddClientDialog = {},
             onNewClientNameChange = {},
             onNewClientDniChange = {},
+            onNewClientPhoneChange = {},
+            onNewClientEmailChange = {},
+            onNewClientAddressChange = {},
+            onToggleClientFormExpand = {},
             onAutoDniCheckedChange = {},
             onSaveNewClient = {}
         )

@@ -7,6 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.adrencina.enchu.ui.screens.addobra.AddObraScreen
+import com.adrencina.enchu.ui.screens.clients.AddClientScreen
+import com.adrencina.enchu.ui.screens.clients.ClientDetailScreen
 import com.adrencina.enchu.ui.screens.home.HomeScreen
 import com.adrencina.enchu.ui.screens.login.LoginScreen
 import com.adrencina.enchu.ui.screens.obra_detail.ObraDetailScreen
@@ -61,6 +63,12 @@ fun AppNavigation() {
                         Log.e("AppNavigation", "Failed to navigate to AddObra", e)
                     }
                 },
+                onAddClientClick = {
+                    navController.navigate(Routes.ADD_CLIENT_SCREEN)
+                },
+                onClientClick = { clientId ->
+                    navController.navigate(Routes.createClientDetailRoute(clientId))
+                },
                 onArchivedObrasClick = { navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN) },
                 onLogout = {
                     navController.navigate(Routes.LOGIN_SCREEN) {
@@ -78,6 +86,24 @@ fun AppNavigation() {
                         ?.savedStateHandle
                         ?.set("new_obra_result", clientName)
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.ADD_CLIENT_SCREEN) {
+            AddClientScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.CLIENT_DETAIL_SCREEN,
+            arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+        ) {
+            ClientDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onObraClick = { obraId ->
+                    navController.navigate(Routes.createObraDetailRoute(obraId))
                 }
             )
         }
