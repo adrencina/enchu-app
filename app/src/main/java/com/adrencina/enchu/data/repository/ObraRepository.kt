@@ -2,6 +2,7 @@ package com.adrencina.enchu.data.repository
 
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,10 @@ interface ObraRepository {
     fun getAvances(obraId: String): Flow<List<Avance>>
     suspend fun addAvance(obraId: String, avance: Avance): Result<Unit>
     suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit>
+
+    // Presupuesto
+    fun getPresupuestoItems(obraId: String): Flow<List<PresupuestoItem>>
+    suspend fun addPresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit>
+    suspend fun updatePresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit>
+    suspend fun deletePresupuestoItem(obraId: String, itemId: String): Result<Unit>
 }

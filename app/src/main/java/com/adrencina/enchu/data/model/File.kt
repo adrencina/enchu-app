@@ -10,7 +10,8 @@ enum class SyncState {
     UPLOADING,
     SYNCED,
     CONFLICT,
-    DELETED
+    DELETED,
+    FAILED
 }
 
 @Entity(

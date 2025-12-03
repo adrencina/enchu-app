@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 // Usamos una clase sellada para eventos, ideal para acciones de un solo uso como la navegación.
 sealed class SplashUiEvent {
     object NavigateToHome : SplashUiEvent()
     object NavigateToLogin : SplashUiEvent()
+    object NavigateToWelcome : SplashUiEvent()
 }
 
 @HiltViewModel
@@ -31,16 +34,19 @@ class SplashViewModel @Inject constructor(
 
     private fun checkAuthState() {
         viewModelScope.launch {
-            // Delay para mejorar la experiencia de usuario y mostrar la marca.
-            delay(1500L)
+            delay(1500L) // Delay para mejorar la experiencia de usuario
 
-            // Tu lógica de negocio se mantiene intacta.
-            val event = if (repo.currentUser != null) {
-                SplashUiEvent.NavigateToHome
+            if (repo.currentUser != null) {
+                // Usamos firstOrNull para obtener el primer valor y no quedarnos esperando si el Flow nunca emite
+                val userProfile = repo.getUserProfile().firstOrNull()
+                if (userProfile?.organizationId.isNullOrBlank()) {
+                    _uiEvent.emit(SplashUiEvent.NavigateToWelcome)
+                } else {
+                    _uiEvent.emit(SplashUiEvent.NavigateToHome)
+                }
             } else {
-                SplashUiEvent.NavigateToLogin
+                _uiEvent.emit(SplashUiEvent.NavigateToLogin)
             }
-            _uiEvent.emit(event)
         }
     }
 }

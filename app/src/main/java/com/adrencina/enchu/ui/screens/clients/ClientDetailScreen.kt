@@ -49,6 +49,7 @@ import com.adrencina.enchu.ui.components.FormSection
 import com.adrencina.enchu.ui.components.ObraCard
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientDetailViewModel
+import androidx.compose.material.icons.filled.Edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +60,14 @@ fun ClientDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    
+    if (uiState.showEditDialog && uiState.cliente != null) {
+        EditClientDialog(
+            cliente = uiState.cliente!!,
+            onDismiss = viewModel::onDismissEditDialog,
+            onConfirm = viewModel::onConfirmEdit
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -67,6 +76,11 @@ fun ClientDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                     IconButton(onClick = viewModel::onEditClick) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar Cliente")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

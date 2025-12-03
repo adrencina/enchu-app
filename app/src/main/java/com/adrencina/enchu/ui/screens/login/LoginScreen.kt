@@ -71,7 +71,7 @@ fun LoginScreen(
 
     LaunchedEffect(key1 = signInState.isSignInSuccessful) {
         if (signInState.isSignInSuccessful) {
-            onLoginSuccess()
+            onLoginSuccess() // This will now navigate to WelcomeScreen via AppNavigation
         }
     }
 

@@ -11,7 +11,8 @@ import java.util.Date
  */
 data class Obra(
     @DocumentId val id: String = "",
-    val userId: String = "",
+    val userId: String = "", // Mantener por compatibilidad/auditoría (quién creó)
+    val organizationId: String = "", // Nuevo campo clave para filtrado
 
     // Datos del Cliente
     val clienteId: String = "",

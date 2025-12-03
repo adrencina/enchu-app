@@ -19,52 +19,95 @@ class ClienteRepositoryImpl @Inject constructor(
         val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
 
         return callbackFlow {
-            val listener = firestore.collection("clientes")
-                .whereEqualTo("userId", userId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        close(error)
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val clientes = snapshot.toObjects(Cliente::class.java)
+            val userProfileRef = firestore.collection("users").document(userId)
+            
+            val registration = userProfileRef.addSnapshotListener { profileSnap, profileError ->
+                if (profileError != null) {
+                    close(profileError)
+                    return@addSnapshotListener
+                }
+
+                val organizationId = profileSnap?.getString("organizationId")
+                
+                val query = if (!organizationId.isNullOrEmpty()) {
+                    firestore.collection("clientes").whereEqualTo("organizationId", organizationId)
+                } else {
+                    firestore.collection("clientes").whereEqualTo("userId", userId)
+                }
+                
+                query.addSnapshotListener { snap, err ->
+                    if (err != null) return@addSnapshotListener
+                    if (snap != null) {
+                        val clientes = snap.toObjects(Cliente::class.java)
                         trySend(clientes).isSuccess
                     }
                 }
-            awaitClose { listener.remove() }
-        }
-    }
-
-    override suspend fun saveCliente(cliente: Cliente): Result<Unit> {
-        return try {
-            val userId = auth.currentUser?.uid
-            if (userId == null) {
-                return Result.failure(Exception("Usuario no autenticado."))
             }
-            // Asignamos el ID del usuario al cliente y lo guardamos en la colección "clientes"
-            firestore.collection("clientes").add(cliente.copy(userId = userId)).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+            awaitClose { registration.remove() }
         }
     }
 
-    override suspend fun doesDniExist(dni: String): Boolean {
-        return try {
-            val userId = auth.currentUser?.uid ?: return false // No check if user is not logged in
-
-            val query = firestore.collection("clientes")
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("dni", dni)
-                .limit(1)
-                .get()
-                .await()
-
-            !query.isEmpty
-        } catch (e: Exception) {
-            // On error, assume it doesn't exist to avoid blocking user.
-            // Consider logging the exception.
-            false
+        override suspend fun saveCliente(cliente: Cliente): Result<Unit> {
+            return try {
+                val userId = auth.currentUser?.uid
+                if (userId == null) {
+                    return Result.failure(Exception("Usuario no autenticado."))
+                }
+    
+                // Obtener organizationId
+                val userSnapshot = firestore.collection("users").document(userId).get().await()
+                val organizationId = userSnapshot.getString("organizationId") ?: ""
+    
+                // Asignamos el ID del usuario al cliente y lo guardamos en la colección "clientes"
+                firestore.collection("clientes").add(cliente.copy(userId = userId, organizationId = organizationId)).await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
-    }
-}
+    
+        override suspend fun updateCliente(cliente: Cliente): Result<Unit> {
+            return try {
+                firestore.collection("clientes").document(cliente.id).update(
+                    mapOf(
+                        "nombre" to cliente.nombre,
+                        "dni" to cliente.dni,
+                        "telefono" to cliente.telefono,
+                        "email" to cliente.email,
+                        "direccion" to cliente.direccion
+                    )
+                ).await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+        override suspend fun doesDniExist(dni: String): Boolean {
+            return try {
+                val userId = auth.currentUser?.uid ?: return false 
+                
+                val userSnapshot = firestore.collection("users").document(userId).get().await()
+                val organizationId = userSnapshot.getString("organizationId")
+    
+                val query = if (organizationId != null) {
+                     firestore.collection("clientes")
+                        .whereEqualTo("organizationId", organizationId)
+                        .whereEqualTo("dni", dni)
+                        .limit(1)
+                        .get()
+                        .await()
+                } else {
+                    // Fallback
+                     firestore.collection("clientes")
+                        .whereEqualTo("userId", userId)
+                        .whereEqualTo("dni", dni)
+                        .limit(1)
+                        .get()
+                        .await()
+                }
+    
+                !query.isEmpty
+            } catch (e: Exception) {
+                false
+            }
+        }}

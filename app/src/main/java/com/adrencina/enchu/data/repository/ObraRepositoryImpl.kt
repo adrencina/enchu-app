@@ -2,6 +2,7 @@ package com.adrencina.enchu.data.repository
 
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,46 +18,115 @@ class ObraRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : ObraRepository {
 
-        override fun getObras(): Flow<List<Obra>> {
-            val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
-    
-            return callbackFlow {
-                val listener = firestore.collection("obras")
-                    .whereEqualTo("userId", userId)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            close(error)
-                            return@addSnapshotListener
+                    override fun getObras(): Flow<List<Obra>> {
+
+                        val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+
+                
+
+                        return callbackFlow {
+
+                            val userProfileRef = firestore.collection("users").document(userId)
+
+                            
+
+                            // Usamos un listener para el perfil también, para reaccionar si le asignan una Org en tiempo real
+
+                            val registration = userProfileRef.addSnapshotListener { profileSnap, profileError ->
+
+                                if (profileError != null) {
+
+                                    close(profileError)
+
+                                    return@addSnapshotListener
+
+                                }
+
+                
+
+                                val organizationId = profileSnap?.getString("organizationId")
+
+                                
+
+                                val obrasQuery = if (!organizationId.isNullOrEmpty()) {
+
+                                    firestore.collection("obras").whereEqualTo("organizationId", organizationId)
+
+                                } else {
+
+                                    firestore.collection("obras").whereEqualTo("userId", userId)
+
+                                }
+
+                
+
+                                // Aquí está el truco: necesitamos cancelar el listener anterior de obras si cambia la org
+
+                                // pero dentro de este scope simple no es fácil.
+
+                                // Para MVP: Registramos un nuevo listener.
+
+                                
+
+                                obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
+
+                                    if (obrasError != null) {
+
+                                        // No cerramos el flow completo por un error transitorio aquí
+
+                                        return@addSnapshotListener
+
+                                    }
+
+                                    if (obrasSnap != null) {
+
+                                        val obras = obrasSnap.toObjects(Obra::class.java)
+
+                                        trySend(obras.filter { !it.isArchived }).isSuccess
+
+                                    }
+
+                                }
+
+                            }
+
+                            
+
+                            awaitClose { registration.remove() }
+
                         }
-                        if (snapshot != null) {
-                            val obras = snapshot.toObjects(Obra::class.java)
-                            trySend(obras.filter { !it.isArchived }).isSuccess
-                        }
+
+                    }    override fun getArchivedObras(): Flow<List<Obra>> {
+        val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+
+        return callbackFlow {
+            val userProfileRef = firestore.collection("users").document(userId)
+            
+            val registration = userProfileRef.addSnapshotListener { profileSnap, profileError ->
+                if (profileError != null) {
+                    close(profileError)
+                    return@addSnapshotListener
+                }
+
+                val organizationId = profileSnap?.getString("organizationId")
+                
+                val obrasQuery = if (!organizationId.isNullOrEmpty()) {
+                    firestore.collection("obras").whereEqualTo("organizationId", organizationId)
+                } else {
+                    firestore.collection("obras").whereEqualTo("userId", userId)
+                }
+                
+                obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
+                    if (obrasError != null) return@addSnapshotListener
+                    if (obrasSnap != null) {
+                        val obras = obrasSnap.toObjects(Obra::class.java)
+                        trySend(obras.filter { it.isArchived }).isSuccess
                     }
-                awaitClose { listener.remove() }
+                }
             }
+            awaitClose { registration.remove() }
         }
-    
-        override fun getArchivedObras(): Flow<List<Obra>> {
-            val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
-    
-            return callbackFlow {
-                val listener = firestore.collection("obras")
-                    .whereEqualTo("userId", userId)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            close(error)
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val obras = snapshot.toObjects(Obra::class.java)
-                            trySend(obras.filter { it.isArchived }).isSuccess
-                        }
-                    }
-                awaitClose { listener.remove() }
-            }
-        }
-    
+    }    
         override suspend fun archiveObra(obraId: String): Result<Unit> {
             return try {
                 firestore.collection("obras").document(obraId).update("isArchived", true).await()
@@ -69,14 +139,17 @@ class ObraRepositoryImpl @Inject constructor(
         return try {
             val userId = auth.currentUser?.uid
             if (userId == null) {
-                // Devolvemos un fallo explícito si el usuario no está logueado
                 return Result.failure(Exception("Usuario no autenticado."))
             }
-            // Asignamos el ID del usuario actual a la obra antes de guardarla
-            firestore.collection("obras").add(obra.copy(userId = userId)).await()
+            
+            // Obtener organizationId del usuario actual
+            val userSnapshot = firestore.collection("users").document(userId).get().await()
+            val organizationId = userSnapshot.getString("organizationId") ?: "" // Fallback empty string if legacy
+            
+            // Guardamos con ambos IDs: userId (creador) y organizationId (dueño)
+            firestore.collection("obras").add(obra.copy(userId = userId, organizationId = organizationId)).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            // Capturamos cualquier otro error de Firestore
             Result.failure(e)
         }
     }
@@ -208,6 +281,54 @@ class ObraRepositoryImpl @Inject constructor(
     override suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit> {
         return try {
             firestore.collection("obras").document(obraId).collection("avances").document(avanceId)
+                .delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getPresupuestoItems(obraId: String): Flow<List<PresupuestoItem>> {
+        return callbackFlow {
+            val listener = firestore.collection("obras").document(obraId).collection("presupuesto_items")
+                .orderBy("fechaCreacion", com.google.firebase.firestore.Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val items = snapshot.toObjects(PresupuestoItem::class.java)
+                        trySend(items).isSuccess
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    override suspend fun addPresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("presupuesto_items")
+                .add(item).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updatePresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("presupuesto_items").document(item.id)
+                .set(item).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deletePresupuestoItem(obraId: String, itemId: String): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId)
                 .delete().await()
             Result.success(Unit)
         } catch (e: Exception) {

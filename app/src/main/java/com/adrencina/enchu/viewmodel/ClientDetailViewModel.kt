@@ -15,13 +15,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 data class ClientDetailUiState(
     val cliente: Cliente? = null,
     val obras: List<Obra> = emptyList(),
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val showEditDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -38,6 +40,26 @@ class ClientDetailViewModel @Inject constructor(
 
     init {
         loadData()
+    }
+
+    fun onEditClick() {
+        _uiState.update { it.copy(showEditDialog = true) }
+    }
+
+    fun onDismissEditDialog() {
+        _uiState.update { it.copy(showEditDialog = false) }
+    }
+
+    fun onConfirmEdit(updatedCliente: Cliente) {
+        viewModelScope.launch {
+            onDismissEditDialog()
+            try {
+                clienteRepository.updateCliente(updatedCliente)
+                // El flujo de datos actualizará la UI automáticamente
+            } catch (e: Exception) {
+                // Handle error (e.g. show toast via effect)
+            }
+        }
     }
 
     private fun loadData() {

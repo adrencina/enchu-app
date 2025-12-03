@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -44,7 +46,7 @@ fun FileItem(
             Text(text = "$formattedSize • $formattedDate")
         },
         leadingContent = {
-            FileIcon(fileExtension = file.fileName.substringAfterLast('.', ""))
+            FileIcon(fileExtension = file.fileName.substringAfterLast('.', ""), mimeType = file.mimeType)
         },
         trailingContent = {
             IconButton(onClick = { /* TODO: Handle more options */ }) {
@@ -59,7 +61,7 @@ fun FileItem(
 }
 
 @Composable
-private fun FileIcon(fileExtension: String) {
+private fun FileIcon(fileExtension: String, mimeType: String) {
     Surface(
         modifier = Modifier.size(48.dp),
         shape = MaterialTheme.shapes.small,
@@ -69,8 +71,13 @@ private fun FileIcon(fileExtension: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            val icon = when {
+                mimeType == "application/pdf" -> Icons.Default.PictureAsPdf
+                mimeType.startsWith("image/") -> Icons.Default.Image
+                else -> Icons.Default.Article
+            }
             Icon(
-                imageVector = Icons.Default.Article,
+                imageVector = icon,
                 contentDescription = "Icono de archivo",
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary

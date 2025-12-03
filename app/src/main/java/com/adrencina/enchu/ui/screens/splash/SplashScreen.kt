@@ -28,17 +28,16 @@ import kotlinx.coroutines.flow.collectLatest
  */
 @Composable
 fun SplashScreen(
-    viewModel: SplashViewModel = hiltViewModel(),
-    onNavigateToHome: () -> Unit,
-    onNavigateToLogin: () -> Unit,
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
     // LaunchedEffect escucha los eventos de un solo uso del ViewModel.
     // `key1 = true` asegura que la corrutina se lance solo una vez.
     LaunchedEffect(key1 = true) {
         viewModel.uiEvent.collectLatest { event ->
             when (event) {
-                is SplashUiEvent.NavigateToHome -> onNavigateToHome()
-                is SplashUiEvent.NavigateToLogin -> onNavigateToLogin()
+                is SplashUiEvent.NavigateToHome -> {} // Handled by AppNavigation
+                is SplashUiEvent.NavigateToLogin -> {} // Handled by AppNavigation
+                is SplashUiEvent.NavigateToWelcome -> {} // Handled by AppNavigation
             }
         }
     }

@@ -2,14 +2,20 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Regla generica para todo lo que este bajo 'obras/{workId}'
+    
+    // Regla genérica para todo lo que esté bajo 'obras/{workId}'
+    // Usada para fotos de avances y archivos de obra.
     match /obras/{workId}/{allPaths=**} {
-       // Permitir lectura y escritura si el usuario esta autenticado.
-       // IMPORTANTE: En un entorno de produccion real, deberiamos validar 
-       // que el usuario sea el PROPIETARIO de la obra (usando firestore.get() si fuera posible en storage rules,
-       // o manteniendo metadatos estrictos).
-       // Por ahora, para que funcionen Avances y Archivos sin complicaciones de metadatos:
        allow read, write: if request.auth != null;
+    }
+
+    // --- NUEVO: Regla para logos de Organizaciones ---
+    // Ruta: organizations/{orgId}/logo.jpg
+    match /organizations/{orgId}/{allPaths=**} {
+       // Permitir subir/borrar si estás autenticado (idealmente validar propiedad con Firestore)
+       allow write: if request.auth != null; 
+       // Permitir lectura pública o autenticada para que se vea en los PDFs y Perfiles
+       allow read: if request.auth != null;
     }
   }
 }

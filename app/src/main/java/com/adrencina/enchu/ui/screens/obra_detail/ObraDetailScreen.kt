@@ -45,9 +45,16 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.data.model.Avance
+import android.content.Intent
+import androidx.core.content.FileProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
 import com.adrencina.enchu.ui.screens.obra_detail.files.FilesScreen
+import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.AddPresupuestoItemDialog
+import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.PresupuestoScreen
 import com.adrencina.enchu.ui.screens.obra_detail.registros.AddAvanceDialog
 import com.adrencina.enchu.ui.screens.obra_detail.registros.RegistrosScreen
 import com.adrencina.enchu.ui.screens.obra_detail.tareas.TareasScreen
@@ -71,11 +78,26 @@ fun ObraDetailScreen(
         }
     )
 
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 ObraDetailEffect.NavigateBack -> onNavigateBack()
                 ObraDetailEffect.LaunchFilePicker -> filePickerLauncher.launch("*/*")
+                is ObraDetailEffect.SharePdf -> {
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.provider",
+                        effect.file
+                    )
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Compartir Presupuesto"))
+                }
             }
         }
     }
@@ -87,6 +109,7 @@ fun ObraDetailScreen(
         onDismissMenu = viewModel::onDismissMenu,
         onEditObra = viewModel::onEditObra,
         onArchiveObra = viewModel::onArchiveObra,
+        onExportPdf = viewModel::onExportPdf,
         onTabSelected = viewModel::onTabSelected,
         onFabPressed = viewModel::onFabPressed,
         onDismissEditDialog = viewModel::onDismissEditDialog,
@@ -104,7 +127,10 @@ fun ObraDetailScreen(
         onDeleteTarea = viewModel::onDeleteTarea,
         onDismissAddAvanceDialog = viewModel::onDismissAddAvanceDialog,
         onConfirmAddAvance = viewModel::onConfirmAddAvance,
-        onDeleteAvance = viewModel::onDeleteAvance
+        onDeleteAvance = viewModel::onDeleteAvance,
+        onDismissAddPresupuestoItemDialog = viewModel::onDismissAddPresupuestoItemDialog,
+        onConfirmAddPresupuestoItem = viewModel::onAddPresupuestoItem,
+        onDeletePresupuestoItem = viewModel::onDeletePresupuestoItem
     )
 }
 
@@ -118,6 +144,7 @@ fun ObraDetailScreenContent(
     onDismissMenu: () -> Unit,
     onEditObra: () -> Unit,
     onArchiveObra: () -> Unit,
+    onExportPdf: () -> Unit,
     onTabSelected: (Int) -> Unit,
     onFabPressed: () -> Unit,
     onDismissEditDialog: () -> Unit,
@@ -135,15 +162,18 @@ fun ObraDetailScreenContent(
     onDeleteTarea: (Tarea) -> Unit,
     onDismissAddAvanceDialog: () -> Unit,
     onConfirmAddAvance: (String, List<android.net.Uri>) -> Unit,
-    onDeleteAvance: (Avance) -> Unit
+    onDeleteAvance: (Avance) -> Unit,
+    onDismissAddPresupuestoItemDialog: () -> Unit,
+    onConfirmAddPresupuestoItem: (PresupuestoItem) -> Unit,
+    onDeletePresupuestoItem: (PresupuestoItem) -> Unit
 ) {
-    val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS")
+    val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS", "PRESUPUESTO")
 
     Scaffold(
         topBar = {
-            val (obra, isMenuExpanded) = when (uiState) {
-                is ObraDetailUiState.Success -> uiState.obra to uiState.isMenuExpanded
-                else -> null to false
+            val (obra, isMenuExpanded, selectedTabIndex) = when (uiState) {
+                is ObraDetailUiState.Success -> Triple(uiState.obra, uiState.isMenuExpanded, uiState.selectedTabIndex)
+                else -> Triple(null, false, 0)
             }
             ObraDetailTopAppBar(
                 obra = obra,
@@ -168,6 +198,12 @@ fun ObraDetailScreenContent(
                                 text = { Text("Archivar Obra") },
                                 onClick = onArchiveObra
                             )
+                            if (selectedTabIndex == 3) { // Presupuesto Tab
+                                DropdownMenuItem(
+                                    text = { Text("Exportar PDF") },
+                                    onClick = onExportPdf
+                                )
+                            }
                         }
                     }
                 }
@@ -233,6 +269,13 @@ fun ObraDetailScreenContent(
                         )
                     }
 
+                    if (uiState.showAddPresupuestoItemDialog) {
+                        AddPresupuestoItemDialog(
+                            onDismiss = onDismissAddPresupuestoItemDialog,
+                            onConfirm = onConfirmAddPresupuestoItem
+                        )
+                    }
+
                     ObraInfoSection(obra = uiState.obra)
 
                     ObraDetailTabs(
@@ -245,10 +288,12 @@ fun ObraDetailScreenContent(
                         selectedTabIndex = uiState.selectedTabIndex,
                         tareas = uiState.tareas,
                         avances = uiState.avances,
+                        presupuestoItems = uiState.presupuestoItems,
                         onAddTarea = onAddTarea,
                         onToggleTarea = onToggleTarea,
                         onDeleteTarea = onDeleteTarea,
                         onDeleteAvance = onDeleteAvance,
+                        onDeletePresupuestoItem = onDeletePresupuestoItem,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -342,7 +387,17 @@ private fun ObraDetailTabs(selectedTabIndex: Int, tabTitles: List<String>, onTab
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onTabSelected(index) },
-                text = { Text(text = title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
+                text = { 
+                    Text(
+                        text = title, 
+                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 10.sp,
+                        letterSpacing = (-0.5).sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
+                    ) 
+                }
             )
         }
     }
@@ -354,10 +409,12 @@ private fun TabContentArea(
     selectedTabIndex: Int,
     tareas: List<Tarea>,
     avances: List<Avance>,
+    presupuestoItems: List<PresupuestoItem>,
     onAddTarea: (String) -> Unit,
     onToggleTarea: (Tarea) -> Unit,
     onDeleteTarea: (Tarea) -> Unit,
     onDeleteAvance: (Avance) -> Unit,
+    onDeletePresupuestoItem: (PresupuestoItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -372,6 +429,10 @@ private fun TabContentArea(
                 onAddTarea = onAddTarea,
                 onToggleTarea = onToggleTarea,
                 onDeleteTarea = onDeleteTarea
+            )
+            3 -> PresupuestoScreen(
+                presupuestoItems = presupuestoItems,
+                onDeleteItem = onDeletePresupuestoItem
             )
         }
     }
@@ -419,6 +480,7 @@ fun ObraDetailScreenContentPreview() {
             onDismissMenu = {},
             onEditObra = {},
             onArchiveObra = {},
+            onExportPdf = {},
             onTabSelected = {},
             onFabPressed = {},
             onDismissEditDialog = {},
@@ -436,7 +498,10 @@ fun ObraDetailScreenContentPreview() {
             onDeleteTarea = {},
             onDismissAddAvanceDialog = {},
             onConfirmAddAvance = { _, _ -> },
-            onDeleteAvance = {}
+            onDeleteAvance = {},
+            onDismissAddPresupuestoItemDialog = {},
+            onConfirmAddPresupuestoItem = {},
+            onDeletePresupuestoItem = {}
         )
     }
 }

@@ -1,7 +1,10 @@
 package com.adrencina.enchu.ui.theme
 
 import android.app.Activity
-import androidx.compose.material3.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
@@ -24,12 +27,31 @@ private val LightColors = lightColorScheme(
     onError = OnError,
 )
 
- @Composable
+private val DarkColors = darkColorScheme(
+    primary = AzulCorporativoOscuro, // Un azul similar pero más vivo en oscuro
+    onPrimary = SuperficieNegra,
+    secondary = NaranjaAccionOscuro, // Naranja vibrante para el modo oscuro
+    onSecondary = SuperficieNegra,
+    background = FondoOscuro,
+    onBackground = TextoClaro,
+    surface = SuperficieOscura,
+    onSurface = TextoClaro,
+    onSurfaceVariant = TextoGrisOscuro, // Textos secundarios en oscuro
+    outline = BordeGrisOscuro,
+    error = ErrorOscuro,
+    onError = OnErrorOscuro,
+)
+
+@Composable
 fun EnchuTheme(
-    darkTheme: Boolean = false, // Forzamos el tema claro como en la captura
+    darkTheme: Boolean = isSystemInDarkTheme(), // Ahora toma del sistema por defecto
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColors
+    val colorScheme = when {
+        darkTheme -> DarkColors
+        else -> LightColors
+    }
+    
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

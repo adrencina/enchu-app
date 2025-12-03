@@ -54,7 +54,7 @@ class FilesViewModel @Inject constructor(
     private val _viewEffect = Channel<FileViewEffect>()
     val viewEffect = _viewEffect.receiveAsFlow()
 
-    fun onFileClicked(fileEntity: FileEntity) {
+    fun onFileClick(fileEntity: FileEntity) {
         viewModelScope.launch {
             if (fileEntity.localPath == null) {
                 _viewEffect.send(FileViewEffect.ShowError("El archivo no tiene una ruta local."))

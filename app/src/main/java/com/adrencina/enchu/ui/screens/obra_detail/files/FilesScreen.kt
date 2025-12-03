@@ -94,46 +94,18 @@ fun FilesScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
                         ) {
-                            items(lazyPagingItems.itemCount, key = { index -> lazyPagingItems.peek(index)?.fileId ?: index }) {
-                                val file = lazyPagingItems[it]
+                            items(lazyPagingItems.itemCount) { index ->
+                                val file = lazyPagingItems[index]
                                 if (file != null) {
                                     FileItem(
                                         file = file,
-                                        onClick = { viewModel.onFileClicked(file) },
-                                        onRenameClick = { viewModel.onRenameRequest(file) },
-                                        onShareClick = { viewModel.onShareRequest(file) },
-                                        onDeleteClick = { viewModel.onDeleteRequest(file) }
+                                        onClick = { viewModel.onFileClick(file) }
                                     )
-                                    Divider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                                }
-                            }
-
-                            if (lazyPagingItems.loadState.append is LoadState.Loading) {
-                                item {
-                                    Box(modifier = Modifier.fillMaxWidth().padding(Dimens.PaddingMedium)) {
-                                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-
-            if (uiState.showRenameDialog) {
-                RenameDialog(
-                    file = uiState.fileToModify,
-                    onConfirm = { newName -> viewModel.onConfirmRename(newName) },
-                    onDismiss = { viewModel.onDismissDialog() }
-                )
-            }
-
-            if (uiState.showDeleteConfirmDialog) {
-                DeleteConfirmDialog(
-                    file = uiState.fileToModify,
-                    onConfirm = { viewModel.onConfirmDelete() },
-                    onDismiss = { viewModel.onDismissDialog() }
-                )
             }
         }
     }

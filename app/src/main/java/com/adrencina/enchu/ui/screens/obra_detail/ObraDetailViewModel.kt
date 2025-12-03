@@ -6,14 +6,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
 import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
 import com.adrencina.enchu.domain.use_case.SaveAvanceUseCase
 import com.adrencina.enchu.domain.use_case.SaveFileToWorkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
+import com.adrencina.enchu.data.repository.OrganizationRepository
 
 // Usamos una clase sellada para seguir el patrón de HomeUiState
 sealed class ObraDetailUiState {
@@ -22,11 +26,13 @@ sealed class ObraDetailUiState {
         val obra: Obra,
         val tareas: List<Tarea> = emptyList(),
         val avances: List<Avance> = emptyList(),
+        val presupuestoItems: List<PresupuestoItem> = emptyList(), // Nuevo: Items de presupuesto
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
         val showArchiveDialog: Boolean = false,
-        val showAddAvanceDialog: Boolean = false, // Nuevo estado para diálogo de avance
+        val showAddAvanceDialog: Boolean = false,
+        val showAddPresupuestoItemDialog: Boolean = false, // Nuevo: Diálogo para agregar ítem
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
@@ -40,6 +46,7 @@ sealed class ObraDetailUiState {
 sealed class ObraDetailEffect {
     object NavigateBack : ObraDetailEffect()
     object LaunchFilePicker : ObraDetailEffect()
+    data class SharePdf(val file: File) : ObraDetailEffect()
 }
 
 @HiltViewModel
@@ -47,6 +54,8 @@ class ObraDetailViewModel @Inject constructor(
     private val repository: ObraRepository,
     private val saveFileToWorkUseCase: SaveFileToWorkUseCase,
     private val saveAvanceUseCase: SaveAvanceUseCase,
+    private val generatePresupuestoPdfUseCase: GeneratePresupuestoPdfUseCase,
+    private val organizationRepository: OrganizationRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -243,6 +252,9 @@ class ObraDetailViewModel @Inject constructor(
             1 -> { // Archivos
                 viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
             }
+            3 -> { // Presupuesto
+                _uiState.update { currentState.copy(showAddPresupuestoItemDialog = true) }
+            }
         }
     }
 
@@ -253,6 +265,45 @@ class ObraDetailViewModel @Inject constructor(
             } else {
                 currentState
             }
+        }
+    }
+    
+    fun onDismissAddPresupuestoItemDialog() {
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(showAddPresupuestoItemDialog = false)
+            } else {
+                currentState
+            }
+        }
+    }
+
+    fun onAddPresupuestoItem(item: PresupuestoItem) {
+        viewModelScope.launch {
+            repository.addPresupuestoItem(obraId, item)
+            onDismissAddPresupuestoItemDialog()
+        }
+    }
+    
+    fun onDeletePresupuestoItem(item: PresupuestoItem) {
+        viewModelScope.launch {
+            repository.deletePresupuestoItem(obraId, item.id)
+        }
+    }
+
+    fun onExportPdf() {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
+        viewModelScope.launch {
+            // Fetch organization if available
+            val orgId = currentState.obra.organizationId
+            val organization = if (orgId.isNotBlank()) {
+                organizationRepository.getOrganization(orgId).first()
+            } else {
+                null
+            }
+            
+            val file = generatePresupuestoPdfUseCase(currentState.obra, currentState.presupuestoItems, organization)
+            _effect.emit(ObraDetailEffect.SharePdf(file))
         }
     }
 
@@ -312,19 +363,36 @@ class ObraDetailViewModel @Inject constructor(
             combine(
                 repository.getObraById(obraId),
                 repository.getTareas(obraId),
-                repository.getAvances(obraId)
-            ) { obra, tareas, avances ->
-                Triple(obra, tareas, avances)
+                repository.getAvances(obraId),
+                repository.getPresupuestoItems(obraId)
+            ) { obra, tareas, avances, presupuestoItems ->
+                data class Result(
+                    val obra: Obra,
+                    val tareas: List<Tarea>,
+                    val avances: List<Avance>,
+                    val presupuestoItems: List<PresupuestoItem>
+                )
+                Result(obra, tareas, avances, presupuestoItems)
             }
             .catch { exception ->
                 _uiState.value = ObraDetailUiState.Error(exception.message ?: "Error desconocido")
             }
-            .collect { (obra, tareas, avances) ->
+            .collect { result ->
                 _uiState.update { currentState ->
                     if (currentState is ObraDetailUiState.Success) {
-                        currentState.copy(obra = obra, tareas = tareas, avances = avances)
+                        currentState.copy(
+                            obra = result.obra,
+                            tareas = result.tareas,
+                            avances = result.avances,
+                            presupuestoItems = result.presupuestoItems
+                        )
                     } else {
-                        ObraDetailUiState.Success(obra = obra, tareas = tareas, avances = avances)
+                        ObraDetailUiState.Success(
+                            obra = result.obra,
+                            tareas = result.tareas,
+                            avances = result.avances,
+                            presupuestoItems = result.presupuestoItems
+                        )
                     }
                 }
             }

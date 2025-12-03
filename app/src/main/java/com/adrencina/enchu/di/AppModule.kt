@@ -18,9 +18,21 @@ import dagger.hilt.components.SingletonComponent
 import net.sqlcipher.database.SupportFactory
 import javax.inject.Singleton
 
+import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.data.repository.OrganizationRepositoryImpl
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.MemoryCacheSettings
+import com.google.firebase.firestore.PersistentCacheSettings
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideOrganizationRepository(firestore: FirebaseFirestore, storage: FirebaseStorage): OrganizationRepository {
+        return OrganizationRepositoryImpl(firestore, storage)
+    }
 
     @Provides
     @Singleton
@@ -28,7 +40,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        val firestore = FirebaseFirestore.getInstance()
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
+            .build()
+        firestore.firestoreSettings = settings
+        return firestore
+    }
 
     @Provides
     @Singleton
@@ -61,7 +80,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
-        return AuthRepositoryImpl(auth)
+    fun provideAuthRepository(auth: FirebaseAuth, firestore: FirebaseFirestore): AuthRepository {
+        return AuthRepositoryImpl(auth, firestore)
     }
 }

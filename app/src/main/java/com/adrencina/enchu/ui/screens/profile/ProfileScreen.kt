@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -22,19 +24,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
+import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.data.repository.ThemeMode
+import com.adrencina.enchu.ui.screens.profile.EditOrganizationDialog
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ProfileViewModel
+import com.adrencina.enchu.viewmodel.SettingsViewModel
 import com.google.firebase.auth.FirebaseUser
+import androidx.compose.foundation.clickable
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = hiltViewModel(),
-    onLogout: () -> Unit
+    profileViewModel: ProfileViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    onLogout: () -> Unit,
+    onNavigateToTeamScreen: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by profileViewModel.uiState.collectAsState()
+    val themeMode by settingsViewModel.themeMode.collectAsState()
+
+    if (uiState.showEditOrgDialog && uiState.organization != null) {
+        EditOrganizationDialog(
+            organization = uiState.organization!!,
+            onDismiss = profileViewModel::onDismissEditOrgDialog,
+            onConfirm = profileViewModel::onUpdateOrganization,
+            onLogoSelected = profileViewModel::onLogoSelected
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -54,8 +74,12 @@ fun ProfileScreen(
 
         // 3. Menu Options
         MenuSection(
+            themeMode = themeMode,
+            onThemeModeChange = settingsViewModel::saveThemeMode,
+            onEditOrgClick = profileViewModel::onEditOrgClick,
+            onManageTeamClick = onNavigateToTeamScreen, // Pass new callback
             onLogout = {
-                viewModel.logout()
+                profileViewModel.logout()
                 onLogout()
             }
         )
@@ -69,7 +93,7 @@ fun ProfileHeader(user: FirebaseUser?) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val photoUrl = user?.photoUrl
-        
+
         if (photoUrl != null) {
             Image(
                 painter = rememberAsyncImagePainter(photoUrl),
@@ -160,7 +184,13 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MenuSection(onLogout: () -> Unit) {
+fun MenuSection(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onEditOrgClick: () -> Unit,
+    onManageTeamClick: () -> Unit, // New callback
+    onLogout: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
@@ -173,62 +203,74 @@ fun MenuSection(onLogout: () -> Unit) {
         )
 
         MenuItem(
-            icon = Icons.Default.Person,
-            text = "Editar Perfil",
-            onClick = { /* TODO */ }
+            icon = Icons.Default.Business,
+            text = "Datos de Empresa y Logo",
+            onClick = onEditOrgClick
+        )
+        MenuItem(
+            icon = Icons.Default.Group, // New icon for team
+            text = "Mi Equipo",
+            onClick = onManageTeamClick
         )
         MenuItem(
             icon = Icons.Default.Settings,
             text = "Ajustes de Aplicación",
             onClick = { /* TODO */ }
         )
+
+        Spacer(modifier = Modifier.height(Dimens.PaddingMedium)) // Space for theme controls
+
+        Text(
+            text = "Modo de Tema",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = Dimens.PaddingSmall)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ThemeMode.entries.forEach { mode ->
+                FilterChip(
+                    selected = themeMode == mode,
+                    onClick = { onThemeModeChange(mode) },
+                    label = { Text(mode.name.lowercase().replaceFirstChar { it.uppercaseChar() }) },
+                    shape = MaterialTheme.shapes.small,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
+        }
+
         MenuItem(
             icon = Icons.Default.Info,
             text = "Acerca de Enchu v1.0",
             onClick = { /* TODO */ }
         )
-        
+
         HorizontalDivider(modifier = Modifier.padding(vertical = Dimens.PaddingMedium))
 
         MenuItem(
             icon = Icons.AutoMirrored.Filled.ExitToApp,
             text = "Cerrar Sesión",
-            onClick = onLogout,
-            textColor = MaterialTheme.colorScheme.error
+            onClick = onLogout
         )
     }
 }
 
 @Composable
-fun MenuItem(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-    textColor: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Dimens.PaddingMedium, horizontal = Dimens.PaddingSmall),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+fun MenuItem(icon: ImageVector, text: String, onClick: () -> Unit) {
+    ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        headlineContent = { Text(text) },
+        leadingContent = {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = textColor.copy(alpha = 0.8f),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(Dimens.PaddingMedium))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = textColor
+                tint = MaterialTheme.colorScheme.primary
             )
         }
-    }
+    )
 }

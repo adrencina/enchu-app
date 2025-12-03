@@ -7,12 +7,14 @@ package com.adrencina.enchu.ui.navigation
 object Routes {
     const val SPLASH_SCREEN = "splash_screen"
     const val LOGIN_SCREEN = "login_screen"
+    const val WELCOME_SCREEN = "welcome_screen" // New route
 
     // Rutas para la navegación principal
     const val MAIN_WRAPPER = "main_wrapper"
     const val HOME_SCREEN = "home_screen"
     const val CLIENTES_SCREEN = "clientes_screen"
     const val PROFILE_SCREEN = "profile_screen"
+    const val TEAM_SCREEN = "team_screen"
 
     // Rutas para futuras pantallas
     const val ADD_OBRA_SCREEN = "add_obra_screen"

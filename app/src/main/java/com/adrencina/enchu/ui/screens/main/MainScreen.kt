@@ -40,7 +40,8 @@ fun MainScreen(
     onAddClientClick: () -> Unit,
     onClientClick: (String) -> Unit,
     onArchivedObrasClick: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToTeamScreen: () -> Unit // Renamed callback
 ) {
     val bottomNavController = rememberNavController()
 
@@ -130,9 +131,17 @@ fun MainScreen(
                 )
             }
 
-            composable(Routes.PROFILE_SCREEN) {
-                ProfileScreen(onLogout = onLogout)
-            }
+                                    composable(Routes.PROFILE_SCREEN) {
+
+                                        ProfileScreen(
+
+                                            onLogout = onLogout,
+
+                                            onNavigateToTeamScreen = onNavigateToTeamScreen // Pass the renamed callback
+
+                                        )
+
+                                    }
         }
     }
 }

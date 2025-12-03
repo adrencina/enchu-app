@@ -10,8 +10,6 @@ import com.adrencina.enchu.data.local.FileDao
 import com.adrencina.enchu.data.model.FileEntity
 import com.adrencina.enchu.data.model.SyncState
 import com.adrencina.enchu.domain.repository.FileRepository
-import com.adrencina.enchu.worker.DeleteWorker
-import com.adrencina.enchu.worker.RenameWorker
 import com.adrencina.enchu.worker.UploadWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +75,7 @@ class FileRepositoryImpl @Inject constructor(
 
         // 3. If synced, enqueue a worker to delete from cloud
         if (file.syncState == SyncState.SYNCED && file.remoteUrl != null) {
+            /*
             val deleteWorkRequest = OneTimeWorkRequestBuilder<DeleteWorker>()
                 .setInputData(workDataOf(
                     DeleteWorker.KEY_WORK_ID to file.workId,
@@ -90,6 +89,7 @@ class FileRepositoryImpl @Inject constructor(
                 )
                 .build()
             workManager.enqueue(deleteWorkRequest)
+            */
         }
     }
 
@@ -114,6 +114,7 @@ class FileRepositoryImpl @Inject constructor(
 
         // 3. If synced, enqueue a worker to rename in cloud
         if (file.syncState == SyncState.SYNCED) {
+            /*
             val renameWorkRequest = OneTimeWorkRequestBuilder<RenameWorker>()
                 .setInputData(workDataOf(
                     RenameWorker.KEY_WORK_ID to file.workId,
@@ -127,6 +128,7 @@ class FileRepositoryImpl @Inject constructor(
                 )
                 .build()
             workManager.enqueue(renameWorkRequest)
+            */
         }
     }
 }

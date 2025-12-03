@@ -10,6 +10,7 @@ import java.util.Date
 data class Cliente(
     @DocumentId val id: String = "",
     val userId: String = "",
+    val organizationId: String = "", // Nuevo campo clave para filtrado
     val nombre: String = "",
     val dni: String = "",
     val telefono: String = "",

@@ -18,3 +18,19 @@ val BordeGris = Color(0xFFE0E0E0)        // Para el borde sutil de las tarjetas
 val Error = Color(0xFFB00020)
 val OnError = Color.White
 val Exito = Color(0xFF2E7D32)            // Un verde más oscuro para el Snackbar
+
+// --- Colores para Dark Theme ---
+val FondoOscuro = Color(0xFF121212)      // Fondo muy oscuro
+val SuperficieOscura = Color(0xFF1E1E1E) // Superficie para tarjetas, un poco más clara que el fondo
+val SuperficieNegra = Color(0xFF2C2C2C) // Para elementos muy oscuros
+
+val AzulCorporativoOscuro = Color(0xFFBB86FC) // Azul vibrante para dark theme (Material Design guide)
+val NaranjaAccionOscuro = Color(0xFFFFCC80)   // Naranja más claro para dark theme
+
+val TextoClaro = Color(0xFFE0E0E0)       // Texto principal en dark theme
+val TextoGrisOscuro = Color(0xFFAAAAAA)  // Texto secundario en dark theme
+
+val BordeGrisOscuro = Color(0xFF424242)   // Borde sutil en dark theme
+
+val ErrorOscuro = Color(0xFFCF6679)      // Color de error para dark theme
+val OnErrorOscuro = Color(0xFF2C2C2C)    // Texto sobre error en dark theme
