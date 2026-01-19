@@ -30,7 +30,14 @@ object Routes {
      * Esto asegura que la ruta se construya siempre de la misma manera.
      * Uso: Routes.createObraDetailRoute(obra.id)
      */
-    fun createObraDetailRoute(obraId: String) = "obra_detail_screen/$obraId"
+    fun createObraDetailRoute(obraId: String): String {
+        return try {
+            val encodedId = java.net.URLEncoder.encode(obraId, "UTF-8")
+            "obra_detail_screen/$encodedId"
+        } catch (e: Exception) {
+            "obra_detail_screen/$obraId" // Fallback
+        }
+    }
 
     fun createClientDetailRoute(clientId: String) = "client_detail_screen/$clientId"
 }

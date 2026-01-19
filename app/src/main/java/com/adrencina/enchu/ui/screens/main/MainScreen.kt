@@ -119,7 +119,13 @@ fun MainScreen(
                     newObraResult = null,
                     onClearNewObraResult = { },
                     onAddObraClick = onAddObraClick,
-                    onObraClick = onObraClick,
+                    onObraClick = { obraId ->
+                        try {
+                            onObraClick(obraId)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainScreen", "Error navegando a obra: ${e.message}", e)
+                        }
+                    },
                     onArchivedObrasClick = onArchivedObrasClick
                 )
             }

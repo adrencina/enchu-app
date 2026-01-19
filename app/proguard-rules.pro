@@ -37,3 +37,25 @@
 -keep class com.adrencina.enchu.data.model.Tarea { *; }
 # -----------------------------------------------------------------------------------
 
+# --- REGLAS DE SEGURIDAD PARA HILT Y VIEWMODELS ---
+# Evitar que R8 elimine o renombre los constructores de ViewModels y Repositorios
+# Esto es vital para que la Inyección de Dependencias funcione en Release.
+-keep class com.adrencina.enchu.ui.screens.obra_detail.ObraDetailViewModel { *; }
+-keep class com.adrencina.enchu.data.repository.** { *; }
+-keep class com.adrencina.enchu.di.** { *; }
+-keep class com.adrencina.enchu.domain.use_case.** { *; }
+
+# --- REGLAS PARA FIREBASE APP CHECK Y PLAY INTEGRITY ---
+-keep class com.google.firebase.appcheck.** { *; }
+-keep class com.google.android.play.core.integrity.** { *; }
+
+# --- REGLAS PARA SQLCIPHER Y ROOM (CRÍTICO PARA CRASHES) ---
+# SQLCipher usa clases nativas y reflexión. Si se ofuscan, la DB no abre y crashea.
+-keep class net.sqlcipher.** { *; }
+-keep class net.sqlcipher.database.** { *; }
+# Room necesita mantener sus clases para mapear entidades y DAOs
+-keep class androidx.room.** { *; }
+-keep class androidx.sqlite.db.** { *; }
+# Evitar advertencias que pueden romper el build
+-dontwarn net.sqlcipher.**
+-dontwarn androidx.room.**

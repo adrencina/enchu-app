@@ -26,13 +26,14 @@ sealed class ObraDetailUiState {
         val obra: Obra,
         val tareas: List<Tarea> = emptyList(),
         val avances: List<Avance> = emptyList(),
-        val presupuestoItems: List<PresupuestoItem> = emptyList(), // Nuevo: Items de presupuesto
+        val presupuestoItems: List<PresupuestoItem> = emptyList(),
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
         val showArchiveDialog: Boolean = false,
         val showAddAvanceDialog: Boolean = false,
-        val showAddPresupuestoItemDialog: Boolean = false, // Nuevo: Diálogo para agregar ítem
+        val showAddPresupuestoItemDialog: Boolean = false,
+        val showAddTareaDialog: Boolean = false, // Nuevo estado
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
@@ -59,7 +60,7 @@ class ObraDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val obraId: String = savedStateHandle.get<String>("obraId")!!
+    private val obraId: String = savedStateHandle.get<String>("obraId") ?: ""
 
     private val _uiState = MutableStateFlow<ObraDetailUiState>(ObraDetailUiState.Loading)
     val uiState = _uiState.asStateFlow()
@@ -68,7 +69,11 @@ class ObraDetailViewModel @Inject constructor(
     val effect = _effect.asSharedFlow()
 
     init {
-        loadObraDetails()
+        if (obraId.isBlank()) {
+            _uiState.value = ObraDetailUiState.Error("Error de navegación: ID de obra no encontrado.")
+        } else {
+            loadObraDetails()
+        }
     }
 
     // --- Manejo de eventos con funciones públicas, como en HomeViewModel ---
@@ -252,8 +257,21 @@ class ObraDetailViewModel @Inject constructor(
             1 -> { // Archivos
                 viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
             }
+            2 -> { // Tareas
+                _uiState.update { currentState.copy(showAddTareaDialog = true) }
+            }
             3 -> { // Presupuesto
                 _uiState.update { currentState.copy(showAddPresupuestoItemDialog = true) }
+            }
+        }
+    }
+
+    fun onDismissAddTareaDialog() {
+        _uiState.update { currentState ->
+            if (currentState is ObraDetailUiState.Success) {
+                currentState.copy(showAddTareaDialog = false)
+            } else {
+                currentState
             }
         }
     }
@@ -359,67 +377,62 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     private fun loadObraDetails() {
-        android.util.Log.d("ObraDetailViewModel", "Iniciando carga de detalles para obra: $obraId")
+        android.util.Log.d("ObraDetailViewModel", "Iniciando carga resiliente para obra: $obraId")
+        
+        // 1. Cargar la Obra (Principal)
         viewModelScope.launch {
-            combine(
-                repository.getObraById(obraId)
-                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Obra iniciado") }
-                    .catch { e -> 
-                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Obra", e)
-                        throw e 
-                    },
-                repository.getTareas(obraId)
-                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Tareas iniciado") }
-                    .catch { e -> 
-                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Tareas", e)
-                        emit(emptyList()) // Fallback a lista vacía
-                    },
-                repository.getAvances(obraId)
-                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Avances iniciado") }
-                    .catch { e -> 
-                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Avances", e)
-                        emit(emptyList())
-                    },
-                repository.getPresupuestoItems(obraId)
-                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Presupuesto iniciado") }
-                    .catch { e -> 
-                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Presupuesto", e)
-                        emit(emptyList())
-                    }
-            ) { obra, tareas, avances, presupuestoItems ->
-                android.util.Log.d("ObraDetailViewModel", "Datos combinados recibidos. Obra: ${obra.nombreObra}, Tareas: ${tareas.size}, Avances: ${avances.size}, Presupuesto: ${presupuestoItems.size}")
-                data class Result(
-                    val obra: Obra,
-                    val tareas: List<Tarea>,
-                    val avances: List<Avance>,
-                    val presupuestoItems: List<PresupuestoItem>
-                )
-                Result(obra, tareas, avances, presupuestoItems)
-            }
-            .catch { exception ->
-                android.util.Log.e("ObraDetailViewModel", "Error fatal en combine", exception)
-                _uiState.value = ObraDetailUiState.Error(exception.message ?: "Error desconocido")
-            }
-            .collect { result ->
-                android.util.Log.d("ObraDetailViewModel", "Actualizando UI con éxito")
-                _uiState.update { currentState ->
-                    if (currentState is ObraDetailUiState.Success) {
-                        currentState.copy(
-                            obra = result.obra,
-                            tareas = result.tareas,
-                            avances = result.avances,
-                            presupuestoItems = result.presupuestoItems
-                        )
-                    } else {
-                        ObraDetailUiState.Success(
-                            obra = result.obra,
-                            tareas = result.tareas,
-                            avances = result.avances,
-                            presupuestoItems = result.presupuestoItems
-                        )
+            repository.getObraById(obraId)
+                .catch { e ->
+                    android.util.Log.e("ObraDetailViewModel", "Error cargando Obra", e)
+                    _uiState.update { 
+                        if (it is ObraDetailUiState.Success) it // Mantener estado previo si existe
+                        else ObraDetailUiState.Error("No se pudo cargar la obra: ${e.message}") 
                     }
                 }
-            }
+                .collect { obra ->
+                    _uiState.update { current ->
+                        if (current is ObraDetailUiState.Success) {
+                            current.copy(obra = obra)
+                        } else {
+                            // Primer éxito: inicializamos el estado Success
+                            ObraDetailUiState.Success(obra = obra)
+                        }
+                    }
+                    // Una vez que tenemos la obra, disparamos la carga de lo demás
+                    loadSubCollections()
+                }
+        }
+    }
+
+    private fun loadSubCollections() {
+        // Cargar Tareas
+        viewModelScope.launch {
+            repository.getTareas(obraId)
+                .catch { e -> 
+                    android.util.Log.e("ObraDetailViewModel", "Error cargando Tareas", e) 
+                    // No hacemos nada, la lista se queda vacía por defecto en el estado Success
+                }
+                .collect { tareas ->
+                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(tareas = tareas) else it }
+                }
+        }
+
+        // Cargar Avances
+        viewModelScope.launch {
+            repository.getAvances(obraId)
+                .catch { e -> android.util.Log.e("ObraDetailViewModel", "Error cargando Avances", e) }
+                .collect { avances ->
+                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(avances = avances) else it }
+                }
+        }
+
+        // Cargar Presupuesto
+        viewModelScope.launch {
+            repository.getPresupuestoItems(obraId)
+                .catch { e -> android.util.Log.e("ObraDetailViewModel", "Error cargando Presupuesto", e) }
+                .collect { items ->
+                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(presupuestoItems = items) else it }
+                }
         }
     }
 }

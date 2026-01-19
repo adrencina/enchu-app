@@ -19,10 +19,16 @@ class EnchuApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
-        val firebaseAppCheck = FirebaseAppCheck.getInstance()
-        firebaseAppCheck.installAppCheckProviderFactory(
-            PlayIntegrityAppCheckProviderFactory.getInstance()
-        )
+        
+        try {
+            val firebaseAppCheck = FirebaseAppCheck.getInstance()
+            firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("EnchuApp", "Error inicializando App Check: ${e.message}")
+            // No relanzamos la excepción para permitir que la app inicie
+        }
     }
 
     override val workManagerConfiguration: Configuration

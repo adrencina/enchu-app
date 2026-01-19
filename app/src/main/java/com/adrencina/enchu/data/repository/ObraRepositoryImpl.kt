@@ -165,11 +165,16 @@ class ObraRepositoryImpl @Inject constructor(
                 }
 
                 if (snapshot != null && snapshot.exists()) {
-                    val obra = snapshot.toObject(Obra::class.java)
-                    if (obra != null) {
-                        trySend(obra).isSuccess
-                    } else {
-                        close(Exception("Error al parsear los datos de la obra."))
+                    try {
+                        val obra = snapshot.toObject(Obra::class.java)
+                        if (obra != null) {
+                            trySend(obra).isSuccess
+                        } else {
+                            close(Exception("Error: La obra existe pero no se pudo leer (datos corruptos)."))
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ObraRepo", "CRASH EVITADO: Error de tipo al leer Obra $obraId", e)
+                        close(Exception("Error de formato de datos en la obra: ${e.message}"))
                     }
                 } else {
                     close(Exception("La obra con el ID especificado no existe."))
@@ -212,7 +217,15 @@ class ObraRepositoryImpl @Inject constructor(
                         return@addSnapshotListener
                     }
                     if (snapshot != null) {
-                        val tareas = snapshot.toObjects(Tarea::class.java)
+                        // Mapeo Seguro: Si una tarea falla, no crashea toda la lista
+                        val tareas = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                doc.toObject(Tarea::class.java)
+                            } catch (e: Exception) {
+                                android.util.Log.e("ObraRepo", "Error mapeando Tarea ${doc.id}", e)
+                                null
+                            }
+                        }
                         trySend(tareas).isSuccess
                     }
                 }
@@ -260,7 +273,15 @@ class ObraRepositoryImpl @Inject constructor(
                         return@addSnapshotListener
                     }
                     if (snapshot != null) {
-                        val avances = snapshot.toObjects(Avance::class.java)
+                        // Mapeo Seguro
+                        val avances = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                doc.toObject(Avance::class.java)
+                            } catch (e: Exception) {
+                                android.util.Log.e("ObraRepo", "Error mapeando Avance ${doc.id}", e)
+                                null
+                            }
+                        }
                         trySend(avances).isSuccess
                     }
                 }
@@ -298,7 +319,15 @@ class ObraRepositoryImpl @Inject constructor(
                         return@addSnapshotListener
                     }
                     if (snapshot != null) {
-                        val items = snapshot.toObjects(PresupuestoItem::class.java)
+                        // Mapeo Seguro
+                        val items = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                doc.toObject(PresupuestoItem::class.java)
+                            } catch (e: Exception) {
+                                android.util.Log.e("ObraRepo", "Error mapeando PresupuestoItem ${doc.id}", e)
+                                null
+                            }
+                        }
                         trySend(items).isSuccess
                     }
                 }

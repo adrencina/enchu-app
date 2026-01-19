@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -130,7 +131,8 @@ fun ObraDetailScreen(
         onDeleteAvance = viewModel::onDeleteAvance,
         onDismissAddPresupuestoItemDialog = viewModel::onDismissAddPresupuestoItemDialog,
         onConfirmAddPresupuestoItem = viewModel::onAddPresupuestoItem,
-        onDeletePresupuestoItem = viewModel::onDeletePresupuestoItem
+        onDeletePresupuestoItem = viewModel::onDeletePresupuestoItem,
+        onDismissAddTareaDialog = viewModel::onDismissAddTareaDialog
     )
 }
 
@@ -165,7 +167,8 @@ fun ObraDetailScreenContent(
     onDeleteAvance: (Avance) -> Unit,
     onDismissAddPresupuestoItemDialog: () -> Unit,
     onConfirmAddPresupuestoItem: (PresupuestoItem) -> Unit,
-    onDeletePresupuestoItem: (PresupuestoItem) -> Unit
+    onDeletePresupuestoItem: (PresupuestoItem) -> Unit,
+    onDismissAddTareaDialog: () -> Unit
 ) {
     val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS", "PRESUPUESTO")
 
@@ -273,6 +276,16 @@ fun ObraDetailScreenContent(
                         AddPresupuestoItemDialog(
                             onDismiss = onDismissAddPresupuestoItemDialog,
                             onConfirm = onConfirmAddPresupuestoItem
+                        )
+                    }
+
+                    if (uiState.showAddTareaDialog) {
+                        AddTareaDialog(
+                            onDismiss = onDismissAddTareaDialog,
+                            onConfirm = { 
+                                onAddTarea(it)
+                                onDismissAddTareaDialog()
+                            }
                         )
                     }
 
@@ -501,7 +514,48 @@ fun ObraDetailScreenContentPreview() {
             onDeleteAvance = {},
             onDismissAddPresupuestoItemDialog = {},
             onConfirmAddPresupuestoItem = {},
-            onDeletePresupuestoItem = {}
+            onDeletePresupuestoItem = {},
+            onDismissAddTareaDialog = {}
         )
     }
+}
+
+@Composable
+private fun AddTareaDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nueva Tarea") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Descripción") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onConfirm(text)
+                        onDismiss()
+                    }
+                },
+                enabled = text.isNotBlank()
+            ) {
+                Text("Agregar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
