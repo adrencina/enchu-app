@@ -359,13 +359,35 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     private fun loadObraDetails() {
+        android.util.Log.d("ObraDetailViewModel", "Iniciando carga de detalles para obra: $obraId")
         viewModelScope.launch {
             combine(
-                repository.getObraById(obraId),
-                repository.getTareas(obraId),
-                repository.getAvances(obraId),
+                repository.getObraById(obraId)
+                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Obra iniciado") }
+                    .catch { e -> 
+                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Obra", e)
+                        throw e 
+                    },
+                repository.getTareas(obraId)
+                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Tareas iniciado") }
+                    .catch { e -> 
+                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Tareas", e)
+                        emit(emptyList()) // Fallback a lista vacía
+                    },
+                repository.getAvances(obraId)
+                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Avances iniciado") }
+                    .catch { e -> 
+                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Avances", e)
+                        emit(emptyList())
+                    },
                 repository.getPresupuestoItems(obraId)
+                    .onStart { android.util.Log.d("ObraDetailViewModel", "Flow Presupuesto iniciado") }
+                    .catch { e -> 
+                        android.util.Log.e("ObraDetailViewModel", "Error en Flow Presupuesto", e)
+                        emit(emptyList())
+                    }
             ) { obra, tareas, avances, presupuestoItems ->
+                android.util.Log.d("ObraDetailViewModel", "Datos combinados recibidos. Obra: ${obra.nombreObra}, Tareas: ${tareas.size}, Avances: ${avances.size}, Presupuesto: ${presupuestoItems.size}")
                 data class Result(
                     val obra: Obra,
                     val tareas: List<Tarea>,
@@ -375,9 +397,11 @@ class ObraDetailViewModel @Inject constructor(
                 Result(obra, tareas, avances, presupuestoItems)
             }
             .catch { exception ->
+                android.util.Log.e("ObraDetailViewModel", "Error fatal en combine", exception)
                 _uiState.value = ObraDetailUiState.Error(exception.message ?: "Error desconocido")
             }
             .collect { result ->
+                android.util.Log.d("ObraDetailViewModel", "Actualizando UI con éxito")
                 _uiState.update { currentState ->
                     if (currentState is ObraDetailUiState.Success) {
                         currentState.copy(

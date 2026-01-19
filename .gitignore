@@ -99,3 +99,9 @@ temp/
 /app/src/main/res/drawable/imagesiconapp.png
 /informe actualizado app Enchu.md
 /tokengit.txt
+
+# Keystore files
+*.jks
+*.keystore
+keystore.properties
+signing_fingerprints.txt

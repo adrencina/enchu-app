@@ -58,6 +58,16 @@ class AuthRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override suspend fun getUserProfileById(userId: String): UserProfile? {
+        return try {
+            val snapshot = firestore.collection("users").document(userId).get().await()
+            snapshot.toObject(UserProfile::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     override suspend fun createIndependentProfile(user: FirebaseUser): Result<Unit> {
         return try {
             val userRef = firestore.collection("users").document(user.uid)
@@ -102,18 +112,30 @@ class AuthRepositoryImpl @Inject constructor(
                 return Result.failure(Exception("Código de organización inválido."))
             }
 
-            // 2. Actualizar la organización agregando al miembro
-            // Usamos arrayUnion para operación atómica
-            orgRef.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(user.uid)).await()
+            val org = orgSnapshot.toObject(Organization::class.java) ?: return Result.failure(Exception("Error al leer organización."))
+            
+            // Lógica inteligente de roles:
+            // Si soy el dueño original (reinstalé la app), recupero mi rol de OWNER.
+            // Si ya soy miembro, mantengo mi estado (o asumo MEMBER/EMPLOYEE si no tengo perfil).
+            val isOwner = org.ownerId == user.uid
+            val isAlreadyMember = org.members.contains(user.uid)
+            
+            val targetRole = if (isOwner) "OWNER" else "EMPLOYEE"
 
-            // 3. Crear el perfil del usuario vinculado
+            // 2. Actualizar la organización agregando al miembro (solo si NO estaba ya)
+            if (!isAlreadyMember) {
+                orgRef.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(user.uid)).await()
+            }
+
+            // 3. Crear o actualizar el perfil del usuario vinculado
+            // Esto restaura el acceso al usuario si había borrado la app
             val userRef = firestore.collection("users").document(user.uid)
             val newProfile = UserProfile(
                 id = user.uid,
                 email = user.email ?: "",
                 displayName = user.displayName ?: "",
                 organizationId = inviteCode,
-                role = "EMPLOYEE" // Rol por defecto al unirse
+                role = targetRole
             )
             userRef.set(newProfile).await()
 

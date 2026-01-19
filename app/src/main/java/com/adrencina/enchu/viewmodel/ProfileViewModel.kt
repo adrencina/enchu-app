@@ -70,9 +70,8 @@ class ProfileViewModel @Inject constructor(
                     if (memberIds.isNotEmpty()) {
                         val memberProfiles = mutableListOf<UserProfile>()
                         for (memberId in memberIds) {
-                            // This is a simplified way. In a real app, you might use a batch read
-                            // or a dedicated repository method to get multiple profiles at once.
-                            val memberProfile = authRepository.getUserProfile().first { it?.id == memberId }
+                            // CORRECTO: Usamos getUserProfileById para obtener el perfil de CUALQUIER miembro
+                            val memberProfile = authRepository.getUserProfileById(memberId)
                             memberProfile?.let { memberProfiles.add(it) }
                         }
                         _uiState.update { it.copy(organizationMembers = memberProfiles) }

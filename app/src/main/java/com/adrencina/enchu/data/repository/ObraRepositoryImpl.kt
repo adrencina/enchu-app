@@ -78,13 +78,13 @@ class ObraRepositoryImpl @Inject constructor(
 
                                     }
 
-                                    if (obrasSnap != null) {
+                                                                        if (obrasSnap != null) {
 
-                                        val obras = obrasSnap.toObjects(Obra::class.java)
+                                                                            val obras = obrasSnap.toObjects(Obra::class.java)
 
-                                        trySend(obras.filter { !it.isArchived }).isSuccess
+                                                                            trySend(obras.filter { it.id.isNotEmpty() && !it.isArchived }).isSuccess
 
-                                    }
+                                                                        }
 
                                 }
 
