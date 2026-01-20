@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,7 +38,8 @@ fun ClientForm(
     onAddressChange: (String) -> Unit,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    showExpandButton: Boolean = true
+    showExpandButton: Boolean = true,
+    onPickContact: (() -> Unit)? = null
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall),
@@ -44,11 +47,28 @@ fun ClientForm(
     ) {
         // Basic Info (Always visible)
         FormSection(title = "Nombre Completo") {
-            AppTextField(
-                value = name,
-                onValueChange = onNameChange,
-                placeholder = "Ej: Juan Pérez"
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AppTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    placeholder = "Ej: Juan Pérez",
+                    modifier = Modifier.weight(1f)
+                )
+                if (onPickContact != null) {
+                    IconButton(
+                        onClick = onPickContact,
+                        modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Importar de Contactos",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
 
         FormSection(title = "Identificación") {

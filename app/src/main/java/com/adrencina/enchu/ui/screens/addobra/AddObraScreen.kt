@@ -11,6 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.adrencina.enchu.core.utils.getContactDetails
+import com.adrencina.enchu.core.utils.PickPhoneContact
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -38,6 +45,24 @@ fun AddObraScreen(
     onNavigateBackWithResult: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val contactLauncher = rememberLauncherForActivityResult(
+        contract = PickPhoneContact()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                val contactData = getContactDetails(context, uri)
+                launch(Dispatchers.Main) {
+                    if (contactData.name.isNotBlank()) viewModel.onNewClientNameChange(contactData.name)
+                    if (contactData.phone.isNotBlank()) viewModel.onNewClientPhoneChange(contactData.phone)
+                    // Email not available with PickPhoneContact
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
@@ -74,7 +99,8 @@ fun AddObraScreen(
         onNewClientAddressChange = viewModel::onNewClientAddressChange,
         onToggleClientFormExpand = viewModel::onToggleClientFormExpand,
         onAutoDniCheckedChange = viewModel::onAutoDniCheckedChange,
-        onSaveNewClient = viewModel::onSaveNewClient
+        onSaveNewClient = viewModel::onSaveNewClient,
+        onPickContact = { contactLauncher.launch(Unit) }
     )
 }
 
@@ -102,7 +128,8 @@ fun AddObraScreenContent(
     onNewClientAddressChange: (String) -> Unit,
     onToggleClientFormExpand: () -> Unit,
     onAutoDniCheckedChange: (Boolean) -> Unit,
-    onSaveNewClient: () -> Unit
+    onSaveNewClient: () -> Unit,
+    onPickContact: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -262,7 +289,8 @@ fun AddObraScreenContent(
                         onAddressChange = onNewClientAddressChange,
                         isExpanded = uiState.isClientFormExpanded,
                         onToggleExpand = onToggleClientFormExpand,
-                        showExpandButton = true
+                        showExpandButton = true,
+                        onPickContact = onPickContact
                     )
 
                     if (uiState.saveClientError != null) {
@@ -335,7 +363,8 @@ private fun AddObraScreenContentPreview(
             onNewClientAddressChange = {},
             onToggleClientFormExpand = {},
             onAutoDniCheckedChange = {},
-            onSaveNewClient = {}
+            onSaveNewClient = {},
+            onPickContact = {}
         )
     }
 }

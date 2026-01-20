@@ -21,8 +21,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.adrencina.enchu.core.utils.getContactDetails
+import com.adrencina.enchu.core.utils.PickPhoneContact
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.adrencina.enchu.ui.components.ClientForm
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.AddClientSideEffect
@@ -36,6 +44,24 @@ fun AddClientScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val contactLauncher = rememberLauncherForActivityResult(
+        contract = PickPhoneContact()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                val contactData = getContactDetails(context, uri)
+                launch(Dispatchers.Main) {
+                    if (contactData.name.isNotBlank()) viewModel.onNameChange(contactData.name)
+                    if (contactData.phone.isNotBlank()) viewModel.onPhoneChange(contactData.phone)
+                    // Email not available with PickPhoneContact to avoid permissions
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
@@ -98,8 +124,9 @@ fun AddClientScreen(
                 onAddressChange = viewModel::onAddressChange,
                 isExpanded = uiState.isExpanded,
                 onToggleExpand = viewModel::onToggleExpand,
-                showExpandButton = false // Always expanded in full screen, or user logic?
+                showExpandButton = false, // Always expanded in full screen, or user logic?
                                         // User said: "desde la pestaña de clientes, pida todo los datos desplegados"
+                onPickContact = { contactLauncher.launch(Unit) }
             )
         }
     }
