@@ -9,5 +9,5 @@ import com.adrencina.enchu.R
  */
 object AppImages {
     @DrawableRes
-    val Logo = R.drawable.logosinfondogrande
+    val Logo = R.drawable.logo26
 }

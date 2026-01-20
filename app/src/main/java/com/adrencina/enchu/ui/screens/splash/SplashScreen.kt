@@ -69,9 +69,9 @@ fun SplashScreenContent(modifier: Modifier = Modifier) {
                 contentDescription = AppStrings.splashLogoDescription,
                 modifier = Modifier
                     .size(Dimens.SplashLogoSize) // Usa dimensiones centralizadas.
-                    .semantics { contentDescription = AppStrings.splashLogoDescription },
+                    .semantics { contentDescription = AppStrings.splashLogoDescription }
                 // El logo se tiñe con el color primario del tema.
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                // colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary) // Removed to show original colors
             )
 
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
