@@ -2,6 +2,7 @@ package com.adrencina.enchu.ui.screens.splash
 
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -64,14 +66,16 @@ fun SplashScreenContent(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            val isDark = isSystemInDarkTheme()
+            
             Image(
                 painter = painterResource(id = AppImages.Logo),
                 contentDescription = AppStrings.splashLogoDescription,
                 modifier = Modifier
                     .size(Dimens.SplashLogoSize) // Usa dimensiones centralizadas.
-                    .semantics { contentDescription = AppStrings.splashLogoDescription }
-                // El logo se tiñe con el color primario del tema.
-                // colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary) // Removed to show original colors
+                    .semantics { contentDescription = AppStrings.splashLogoDescription },
+                // En modo oscuro, teñimos el logo negro de blanco. En claro, lo dejamos original.
+                colorFilter = if (isDark) ColorFilter.tint(Color.White) else null
             )
 
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
@@ -93,7 +97,6 @@ fun SplashScreenContent(modifier: Modifier = Modifier) {
 @Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
 private fun SplashScreenPreview() {
-    // El Preview ahora usa tu tema para ser 100% fiel a la app real.
     EnchuTheme {
         SplashScreenContent()
     }

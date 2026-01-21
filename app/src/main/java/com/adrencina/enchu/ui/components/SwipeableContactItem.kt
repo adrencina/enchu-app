@@ -170,11 +170,25 @@ fun SwipeableContactItem(
             Spacer(modifier = Modifier.width(Dimens.PaddingMedium))
 
             // NOMBRE
+            val displayName = remember(cliente.nombre) {
+                if (cliente.nombre.length <= 10) {
+                    cliente.nombre
+                } else {
+                    val firstLine = cliente.nombre.take(10)
+                    val remaining = cliente.nombre.drop(10)
+                    val secondLine = remaining.take(10)
+                    val suffix = if (remaining.length > 10) "..." else ""
+                    "$firstLine\n$secondLine$suffix"
+                }
+            }
+
             Text(
-                text = cliente.nombre,
+                text = displayName,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
             )
         }
     }
