@@ -357,34 +357,46 @@ private fun ObraDetailTopAppBar(
 // Info Section
 @Composable
 private fun ObraInfoSection(obra: Obra) {
-    Column(modifier = Modifier.padding(start = Dimens.PaddingMedium, end = Dimens.PaddingMedium, top = 0.dp, bottom = 0.dp)) {
-        Text(
-            text = obra.nombreObra,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        if (obra.descripcion.isNotBlank()) {
-            Spacer(modifier = Modifier.height(2.dp))
+    androidx.compose.material3.Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.PaddingMedium, vertical = Dimens.PaddingSmall),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             Text(
-                text = obra.descripcion,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = obra.nombreObra,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (obra.descripcion.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = obra.descripcion,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            SuggestionChip(
+                onClick = { /* No action */ },
+                label = { Text(obra.estado) },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = Exito.copy(alpha = 0.8f),
+                    labelColor = Color.White
+                ),
+                border = null,
+                modifier = Modifier.height(26.dp) // Chip un poco más compacto
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        SuggestionChip(
-            onClick = { /* No action */ },
-            label = { Text(obra.estado) },
-            colors = SuggestionChipDefaults.suggestionChipColors(
-                containerColor = Exito.copy(alpha = 0.8f),
-                labelColor = Color.White
-            ),
-            border = null,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
-        Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
     }
 }
 

@@ -52,6 +52,7 @@ fun ClientsScreen(
     val density = LocalDensity.current
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddClientClick,

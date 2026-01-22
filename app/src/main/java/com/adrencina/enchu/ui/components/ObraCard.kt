@@ -5,8 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,61 +35,49 @@ fun ObraCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(150.dp), // Altura fija aumentada a 150dp
-        shape = MaterialTheme.shapes.medium,
+            .height(150.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(Dimens.PaddingMedium),
+                .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Parte Superior: Cliente (con Icono) y Obra
+            // Parte Superior: Nombre del Cliente y de la Obra
             Column {
-                // Cliente (Icono + Texto 2 líneas)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Text(
+                    text = obra.clienteNombre,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp, // Un poquito más grande al no haber icono
+                        lineHeight = 20.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp), // Icono discreto
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = obra.clienteNombre,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2, // Permitir 2 líneas
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 20.sp // Ajuste para que se vea prolijo en 2 líneas
-                    )
-                }
+                )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 
-                // Obra (Texto más chico)
+                // Nombre de la obra
                 Text(
                     text = obra.nombreObra,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = 2, // Volvemos a permitir 2 líneas para la obra también
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = 2.dp) // Pequeña indentación visual opcional o dejar en 0
+                    lineHeight = 18.sp
                 )
             }
 
-            // Parte Inferior: Fecha y Estado (Punto)
+            // Parte Inferior: Fecha (Izquierda) e Indicador Circular (Derecha)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -98,8 +85,8 @@ fun ObraCard(
             ) {
                 Text(
                     text = obra.fechaCreacion?.let { obraDateFormatter.format(it) } ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
                 
                 EstadoIndicator(estado = obra.estado)
@@ -119,7 +106,7 @@ private fun EstadoIndicator(estado: String) {
 
     Box(
         modifier = Modifier
-            .size(12.dp)
+            .size(10.dp) // Un poco más pequeño y sutil
             .background(color = color, shape = CircleShape)
     )
 }
@@ -132,8 +119,8 @@ fun ObraCardPreview() {
         ObraCard(
             obra = Obra(
                 id = "preview-id",
-                nombreObra = "Instalación de Cámaras de Seguridad en todo el perímetro",
-                clienteNombre = "Consorcio Edificio Plaza de la República",
+                nombreObra = "Instalación de Cámaras de Seguridad en el perímetro central del edificio",
+                clienteNombre = "Consorcio Edificio Plaza de la República Central",
                 fechaCreacion = Date(),
                 estado = "Finalizado"
             ),

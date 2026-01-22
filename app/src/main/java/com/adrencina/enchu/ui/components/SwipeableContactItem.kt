@@ -8,27 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,13 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.ui.theme.Dimens
 import kotlin.math.roundToInt
 
 enum class SwipeValue {
@@ -61,14 +47,32 @@ fun SwipeableContactItem(
     onWhatsAppClick: () -> Unit,
     onScheduleClick: () -> Unit
 ) {
+    val density = LocalDensity.current
+    // Reducimos el ancho para que los iconos estén más juntos
+    val actionWidth = 130.dp 
+    
+    val displayName = remember(cliente.nombre) {
+        val cleanName = cliente.nombre.trim()
+        if (cleanName.length <= 10) {
+            cleanName
+        } else {
+            val firstLine = cleanName.take(10)
+            val remaining = cleanName.drop(10)
+            val secondLine = remaining.take(10)
+            val suffix = if (remaining.length > 10) "..." else ""
+            "$firstLine\n$secondLine$suffix"
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface) // Fondo base igual al frente
             .border(
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-                MaterialTheme.shapes.medium
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                RoundedCornerShape(16.dp)
             )
             .anchoredDraggable(
                 state = state,
@@ -76,42 +80,37 @@ fun SwipeableContactItem(
             )
             .clickable { onClick() }
     ) {
-        // CAPA 1 (Fondo): Botones de Acción
-        val areActionsEnabled = state.currentValue == SwipeValue.Open
-
+        // --- CAPA 3 (FONDO): Botones de Acción ---
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(end = Dimens.PaddingMedium),
-            horizontalArrangement = Arrangement.End,
+                .fillMaxHeight()
+                .width(actionWidth)
+                .align(Alignment.CenterEnd),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             ActionButton(
                 icon = Icons.Default.DateRange,
                 contentDescription = "Agendar",
                 tint = MaterialTheme.colorScheme.tertiary,
-                onClick = onScheduleClick,
-                enabled = areActionsEnabled
+                onClick = onScheduleClick
             )
             ActionButton(
-                icon = Icons.Default.Message,
+                icon = Icons.AutoMirrored.Filled.Message,
                 contentDescription = "WhatsApp",
                 tint = Color(0xFF25D366),
-                onClick = onWhatsAppClick,
-                enabled = areActionsEnabled
+                onClick = onWhatsAppClick
             )
             ActionButton(
                 icon = Icons.Default.Call,
                 contentDescription = "Llamar",
                 tint = MaterialTheme.colorScheme.primary,
-                onClick = onCallClick,
-                enabled = areActionsEnabled
+                onClick = onCallClick
             )
         }
 
-        // CAPA 2 (La "Tapa" deslizante)
-        Box(
+        // --- CAPA 2 (INTERMEDIA): Cortina Deslizante ---
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .offset {
@@ -119,76 +118,45 @@ fun SwipeableContactItem(
                         x = state.requireOffset().roundToInt(),
                         y = 0
                     )
-                }
-                .background(MaterialTheme.colorScheme.surface)
-        )
+                },
+            color = MaterialTheme.colorScheme.surface // Mismo color exacto
+        ) {
+            // Capa vacía que tapa los botones
+        }
 
-        // CAPA 3 (Contenido Estático): Avatar + Nombre
+        // --- CAPA 1 (SUPERIOR): Contenido Fijo ---
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = Dimens.PaddingMedium),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // AVATAR
-            val initials = remember(cliente.nombre) {
-                cliente.nombre.split(" ")
-                    .filter { it.isNotBlank() }
-                    .take(2)
-                    .map { it.first().uppercase() }
-                    .joinToString("")
-            }
-            
-            val avatarColor = remember(cliente.nombre) {
-                val colors = listOf(
-                    Color(0xFFF44336), Color(0xFFE91E63), Color(0xFF9C27B0),
-                    Color(0xFF673AB7), Color(0xFF3F51B5), Color(0xFF2196F3),
-                    Color(0xFF03A9F4), Color(0xFF00BCD4), Color(0xFF009688),
-                    Color(0xFF4CAF50), Color(0xFF8BC34A), Color(0xFFFF9800)
-                )
-                val index = Math.abs(cliente.nombre.hashCode()) % colors.size
-                colors[index]
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(avatarColor.copy(alpha = 0.15f))
-                    .border(1.dp, avatarColor.copy(alpha = 0.3f), CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = CircleShape,
+                color = getAvatarColor(cliente.nombre),
+                modifier = Modifier.size(48.dp)
             ) {
-                Text(
-                    text = initials,
-                    color = avatarColor,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(Dimens.PaddingMedium))
-
-            // NOMBRE
-            val displayName = remember(cliente.nombre) {
-                if (cliente.nombre.length <= 10) {
-                    cliente.nombre
-                } else {
-                    val firstLine = cliente.nombre.take(10)
-                    val remaining = cliente.nombre.drop(10)
-                    val secondLine = remaining.take(10)
-                    val suffix = if (remaining.length > 10) "..." else ""
-                    "$firstLine\n$secondLine$suffix"
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = cliente.nombre.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
 
+            Spacer(modifier = Modifier.width(16.dp))
+
             Text(
                 text = displayName,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    lineHeight = 18.sp,
+                    fontSize = 15.sp
+                ),
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                modifier = Modifier.weight(1f)
+                maxLines = 2
             )
         }
     }
@@ -199,13 +167,11 @@ private fun ActionButton(
     icon: ImageVector,
     contentDescription: String,
     tint: Color,
-    onClick: () -> Unit,
-    enabled: Boolean = true
+    onClick: () -> Unit
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(40.dp),
-        enabled = enabled
+        modifier = Modifier.size(40.dp) // Reducido un poco para juntarlos más
     ) {
         Icon(
             imageVector = icon,
@@ -214,4 +180,13 @@ private fun ActionButton(
             modifier = Modifier.size(22.dp)
         )
     }
+}
+
+private fun getAvatarColor(name: String): Color {
+    val colors = listOf(
+        Color(0xFF1E88E5), Color(0xFF43A047), Color(0xFFE53935),
+        Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1)
+    )
+    val index = kotlin.math.abs(name.hashCode()) % colors.size
+    return colors[index]
 }
