@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
+import com.google.firebase.firestore.FieldValue
+
 class OrganizationRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val storage: FirebaseStorage
@@ -53,6 +55,17 @@ class OrganizationRepositoryImpl @Inject constructor(
             storageRef.putFile(uri).await()
             val downloadUrl = storageRef.downloadUrl.await()
             Result.success(downloadUrl.toString())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun incrementStorageUsed(orgId: String, bytes: Long): Result<Unit> {
+        return try {
+            firestore.collection("organizations").document(orgId)
+                .update("storageUsed", FieldValue.increment(bytes))
+                .await()
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

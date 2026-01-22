@@ -459,7 +459,7 @@ private fun ArchiveConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Archivar Obra") },
-        text = { Text("¿Estás seguro? La obra se moverá a la sección de archivados.") },
+        text = { Text("¿Deseas finalizar y archivar esta obra?\n\nAl archivarla, liberarás espacio en tu lista de 'Obras Activas' y podrás crear nuevas obras sin perder los datos de esta.") },
         confirmButton = {
             Button(onClick = onConfirm) {
                 Text("Archivar")

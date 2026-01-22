@@ -9,10 +9,13 @@ import android.provider.OpenableColumns
 import androidx.exifinterface.media.ExifInterface
 import com.adrencina.enchu.data.model.FileEntity
 import com.adrencina.enchu.data.model.SyncState
+import com.adrencina.enchu.data.repository.OrganizationRepository
 import com.adrencina.enchu.domain.repository.FileRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
@@ -24,108 +27,117 @@ import javax.inject.Inject
 class SaveFileToWorkUseCase @Inject constructor(
     private val fileRepository: FileRepository,
     private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore,
+    private val organizationRepository: OrganizationRepository,
     @ApplicationContext private val context: Context
 ) {
 
-        suspend operator fun invoke(workId: String, sourceUri: Uri): Result<FileEntity> = withContext(Dispatchers.IO) {
-            try {
-                val userId = firebaseAuth.currentUser?.uid ?: return@withContext Result.failure(Exception("User not authenticated"))
-    
-                val fileId = UUID.randomUUID().toString()
-                val fileName = getFileName(sourceUri) ?: fileId
-                val mimeType = context.contentResolver.getType(sourceUri) ?: "application/octet-stream"
+    suspend operator fun invoke(workId: String, sourceUri: Uri): Result<FileEntity> = withContext(Dispatchers.IO) {
+        try {
+            val userId = firebaseAuth.currentUser?.uid ?: return@withContext Result.failure(Exception("User not authenticated"))
+
+            // 1. Verificación de Cuota (Freemium)
+            val userSnap = firestore.collection("users").document(userId).get().await()
+            val orgId = userSnap.getString("organizationId") ?: ""
+            
+            if (orgId.isNotEmpty()) {
+                val orgSnap = firestore.collection("organizations").document(orgId).get().await()
+                val plan = orgSnap.getString("plan") ?: "FREE"
+                val storageUsed = orgSnap.getLong("storageUsed") ?: 0L
                 
-                // Manejo más seguro de la extensión
-                val fileExtension = fileName.substringAfterLast('.', "").ifEmpty {
-                    android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: ""
-                }
-    
-                val destinationDir = File(context.getExternalFilesDir(null), "works/$workId/files")
-                if (!destinationDir.exists()) destinationDir.mkdirs()
-                val destinationFile = File(destinationDir, "$fileId.$fileExtension")
-    
-                var size = 0L
-                val isImage = mimeType.startsWith("image/")
-    
-                if (isImage) {
-                    // --- COMPRESIÓN DE IMAGEN ---
-                    // 1. Decodificar dimensiones
-                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    context.contentResolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, options) }
-                    
-                    // 2. Calcular escala (Max 1280px)
-                    options.inSampleSize = calculateInSampleSize(options, 1280, 1280)
-                    options.inJustDecodeBounds = false
-                    
-                    // 3. Decodificar bitmap real
-                    val bitmap = context.contentResolver.openInputStream(sourceUri)?.use { 
-                        BitmapFactory.decodeStream(it, null, options) 
-                    }
-                    
-                    if (bitmap != null) {
-                        // 4. Rotar si es necesario (EXIF no siempre funciona con streams, mejor leer metadata antes si es posible,
-                        // pero para simplificar usaremos la copia original temporal si EXIF es crítico, 
-                        // o confiamos en que la librería de la cámara ya rotó. 
-                        // Para robustez real con URIs, se suele usar ExifInterface sobre el FD o InputStream si API level permite.)
-                        
-                        // Nota: ExifInterface necesita archivo o stream con seek.
-                        // Simplificación: Guardamos comprimido directo. 
-                        // Si la rotación es crítica, habría que copiar a temp, rotar y luego comprimir.
-                        // Asumimos que el usuario saca la foto bien por ahora para no complejizar.
-                        
-                        destinationFile.outputStream().use { out ->
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
-                        }
-                        size = destinationFile.length()
-                        bitmap.recycle()
-                    } else {
-                        // Fallback si falla decodificación: Copia directa
-                        context.contentResolver.openInputStream(sourceUri)?.use { input ->
-                            destinationFile.outputStream().use { output ->
-                                size = input.copyTo(output)
-                            }
-                        }
-                    }
-                } else {
-                    // --- OTROS ARCHIVOS (PDFs) ---
-                    // Copia directa sin modificar
-                    context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                        destinationFile.outputStream().use { outputStream ->
-                            size = inputStream.copyTo(outputStream)
-                        }
-                    }
-                }
-    
-                val checksum = calculateSHA256(destinationFile)
+                // Estimar tamaño del nuevo archivo (aproximado)
+                val estimatedSize = context.contentResolver.openFileDescriptor(sourceUri, "r")?.statSize ?: 0L
                 
-                // Generar thumbnail solo si es imagen
-                val thumbnailPath = if (isImage) generateThumbnail(destinationFile, fileId) else null
-    
-                val fileEntity = FileEntity(
-                    fileId = fileId,
-                    workId = workId,
-                    userId = userId,
-                    fileName = fileName,
-                    mimeType = mimeType,
-                    size = size,
-                    checksum = checksum,
-                    localPath = destinationFile.absolutePath,
-                    thumbnailPath = thumbnailPath,
-                    remoteUrl = null,
-                    syncState = SyncState.PENDING,
-                    createdAt = Date(),
-                    updatedAt = Date()
-                )
-    
-                (fileRepository as com.adrencina.enchu.data.repository.FileRepositoryImpl).saveFileEntity(fileEntity)
-                fileRepository.enqueueUpload(fileId)
-    
-                Result.success(fileEntity)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Result.failure(e)
+                val limitBytes = 50 * 1024 * 1024 // 50 MB
+                
+                if (plan == "FREE" && (storageUsed + estimatedSize) > limitBytes) {
+                     return@withContext Result.failure(Exception("Has alcanzado el límite de 50MB de almacenamiento. Actualiza a PRO para subir más archivos."))
+                }
             }
+
+            val fileId = UUID.randomUUID().toString()
+            val fileName = getFileName(sourceUri) ?: fileId
+            val mimeType = context.contentResolver.getType(sourceUri) ?: "application/octet-stream"
+            
+            val fileExtension = fileName.substringAfterLast('.', "").ifEmpty {
+                android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: ""
+            }
+
+            val destinationDir = File(context.getExternalFilesDir(null), "works/$workId/files")
+            if (!destinationDir.exists()) destinationDir.mkdirs()
+            val destinationFile = File(destinationDir, "$fileId.$fileExtension")
+
+            var size = 0L
+            val isImage = mimeType.startsWith("image/")
+
+            if (isImage) {
+                // --- COMPRESIÓN DE IMAGEN ---
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                context.contentResolver.openInputStream(sourceUri)?.use { BitmapFactory.decodeStream(it, null, options) }
+                
+                options.inSampleSize = calculateInSampleSize(options, 1280, 1280)
+                options.inJustDecodeBounds = false
+                
+                val bitmap = context.contentResolver.openInputStream(sourceUri)?.use { 
+                    BitmapFactory.decodeStream(it, null, options) 
+                }
+                
+                if (bitmap != null) {
+                    destinationFile.outputStream().use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                    }
+                    size = destinationFile.length()
+                    bitmap.recycle()
+                } else {
+                    context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                        destinationFile.outputStream().use { output ->
+                            size = input.copyTo(output)
+                        }
+                    }
+                }
+            } else {
+                // --- OTROS ARCHIVOS ---
+                context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+                    destinationFile.outputStream().use { outputStream ->
+                        size = inputStream.copyTo(outputStream)
+                    }
+                }
+            }
+
+            val checksum = calculateSHA256(destinationFile)
+            val thumbnailPath = if (isImage) generateThumbnail(destinationFile, fileId) else null
+
+            val fileEntity = FileEntity(
+                fileId = fileId,
+                workId = workId,
+                userId = userId,
+                fileName = fileName,
+                mimeType = mimeType,
+                size = size,
+                checksum = checksum,
+                localPath = destinationFile.absolutePath,
+                thumbnailPath = thumbnailPath,
+                remoteUrl = null,
+                syncState = SyncState.PENDING,
+                createdAt = Date(),
+                updatedAt = Date()
+            )
+
+            (fileRepository as com.adrencina.enchu.data.repository.FileRepositoryImpl).saveFileEntity(fileEntity)
+            fileRepository.enqueueUpload(fileId)
+
+            // 2. Incrementar uso de almacenamiento
+            if (orgId.isNotEmpty()) {
+                organizationRepository.incrementStorageUsed(orgId, size)
+            }
+
+            Result.success(fileEntity)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
         }
+    }
+
     private fun getFileName(uri: Uri): String? {
         var result: String? = null
         if (uri.scheme == "content") {
@@ -156,7 +168,7 @@ class SaveFileToWorkUseCase @Inject constructor(
     private fun calculateSHA256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         FileInputStream(file).use { fis ->
-            val byteArray = ByteArray(8192) // Buffer más grande
+            val byteArray = ByteArray(8192)
             var bytesCount = fis.read(byteArray)
             while (bytesCount != -1) {
                 digest.update(byteArray, 0, bytesCount)
@@ -167,40 +179,37 @@ class SaveFileToWorkUseCase @Inject constructor(
     }
 
     private fun generateThumbnail(file: File, fileId: String): String? {
-        // Usar un URI del archivo para obtener el mime-type de forma más fiable
         val fileUri = Uri.fromFile(file)
         val mimeType = context.contentResolver.getType(fileUri) ?: return null
 
-        if (!mimeType.startsWith("image/")) return null // Solo para imágenes
+        if (!mimeType.startsWith("image/")) return null
 
         try {
-            val thumbnailDir = File(context.getExternalFilesDir(null), "works/thumbnails")
+            val thumbnailDir = File(context.getExternalFilesDir(null), "thumbnails")
             if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
-            val thumbnailFile = File(thumbnailDir, "$fileId.jpg")
+            val thumbnailFile = File(thumbnailDir, "thumb_$fileId.jpg")
 
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, options)
-
-            options.inSampleSize = calculateInSampleSize(options, 150, 150)
+            options.inSampleSize = calculateInSampleSize(options, 200, 200)
             options.inJustDecodeBounds = false
 
             val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+            
+            // Rotar thumbnail si el original tenía rotación
             val rotatedBitmap = rotateImageIfRequired(bitmap, file.absolutePath)
 
             thumbnailFile.outputStream().use { out ->
-                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
             }
-
-            // Reciclar bitmaps si no estás en una versión muy nueva de Android
+            
             bitmap.recycle()
-            if (rotatedBitmap != bitmap) {
-                rotatedBitmap.recycle()
-            }
+            if (rotatedBitmap != bitmap) rotatedBitmap.recycle()
 
             return thumbnailFile.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()
-            return null // Falló la generación del thumbnail
+            return null
         }
     }
 
@@ -223,7 +232,7 @@ class SaveFileToWorkUseCase @Inject constructor(
             ei = ExifInterface(path)
         } catch (e: Exception) {
             e.printStackTrace()
-            return img // No se pudo leer EXIF, devolver original
+            return img 
         }
 
         val orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)

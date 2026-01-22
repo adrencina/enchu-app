@@ -3,15 +3,22 @@ package com.adrencina.enchu.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.data.repository.AuthRepository
 import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.data.repository.OrganizationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class HomeUiState {
     object Loading : HomeUiState()
-    data class Success(val obras: List<Obra>, val archivedCount: Int = 0) : HomeUiState()
+    data class Success(
+        val obras: List<Obra>, 
+        val archivedCount: Int = 0,
+        val plan: String = "FREE"
+    ) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
 
@@ -21,7 +28,9 @@ sealed class HomeUiEffect {
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val obraRepository: ObraRepository
+    private val obraRepository: ObraRepository,
+    private val authRepository: AuthRepository,
+    private val organizationRepository: OrganizationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -46,35 +55,42 @@ class HomeViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun loadObras() {
         viewModelScope.launch {
-            combine(
-                obraRepository.getObras(),
-                obraRepository.getArchivedObras(),
-                _searchQuery
-            ) { activeObras, archivedObras, query ->
-                if (query.isBlank()) {
-                    HomeUiState.Success(activeObras, archivedObras.size)
-                } else {
-                    val allObras = activeObras + archivedObras
-                    val filteredObras = allObras.filter { obra ->
-                        obra.nombreObra.contains(query, ignoreCase = true) ||
-                        obra.clienteNombre.contains(query, ignoreCase = true) ||
-                        obra.estado.contains(query, ignoreCase = true) ||
-                        obra.direccion.contains(query, ignoreCase = true)
-                    }
-                    // Cuando se busca, mostramos todo junto y ocultamos la barra inferior de archivados (archivedCount = 0)
-                    // o podríamos mantenerla, pero conceptualmente estamos viendo resultados mezclados.
-                    // Dejaremos archivedCount en 0 para que no confunda la navegación.
-                    HomeUiState.Success(filteredObras, 0)
+            authRepository.getUserProfile()
+                .flatMapLatest { userProfile ->
+                    val orgId = userProfile?.organizationId ?: ""
+                    organizationRepository.getOrganization(orgId)
                 }
-            }
-            .catch { exception ->
-                _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
-            }
-            .collect { newState ->
-                _uiState.value = newState
-            }
+                .flatMapLatest { organization ->
+                    val plan = organization?.plan ?: "FREE"
+                    combine(
+                        obraRepository.getObras(),
+                        obraRepository.getArchivedObras(),
+                        _searchQuery
+                    ) { activeObras, archivedObras, query ->
+                        if (query.isBlank()) {
+                            HomeUiState.Success(activeObras, archivedObras.size, plan)
+                        } else {
+                            val allObras = activeObras + archivedObras
+                            val filteredObras = allObras.filter { obra ->
+                                obra.nombreObra.contains(query, ignoreCase = true) ||
+                                obra.clienteNombre.contains(query, ignoreCase = true) ||
+                                obra.estado.contains(query, ignoreCase = true) ||
+                                obra.direccion.contains(query, ignoreCase = true)
+                            }
+                            // Cuando se busca, mostramos todo junto y ocultamos la barra inferior de archivados
+                            HomeUiState.Success(filteredObras, 0, plan)
+                        }
+                    }
+                }
+                .catch { exception ->
+                    _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
+                }
+                .collect { newState ->
+                    _uiState.value = newState
+                }
         }
     }
 }

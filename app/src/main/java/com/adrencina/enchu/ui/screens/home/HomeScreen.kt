@@ -91,6 +91,26 @@ fun HomeScreen(
         }
     }
 
+    var showPaywallDialog by remember { mutableStateOf(false) }
+
+    if (showPaywallDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPaywallDialog = false },
+            title = { Text(text = "Límite Alcanzado") },
+            text = { Text(text = "Has alcanzado el límite de 3 obras activas del plan Gratuito.\n\nPor favor, archiva obras terminadas para liberar espacio o actualiza a un plan PRO para obras ilimitadas.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showPaywallDialog = false }
+                ) {
+                    Text("Entendido")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
     Scaffold(
         topBar = {
             MisObrasTopBar(
@@ -133,7 +153,21 @@ fun HomeScreen(
         floatingActionButton = {
             // FAB en su posición estándar
             FloatingActionButton(
-                onClick = onAddObraClick,
+                onClick = {
+                    val state = uiState
+                    if (state is HomeUiState.Success) {
+                        // Lógica Freemium: Máximo 3 obras activas para cuentas FREE
+                        if (state.plan == "FREE" && state.obras.size >= 3) {
+                            showPaywallDialog = true
+                        } else {
+                            onAddObraClick()
+                        }
+                    } else {
+                        // Si está cargando o error, permitimos click por defecto (o bloqueamos, pero mejor permitir para no trabar UX)
+                        // Aunque si está cargando, state.obras no existe. Mejor fallback a permitir y que falle si debe fallar o que cargue.
+                        onAddObraClick()
+                    }
+                },
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)

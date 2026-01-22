@@ -16,6 +16,8 @@ data class Organization(
     val businessEmail: String = "",
     val businessAddress: String = "",
     val businessWeb: String = "",
+    val plan: String = "FREE", // FREE, PRO
+    val storageUsed: Long = 0, // Bytes usados en total
 
     @ServerTimestamp
     val createdAt: Date? = null

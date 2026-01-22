@@ -7,4 +7,5 @@ interface OrganizationRepository {
     fun getOrganization(orgId: String): Flow<Organization?>
     suspend fun updateOrganization(organization: Organization): Result<Unit>
     suspend fun uploadLogo(orgId: String, uri: android.net.Uri): Result<String> // Returns URL
+    suspend fun incrementStorageUsed(orgId: String, bytes: Long): Result<Unit>
 }
