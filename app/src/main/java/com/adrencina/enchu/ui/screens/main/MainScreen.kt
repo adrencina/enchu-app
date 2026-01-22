@@ -54,7 +54,6 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                modifier = Modifier.height(80.dp),
                 containerColor = MaterialTheme.colorScheme.background
             ) {
                 val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()

@@ -322,7 +322,7 @@ private fun ObrasGrid(obras: List<Obra>, onObraClick: (String) -> Unit) {
             top = Dimens.PaddingSmall,
             start = Dimens.PaddingMedium,
             end = Dimens.PaddingMedium,
-            bottom = Dimens.PaddingMedium
+            bottom = 100.dp // Extra space for FAB and BottomBar
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium),
         horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
