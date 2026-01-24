@@ -27,8 +27,12 @@ androidxSqlite = "2.4.0"
 androidxSecurity = "1.1.0-alpha06"
 datastore = "1.1.1"
 appUpdate = "2.1.0"
+gson = "2.10.1"
 
 [libraries]
+# Gson
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
 # App Update
 app-update = { group = "com.google.android.play", name = "app-update", version.ref = "appUpdate" }
 app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "appUpdate" }

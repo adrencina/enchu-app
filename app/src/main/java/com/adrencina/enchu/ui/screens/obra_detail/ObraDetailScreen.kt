@@ -54,7 +54,7 @@ import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
 import com.adrencina.enchu.ui.screens.obra_detail.files.FilesScreen
-import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.AddPresupuestoItemDialog
+import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.MaterialSearchDialog
 import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.PresupuestoScreen
 import com.adrencina.enchu.ui.screens.obra_detail.registros.AddAvanceDialog
 import com.adrencina.enchu.ui.screens.obra_detail.registros.RegistrosScreen
@@ -273,7 +273,7 @@ fun ObraDetailScreenContent(
                     }
 
                     if (uiState.showAddPresupuestoItemDialog) {
-                        AddPresupuestoItemDialog(
+                        MaterialSearchDialog(
                             onDismiss = onDismissAddPresupuestoItemDialog,
                             onConfirm = onConfirmAddPresupuestoItem
                         )

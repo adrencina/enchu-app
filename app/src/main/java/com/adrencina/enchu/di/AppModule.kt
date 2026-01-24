@@ -24,6 +24,10 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.firestore.PersistentCacheSettings
 
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.adrencina.enchu.data.local.MaterialDao
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -62,12 +66,20 @@ object AppModule {
         val passphrase = passphraseProvider.getPassphrase()
         val factory = SupportFactory(passphrase)
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `materials` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, `unit` TEXT NOT NULL, `keywords` TEXT NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_materials_name_keywords` ON `materials` (`name`, `keywords`)")
+            }
+        }
+
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "enchu-db"
         )
             .openHelperFactory(factory)
+            .addMigrations(MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -76,6 +88,12 @@ object AppModule {
     @Singleton
     fun provideFileDao(database: AppDatabase): FileDao {
         return database.fileDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMaterialDao(database: AppDatabase): MaterialDao {
+        return database.materialDao()
     }
 
     @Provides
