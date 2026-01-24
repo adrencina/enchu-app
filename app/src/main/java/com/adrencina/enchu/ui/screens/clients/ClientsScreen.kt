@@ -16,12 +16,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -38,28 +43,41 @@ import com.adrencina.enchu.ui.components.SwipeValue
 import com.adrencina.enchu.ui.components.SwipeableContactItem
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientsViewModel
+import com.adrencina.enchu.data.model.Cliente
+
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClientsScreen(
     viewModel: ClientsViewModel = hiltViewModel(),
     onAddClientClick: () -> Unit,
-    onClientClick: (String) -> Unit
+    onClientClick: (String) -> Unit,
+    onClientSelected: ((Cliente) -> Unit)? = null,
+    onAddManualClientClick: (() -> Unit)? = null
 ) {
     val filteredClientes by viewModel.filteredClientes.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
 
+    val isSelectionMode = onClientSelected != null
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddClientClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Cliente")
+            // Solo mostrar FAB si NO estamos en modo selección (para crear cliente DB normal)
+            if (!isSelectionMode) {
+                FloatingActionButton(
+                    onClick = onAddClientClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar Cliente")
+                }
             }
         }
     ) { paddingValues ->
@@ -71,11 +89,31 @@ fun ClientsScreen(
         ) {
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
             
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = viewModel::onSearchQueryChange,
-                placeholder = "Buscar cliente..."
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = viewModel::onSearchQueryChange,
+                    placeholder = "Buscar cliente...",
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (isSelectionMode && onAddManualClientClick != null) {
+                    FilledTonalIconButton(
+                        onClick = onAddManualClientClick,
+                        modifier = Modifier.size(48.dp), // Tamaño cómodo
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    ) {
+                        Icon(Icons.Default.PersonAdd, contentDescription = "Manual / Contacto")
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
 
@@ -113,12 +151,11 @@ fun ClientsScreen(
                         state = state,
                         cliente = cliente,
                         onClick = { 
-                            // Close menu if open, or navigate
-                            if (state.currentValue == SwipeValue.Open) {
-                                // Reset logic can be handled by scope.launch { state.animateTo(SwipeValue.Closed) }
-                                // ideally, but for now we just keep the default behavior
+                            if (isSelectionMode) {
+                                onClientSelected?.invoke(cliente)
+                            } else {
+                                onClientClick(cliente.id) 
                             }
-                            onClientClick(cliente.id) 
                         },
                         onCallClick = {
                              if (cliente.telefono.isNotBlank()) {

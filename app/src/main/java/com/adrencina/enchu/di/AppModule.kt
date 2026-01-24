@@ -21,12 +21,12 @@ import javax.inject.Singleton
 import com.adrencina.enchu.data.repository.OrganizationRepository
 import com.adrencina.enchu.data.repository.OrganizationRepositoryImpl
 import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.firestore.PersistentCacheSettings
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.adrencina.enchu.data.local.MaterialDao
+import com.adrencina.enchu.data.local.PresupuestoDao
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -73,13 +73,24 @@ object AppModule {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Tabla presupuestos
+                db.execSQL("CREATE TABLE IF NOT EXISTS `presupuestos` (`id` TEXT NOT NULL, `titulo` TEXT NOT NULL, `clienteId` TEXT NOT NULL, `clienteNombre` TEXT NOT NULL, `clienteApellido` TEXT NOT NULL, `clienteDireccion` TEXT NOT NULL, `clienteTelefono` TEXT NOT NULL, `clienteEmail` TEXT NOT NULL, `subtotal` REAL NOT NULL, `impuestos` REAL NOT NULL, `descuento` REAL NOT NULL, `total` REAL NOT NULL, `estado` TEXT NOT NULL, `creadoEn` INTEGER NOT NULL, `aprobadoEn` INTEGER, `aprobadoPor` TEXT, `notas` TEXT NOT NULL, PRIMARY KEY(`id`))")
+                
+                // Tabla presupuesto_items
+                db.execSQL("CREATE TABLE IF NOT EXISTS `presupuesto_items` (`localId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `presupuestoId` TEXT NOT NULL, `descripcion` TEXT NOT NULL, `cantidad` REAL NOT NULL, `unidad` TEXT, `precioUnitario` REAL NOT NULL, `tipo` TEXT NOT NULL, `fuente` TEXT NOT NULL, `orden` INTEGER NOT NULL, FOREIGN KEY(`presupuestoId`) REFERENCES `presupuestos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_presupuesto_items_presupuestoId` ON `presupuesto_items` (`presupuestoId`)")
+            }
+        }
+
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "enchu-db"
         )
             .openHelperFactory(factory)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -94,6 +105,12 @@ object AppModule {
     @Singleton
     fun provideMaterialDao(database: AppDatabase): MaterialDao {
         return database.materialDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePresupuestoDao(database: AppDatabase): PresupuestoDao {
+        return database.presupuestoDao()
     }
 
     @Provides

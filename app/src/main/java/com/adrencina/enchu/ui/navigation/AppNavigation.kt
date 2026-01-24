@@ -26,6 +26,7 @@ import com.adrencina.enchu.ui.screens.welcome.WelcomeScreen
 import com.adrencina.enchu.ui.screens.splash.SplashViewModel
 import com.adrencina.enchu.ui.screens.splash.SplashUiEvent
 import com.adrencina.enchu.ui.screens.profile.team.TeamScreen
+import com.adrencina.enchu.ui.screens.new_budget.NewBudgetScreen
 
 @Composable
 fun AppNavigation() {
@@ -39,7 +40,7 @@ fun AppNavigation() {
             val splashViewModel = hiltViewModel<SplashViewModel>()
             SplashScreen(viewModel = splashViewModel)
             
-            val uiEvent by splashViewModel.uiEvent.collectAsState(initial = null) // Collect as State for LaunchedEffect
+            val uiEvent by splashViewModel.uiEvent.collectAsState(initial = null)
             
             LaunchedEffect(uiEvent) {
                 when (uiEvent) {
@@ -66,12 +67,6 @@ fun AppNavigation() {
         composable(Routes.LOGIN_SCREEN) {
             LoginScreen(
                 onLoginSuccess = {
-                    // Redirigir temporalmente a WELCOME para validar si necesita crear perfil
-                    // La pantalla WelcomeScreen o un ViewModel debería decidir si saltar a Main si ya tiene perfil
-                    // Por simplicidad en esta iteración, asumimos que LoginScreen ya hizo su trabajo de autenticación
-                    // y aquí decidimos a donde ir.
-                    // En un flujo ideal, el Splash ya redirige a Welcome si no hay perfil completo.
-                    // Vamos a navegar a Welcome siempre tras Login para chequear.
                     navController.navigate(Routes.WELCOME_SCREEN) {
                         popUpTo(Routes.LOGIN_SCREEN) { inclusive = true }
                     }
@@ -101,6 +96,9 @@ fun AppNavigation() {
                         Log.e("AppNavigation", "Failed to navigate to AddObra", e)
                     }
                 },
+                onAddBudgetClick = {
+                    navController.navigate(Routes.NEW_BUDGET_SCREEN)
+                },
                 onAddClientClick = {
                     navController.navigate(Routes.ADD_CLIENT_SCREEN)
                 },
@@ -113,13 +111,19 @@ fun AppNavigation() {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToTeamScreen = { // Pass navigation for team screen
+                onNavigateToTeamScreen = {
                     navController.navigate(Routes.TEAM_SCREEN)
                 }
             )
         }
 
-        composable(Routes.TEAM_SCREEN) { // New composable for TeamScreen
+        composable(Routes.NEW_BUDGET_SCREEN) {
+            NewBudgetScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.TEAM_SCREEN) {
             TeamScreen(
                 onNavigateBack = { navController.popBackStack() }
             )

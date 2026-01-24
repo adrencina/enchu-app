@@ -95,57 +95,6 @@ fun HomeScreen(
                 onMenuClick = { /* TODO: Implement menu */ }
             )
         },
-        bottomBar = {
-            val state = uiState
-            if (state is HomeUiState.Success && state.archivedCount > 0) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = Dimens.PaddingMedium, end = Dimens.PaddingMedium, bottom = 2.dp, top = 2.dp)
-                    ) {
-                        TextButton(
-                            onClick = onArchivedObrasClick,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            ),
-                            modifier = Modifier.align(Alignment.CenterStart)
-                        ) {
-                            Icon(imageVector = AppIcons.Archive, contentDescription = null)
-                            Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
-                            Text("Obras archivadas (${state.archivedCount})")
-                        }
-                    }
-                }
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    val state = uiState
-                    if (state is HomeUiState.Success) {
-                        if (state.plan == "FREE" && state.obras.size >= 3) {
-                            showPaywallDialog = true
-                        } else {
-                            onAddObraClick()
-                        }
-                    } else {
-                        onAddObraClick()
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-            ) {
-                Icon(
-                    imageVector = AppIcons.Add,
-                    contentDescription = AppStrings.addObra
-                )
-            }
-        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->

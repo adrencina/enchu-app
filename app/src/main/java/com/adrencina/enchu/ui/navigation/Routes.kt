@@ -15,6 +15,8 @@ object Routes {
     const val CLIENTES_SCREEN = "clientes_screen"
     const val PROFILE_SCREEN = "profile_screen"
     const val TEAM_SCREEN = "team_screen"
+    const val PRESUPUESTOS_SCREEN = "presupuestos_screen"
+    const val NEW_BUDGET_SCREEN = "new_budget_screen"
 
     // Rutas para futuras pantallas
     const val ADD_OBRA_SCREEN = "add_obra_screen"

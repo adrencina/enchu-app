@@ -4,9 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class BottomNavItem(
@@ -27,6 +29,13 @@ sealed class BottomNavItem(
         title = "Clientes",
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
+    )
+
+    object Presupuestos : BottomNavItem(
+        route = Routes.PRESUPUESTOS_SCREEN,
+        title = "Presupuestos",
+        selectedIcon = Icons.Filled.Description,
+        unselectedIcon = Icons.Outlined.Description
     )
 
     object Profile : BottomNavItem(
