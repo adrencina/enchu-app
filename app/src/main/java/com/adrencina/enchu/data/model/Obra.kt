@@ -17,6 +17,8 @@ data class Obra(
     // Datos del Cliente
     val clienteId: String = "",
     val clienteNombre: String = "",
+    val clienteCuit: String = "",
+    val clientTaxCondition: String = "", // Consumidor Final, RI, etc.
 
     // Datos de la Obra
     val nombreObra: String = "",
@@ -24,6 +26,7 @@ data class Obra(
     val telefono: String = "",
     val direccion: String = "",
     val estado: String = "Presupuestado",
+    val budgetNumber: Int = 0, // Número correlativo asignado a esta obra
     @get:PropertyName("isArchived")
     val isArchived: Boolean = false,
 

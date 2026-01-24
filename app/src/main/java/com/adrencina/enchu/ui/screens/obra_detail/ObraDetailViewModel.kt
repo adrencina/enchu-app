@@ -312,15 +312,31 @@ class ObraDetailViewModel @Inject constructor(
     fun onExportPdf() {
         val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            // Fetch organization if available
+            // 1. Obtener organización
             val orgId = currentState.obra.organizationId
             val organization = if (orgId.isNotBlank()) {
                 organizationRepository.getOrganization(orgId).first()
             } else {
                 null
             }
+
+            var currentObra = currentState.obra
+
+            // 2. Si la obra no tiene número de presupuesto, asignarle uno nuevo
+            if (currentObra.budgetNumber == 0 && organization != null) {
+                val nextNumber = organization.lastBudgetNumber + 1
+                
+                // Actualizar organización con el nuevo contador
+                val updatedOrg = organization.copy(lastBudgetNumber = nextNumber)
+                organizationRepository.updateOrganization(updatedOrg)
+
+                // Actualizar obra con su nuevo número asignado
+                currentObra = currentObra.copy(budgetNumber = nextNumber)
+                repository.updateObra(currentObra)
+            }
             
-            val file = generatePresupuestoPdfUseCase(currentState.obra, currentState.presupuestoItems, organization)
+            // 3. Generar PDF con la obra actualizada (ya tiene su número)
+            val file = generatePresupuestoPdfUseCase(currentObra, currentState.presupuestoItems, organization)
             _effect.emit(ObraDetailEffect.SharePdf(file))
         }
     }

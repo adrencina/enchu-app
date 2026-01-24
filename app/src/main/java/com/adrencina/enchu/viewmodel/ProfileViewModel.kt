@@ -20,14 +20,11 @@ import com.adrencina.enchu.data.model.Organization
 import com.adrencina.enchu.data.model.UserProfile
 import com.adrencina.enchu.data.repository.OrganizationRepository
 
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-
 data class ProfileUiState(
     val user: FirebaseUser? = null,
     val userProfile: UserProfile? = null,
     val organization: Organization? = null,
-    val organizationMembers: List<UserProfile> = emptyList(), // New list of member profiles
+    val organizationMembers: List<UserProfile> = emptyList(),
     val obrasCount: Int = 0,
     val clientesCount: Int = 0,
     val isLoading: Boolean = false,
@@ -66,11 +63,9 @@ class ProfileViewModel @Inject constructor(
             organizationRepository.getOrganization(orgId).collectLatest { org ->
                 _uiState.update { it.copy(organization = org) }
                 org?.members?.let { memberIds ->
-                    // Fetch user profiles for each member
                     if (memberIds.isNotEmpty()) {
                         val memberProfiles = mutableListOf<UserProfile>()
                         for (memberId in memberIds) {
-                            // CORRECTO: Usamos getUserProfileById para obtener el perfil de CUALQUIER miembro
                             val memberProfile = authRepository.getUserProfileById(memberId)
                             memberProfile?.let { memberProfiles.add(it) }
                         }
@@ -78,6 +73,21 @@ class ProfileViewModel @Inject constructor(
                     } else {
                         _uiState.update { it.copy(organizationMembers = emptyList()) }
                     }
+                }
+            }
+        }
+    }
+
+    private fun loadStats() {
+        viewModelScope.launch {
+            launch {
+                obraRepository.getObras().collectLatest { obras ->
+                    _uiState.update { it.copy(obrasCount = obras.size) }
+                }
+            }
+            launch {
+                clienteRepository.getClientes().collectLatest { clientes ->
+                    _uiState.update { it.copy(clientesCount = clientes.size) }
                 }
             }
         }
@@ -91,7 +101,7 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(showEditOrgDialog = false) }
     }
 
-    fun onUpdateOrganization(name: String, phone: String, email: String, address: String, web: String) {
+    fun onUpdateOrganization(name: String, phone: String, email: String, address: String, web: String, cuit: String, taxCondition: String) {
         viewModelScope.launch {
             val currentOrg = _uiState.value.organization ?: return@launch
             val updatedOrg = currentOrg.copy(
@@ -99,7 +109,9 @@ class ProfileViewModel @Inject constructor(
                 businessPhone = phone,
                 businessEmail = email,
                 businessAddress = address,
-                businessWeb = web
+                businessWeb = web,
+                cuit = cuit,
+                taxCondition = taxCondition
             )
             organizationRepository.updateOrganization(updatedOrg)
             onDismissEditOrgDialog()
@@ -108,31 +120,8 @@ class ProfileViewModel @Inject constructor(
 
     fun onLogoSelected(uri: Uri) {
         viewModelScope.launch {
-            val org = _uiState.value.organization ?: return@launch
-            _uiState.update { it.copy(isLoading = true) }
-            val result = organizationRepository.uploadLogo(org.id, uri)
-            if (result.isSuccess) {
-                val logoUrl = result.getOrNull() ?: ""
-                val updatedOrg = org.copy(logoUrl = logoUrl)
-                organizationRepository.updateOrganization(updatedOrg)
-            }
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-    
-    private fun loadStats() {
-        viewModelScope.launch {
-            // Collect stats in parallel or sequentially
-            launch {
-                obraRepository.getObras().collectLatest { obras ->
-                    _uiState.update { it.copy(obrasCount = obras.size) }
-                }
-            }
-            launch {
-                clienteRepository.getClientes().collectLatest { clientes ->
-                    _uiState.update { it.copy(clientesCount = clientes.size) }
-                }
-            }
+            val orgId = _uiState.value.organization?.id ?: return@launch
+            organizationRepository.uploadLogo(orgId, uri)
         }
     }
 

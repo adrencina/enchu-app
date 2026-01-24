@@ -71,7 +71,8 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
             currentY = drawTableHeader(canvas, currentY)
 
             val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
-            var subtotalNeto = 0.0
+            var totalMateriales = 0.0
+            var totalManoObra = 0.0
 
             for (item in items) {
                 if (currentY > PAGE_HEIGHT - 150f) {
@@ -83,18 +84,23 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
                 }
 
                 val totalItem = item.cantidad * item.precioUnitario
-                val totalNetoItem = totalItem / 1.21
-                subtotalNeto += totalNetoItem
+                
+                // Acumular según tipo
+                if (item.tipo == "MANO_DE_OBRA") {
+                    totalManoObra += totalItem
+                } else {
+                    totalMateriales += totalItem
+                }
 
                 val codigo = item.tipo.take(3).uppercase() + "-" + item.id.take(4).uppercase()
                 
                 canvas.drawText(codigo, MARGIN_X + 5, currentY, paintBody)
-                val desc = if (item.descripcion.length > 40) item.descripcion.take(37) + "..." else item.descripcion
+                val desc = if (item.descripcion.length > 50) item.descripcion.take(47) + "..." else item.descripcion
                 canvas.drawText(desc, MARGIN_X + 60, currentY, paintBody)
                 
-                drawRightText(canvas, String.format("%.1f", item.cantidad), MARGIN_X + 350, currentY, paintBody)
-                drawRightText(canvas, currencyFormat.format(item.precioUnitario), MARGIN_X + 430, currentY, paintBody)
-                drawRightText(canvas, "21%", MARGIN_X + 470, currentY, paintBody)
+                // Columnas ajustadas
+                drawRightText(canvas, String.format("%.1f", item.cantidad), MARGIN_X + 340, currentY, paintBody)
+                drawRightText(canvas, currencyFormat.format(item.precioUnitario), MARGIN_X + 420, currentY, paintBody)
                 drawRightText(canvas, currencyFormat.format(totalItem), MARGIN_X + CONTENT_WIDTH - 5, currentY, paintBody)
 
                 currentY += 20f
@@ -114,25 +120,33 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
             currentY += 10f
             val boxTotalWidth = 200f
             val boxTotalX = MARGIN_X + CONTENT_WIDTH - boxTotalWidth
-            val ivaTotal = subtotalNeto * 0.21
-            val totalFinal = subtotalNeto + ivaTotal
+            val totalFinal = totalMateriales + totalManoObra
 
-            canvas.drawText("Subtotal Neto:", boxTotalX + 10, currentY + 15, paintBody)
-            drawRightText(canvas, currencyFormat.format(subtotalNeto), MARGIN_X + CONTENT_WIDTH - 5, currentY + 15, paintBody)
+            // Desglose por tipo
+            canvas.drawText("Total Materiales:", boxTotalX + 10, currentY + 15, paintBody)
+            drawRightText(canvas, currencyFormat.format(totalMateriales), MARGIN_X + CONTENT_WIDTH - 5, currentY + 15, paintBody)
             currentY += 20f
             
-            canvas.drawText("IVA (21%):", boxTotalX + 10, currentY + 15, paintBody)
-            drawRightText(canvas, currencyFormat.format(ivaTotal), MARGIN_X + CONTENT_WIDTH - 5, currentY + 15, paintBody)
+            canvas.drawText("Total Mano de Obra:", boxTotalX + 10, currentY + 15, paintBody)
+            drawRightText(canvas, currencyFormat.format(totalManoObra), MARGIN_X + CONTENT_WIDTH - 5, currentY + 15, paintBody)
             currentY += 25f
 
+            // Total Final
             canvas.drawRect(boxTotalX, currentY, MARGIN_X + CONTENT_WIDTH, currentY + 30, paintLine)
             paintHeaderTable.textSize = 12f
-            canvas.drawText("TOTAL A PAGAR", boxTotalX + 10, currentY + 20, paintHeaderTable)
+            canvas.drawText("TOTAL", boxTotalX + 10, currentY + 20, paintHeaderTable)
             drawRightText(canvas, currencyFormat.format(totalFinal), MARGIN_X + CONTENT_WIDTH - 5, currentY + 20, paintHeaderTable)
             
             val footerY = PAGE_HEIGHT - MARGIN_Y
-            paintBody.textSize = 8f
-            canvas.drawText("Presupuesto válido por 15 días. Documento no válido como factura.", MARGIN_X, footerY, paintBody)
+            
+            // Texto legal más visible
+            val paintLegal = Paint(paintBody).apply { 
+                textSize = 11f 
+                letterSpacing = 0.08f 
+                isAntiAlias = true
+            }
+            
+            canvas.drawText("Presupuesto válido por 15 días. Documento no válido como factura.", MARGIN_X, footerY, paintLegal)
             drawRightText(canvas, "Página 1", MARGIN_X + CONTENT_WIDTH, footerY, paintBody)
 
             pdfDocument.finishPage(page)
@@ -156,30 +170,35 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
             textSize = 22f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
+            letterSpacing = 0.05f
         }
         paintSubtitle.apply {
             color = COLOR_PRIMARY
             textSize = 14f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
+            letterSpacing = 0.05f
         }
         paintBody.apply {
             color = Color.DKGRAY
             textSize = 10f
             typeface = Typeface.DEFAULT
             isAntiAlias = true
+            letterSpacing = 0.02f
         }
         paintBodyBold.apply {
             color = Color.BLACK
             textSize = 10f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
+            letterSpacing = 0.02f
         }
         paintHeaderTable.apply {
             color = Color.BLACK
             textSize = 10f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
+            letterSpacing = 0.02f
         }
         paintLine.apply {
             color = COLOR_LINE
@@ -207,7 +226,22 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
             val textX = MARGIN_X + 85f
             canvas.drawText(organization.name.uppercase(), textX, headerY + 20, paintTitle)
             canvas.drawText(organization.businessAddress, textX, headerY + 35, paintBody)
-            canvas.drawText("${organization.businessPhone} | ${organization.businessEmail}", textX, headerY + 50, paintBody)
+            canvas.drawText("${organization.businessPhone} | ${organization.businessEmail}", textX, headerY + 48, paintBody)
+            
+            // Datos Fiscales (Si existen)
+            if (organization.cuit.isNotBlank() || organization.taxCondition.isNotBlank()) {
+                val formattedCuit = if (organization.cuit.length == 11) {
+                    "${organization.cuit.substring(0, 2)}-${organization.cuit.substring(2, 10)}-${organization.cuit.substring(10)}"
+                } else {
+                    organization.cuit
+                }
+                
+                val fiscalInfo = "${organization.taxCondition} - CUIT: $formattedCuit"
+                
+                // Paint temporal con más espaciado para esta línea
+                val paintFiscal = Paint(paintBody).apply { letterSpacing = 0.08f }
+                canvas.drawText(fiscalInfo, textX, headerY + 60, paintFiscal)
+            }
         }
 
         val boxWidth = 180f
@@ -222,7 +256,14 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
         canvas.drawLine(boxX, headerY + 35, boxX + boxWidth, headerY + 35, paintLine)
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         canvas.drawText("Fecha: ${dateFormat.format(Date())}", boxX + 10, headerY + 50, paintBody)
-        canvas.drawText("N°: 0001-${obra.id.takeLast(4).uppercase()}", boxX + 10, headerY + 65, paintBody)
+        
+        // Numeración real: Si es 0 (no asignado), mostramos un guion o temporal
+        val budgetNumStr = if (obra.budgetNumber > 0) {
+            String.format("%08d", obra.budgetNumber)
+        } else {
+            "PENDIENTE"
+        }
+        canvas.drawText("N°: 0001-$budgetNumStr", boxX + 10, headerY + 65, paintBody)
 
         return headerY + 90f
     }
@@ -233,10 +274,13 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
         val paintLabel = Paint(paintBodyBold).apply { textSize = 8f; color = Color.GRAY }
         canvas.drawText("DATOS DEL CLIENTE", MARGIN_X + 5, startY - 5, paintLabel)
 
+        val cuitDisplay = if (obra.clienteCuit.isNotBlank()) obra.clienteCuit else "-"
+        val ivaDisplay = if (obra.clientTaxCondition.isNotBlank()) obra.clientTaxCondition else "Consumidor Final"
+
         canvas.drawText("Cliente: ${obra.clienteNombre}", MARGIN_X + 10, startY + 20, paintBodyBold)
         canvas.drawText("Dirección: ${obra.direccion}", MARGIN_X + 10, startY + 40, paintBody)
         canvas.drawText("Teléfono: ${obra.telefono}", MARGIN_X + CONTENT_WIDTH / 2 + 10, startY + 20, paintBody)
-        canvas.drawText("IVA: Consumidor Final", MARGIN_X + CONTENT_WIDTH / 2 + 10, startY + 40, paintBody)
+        canvas.drawText("IVA: $ivaDisplay  |  CUIT: $cuitDisplay", MARGIN_X + CONTENT_WIDTH / 2 + 10, startY + 40, paintBody)
 
         return startY + boxHeight
     }
@@ -250,9 +294,10 @@ class GeneratePresupuestoPdfUseCase @Inject constructor(
         val textY = startY + 17
         canvas.drawText("CÓD.", MARGIN_X + 5, textY, paintHeaderTable)
         canvas.drawText("DESCRIPCIÓN", MARGIN_X + 60, textY, paintHeaderTable)
-        drawRightText(canvas, "CANT.", MARGIN_X + 350, textY, paintHeaderTable)
-        drawRightText(canvas, "P. UNIT", MARGIN_X + 430, textY, paintHeaderTable)
-        drawRightText(canvas, "IVA", MARGIN_X + 470, textY, paintHeaderTable)
+        // Ajuste de columnas para números grandes
+        drawRightText(canvas, "CANT.", MARGIN_X + 340, textY, paintHeaderTable)
+        drawRightText(canvas, "P. UNIT", MARGIN_X + 420, textY, paintHeaderTable)
+        // Columna IVA Eliminada
         drawRightText(canvas, "TOTAL", MARGIN_X + CONTENT_WIDTH - 5, textY, paintHeaderTable)
 
         return startY + headerHeight + 15f

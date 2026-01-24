@@ -18,7 +18,7 @@ import com.adrencina.enchu.data.model.Organization
 fun EditOrganizationDialog(
     organization: Organization,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String, String) -> Unit,
+    onConfirm: (String, String, String, String, String, String, String) -> Unit,
     onLogoSelected: (android.net.Uri) -> Unit
 ) {
     var name by remember { mutableStateOf(organization.name) }
@@ -26,6 +26,8 @@ fun EditOrganizationDialog(
     var email by remember { mutableStateOf(organization.businessEmail) }
     var address by remember { mutableStateOf(organization.businessAddress) }
     var web by remember { mutableStateOf(organization.businessWeb) }
+    var cuit by remember { mutableStateOf(organization.cuit) }
+    var taxCondition by remember { mutableStateOf(organization.taxCondition) }
 
     val logoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -54,7 +56,9 @@ fun EditOrganizationDialog(
                     AsyncImage(
                         model = organization.logoUrl,
                         contentDescription = "Logo",
-                        modifier = Modifier.size(80.dp).padding(8.dp)
+                        modifier = Modifier
+                            .size(80.dp)
+                            .padding(8.dp)
                     )
                 }
 
@@ -62,6 +66,20 @@ fun EditOrganizationDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Nombre de Fantasía") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = cuit,
+                    onValueChange = { cuit = it },
+                    label = { Text("CUIT") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = taxCondition,
+                    onValueChange = { taxCondition = it },
+                    label = { Text("Condición Fiscal") },
+                    placeholder = { Text("Ej: Resp. Inscripto, Monotributo") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -94,11 +112,7 @@ fun EditOrganizationDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(name, phone, email, address, web)
-                }
-            ) {
+            Button(onClick = { onConfirm(name, phone, email, address, web, cuit, taxCondition) }) {
                 Text("Guardar")
             }
         },

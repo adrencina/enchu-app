@@ -16,6 +16,9 @@ data class Organization(
     val businessEmail: String = "",
     val businessAddress: String = "",
     val businessWeb: String = "",
+    val cuit: String = "", // CUIT de la empresa usuaria
+    val taxCondition: String = "", // Condición fiscal (Resp. Inscripto, Monotributo, etc.)
+    val lastBudgetNumber: Int = 0, // Último número de presupuesto emitido globalmente
     val plan: String = "FREE", // FREE, PRO
     val storageUsed: Long = 0, // Bytes usados en total
 
