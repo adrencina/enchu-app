@@ -49,6 +49,21 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import kotlin.OptIn
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -126,71 +141,108 @@ fun ClientsScreen(
                     key = { it.id } // Stable key for efficiency
                 ) { cliente ->
                     
-                    // AnchoredDraggableState for each item
-                    val anchors = with(density) {
-                        DraggableAnchors {
-                            SwipeValue.Closed at 0f
-                            SwipeValue.Open at -145.dp.toPx() // Increased reveal width for better spacing
-                        }
-                    }
-
-                    val state = remember(cliente.id) {
-                        AnchoredDraggableState(
-                            initialValue = SwipeValue.Closed,
-                            anchors = anchors,
-                            positionalThreshold = { distance: Float -> distance * 0.3f }, // Easier to open
-                            velocityThreshold = { with(density) { 100.dp.toPx() } },
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
+                    if (isSelectionMode) {
+                        MinimalClientItem(
+                            cliente = cliente,
+                            onClick = { onClientSelected?.invoke(cliente) }
                         )
-                    }
-
-                    SwipeableContactItem(
-                        state = state,
-                        cliente = cliente,
-                        onClick = { 
-                            if (isSelectionMode) {
-                                onClientSelected?.invoke(cliente)
-                            } else {
-                                onClientClick(cliente.id) 
+                    } else {
+                        // AnchoredDraggableState for each item
+                        val anchors = with(density) {
+                            DraggableAnchors {
+                                SwipeValue.Closed at 0f
+                                SwipeValue.Open at -145.dp.toPx() // Increased reveal width for better spacing
                             }
-                        },
-                        onCallClick = {
-                             if (cliente.telefono.isNotBlank()) {
-                                val intent = Intent(Intent.ACTION_DIAL).apply {
-                                    data = Uri.parse("tel:${cliente.telefono}")
+                        }
+
+                        val state = remember(cliente.id) {
+                            AnchoredDraggableState(
+                                initialValue = SwipeValue.Closed,
+                                anchors = anchors,
+                                positionalThreshold = { distance: Float -> distance * 0.3f }, // Easier to open
+                                velocityThreshold = { with(density) { 100.dp.toPx() } },
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                ),
+                            )
+                        }
+
+                        SwipeableContactItem(
+                            state = state,
+                            cliente = cliente,
+                            onClick = { 
+                                onClientClick(cliente.id) 
+                            },
+                            onCallClick = {
+                                 if (cliente.telefono.isNotBlank()) {
+                                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                                        data = Uri.parse("tel:${cliente.telefono}")
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            },
+                            onWhatsAppClick = {
+                                 if (cliente.telefono.isNotBlank()) {
+                                    try {
+                                        val url = "https://api.whatsapp.com/send?phone=${cliente.telefono}"
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            data = Uri.parse(url)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        // Handle case where WA is not installed
+                                    }
+                                }
+                            },
+                            onScheduleClick = {
+                                 val intent = Intent(Intent.ACTION_INSERT).apply {
+                                    data = CalendarContract.Events.CONTENT_URI
+                                    putExtra(CalendarContract.Events.TITLE, "Reunión con ${cliente.nombre}")
+                                    if (cliente.telefono.isNotBlank()) {
+                                        putExtra(CalendarContract.Events.DESCRIPTION, "Teléfono: ${cliente.telefono}")
+                                    }
                                 }
                                 context.startActivity(intent)
                             }
-                        },
-                        onWhatsAppClick = {
-                             if (cliente.telefono.isNotBlank()) {
-                                try {
-                                    val url = "https://api.whatsapp.com/send?phone=${cliente.telefono}"
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse(url)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    // Handle case where WA is not installed
-                                }
-                            }
-                        },
-                        onScheduleClick = {
-                             val intent = Intent(Intent.ACTION_INSERT).apply {
-                                data = CalendarContract.Events.CONTENT_URI
-                                putExtra(CalendarContract.Events.TITLE, "Reunión con ${cliente.nombre}")
-                                if (cliente.telefono.isNotBlank()) {
-                                    putExtra(CalendarContract.Events.DESCRIPTION, "Teléfono: ${cliente.telefono}")
-                                }
-                            }
-                            context.startActivity(intent)
-                        }
-                    )
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MinimalClientItem(
+    cliente: Cliente,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = cliente.nombre,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), // Suavizado
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

@@ -1,10 +1,24 @@
 package com.adrencina.enchu.ui.screens.new_budget
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items // Añado este por si acaso
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -18,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +57,11 @@ fun NewBudgetScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showMaterialSearch by remember { mutableStateOf(false) }
     var showManualClientDialog by remember { mutableStateOf(false) }
+
+    // Intercept system back button
+    BackHandler(enabled = uiState.currentStep > 1) {
+        viewModel.previousStep()
+    }
 
     Scaffold(
         topBar = {
@@ -84,6 +104,7 @@ fun NewBudgetScreen(
                 BudgetTotalsFooter(
                     subtotal = uiState.subtotal,
                     total = uiState.total,
+                    onAddItemClick = { showMaterialSearch = true }, // New action in footer
                     onSaveDraft = {
                         viewModel.saveDraft()
                         onNavigateBack()
@@ -125,7 +146,7 @@ fun NewBudgetScreen(
                     3 -> {
                         BudgetItemsStep(
                             items = uiState.items,
-                            onAddItemClick = { showMaterialSearch = true },
+                            // onAddItemClick removed (now in footer)
                             onRemoveItem = viewModel::removeItem,
                             onUpdateItem = viewModel::updateItem
                         )
@@ -282,10 +303,10 @@ fun BudgetInfoStep(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetItemsStep(
     items: List<PresupuestoItemEntity>,
-    onAddItemClick: () -> Unit,
     onRemoveItem: (Int) -> Unit,
     onUpdateItem: (Int, Double, Double) -> Unit
 ) {
@@ -296,21 +317,45 @@ fun BudgetItemsStep(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(items) { index, item ->
-                BudgetItemCard(
-                    item = item,
-                    onRemove = { onRemoveItem(index) }
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = {
+                        if (it == SwipeToDismissBoxValue.EndToStart) {
+                            onRemoveItem(index)
+                            true
+                        } else {
+                            false
+                        }
+                    }
                 )
-            }
-            
-            item {
-                OutlinedButton(
-                    onClick = onAddItemClick,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Añadir Material o Mano de Obra")
-                }
+
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) 
+                            MaterialTheme.colorScheme.errorContainer 
+                        else Color.Transparent
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(color, MaterialTheme.shapes.small)
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    },
+                    content = {
+                        BudgetItemCard(
+                            item = item,
+                            onUpdate = { q, p -> onUpdateItem(index, q, p) }
+                        )
+                    }
+                )
             }
         }
     }
@@ -319,38 +364,128 @@ fun BudgetItemsStep(
 @Composable
 fun BudgetItemCard(
     item: PresupuestoItemEntity,
-    onRemove: () -> Unit
+    onUpdate: (Double, Double) -> Unit
 ) {
-    val currencyFormatter = remember { NumberFormat.getCurrencyInstance(Locale("es", "AR")) }
+    // Formateador personalizado para pesos argentinos sin decimales
+    val currencyFormatter = remember { 
+        val format = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
+        format.maximumFractionDigits = 0
+        format
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.descripcion, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            // Description
+            Text(
+                text = item.descripcion,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Edit Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom, 
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Price Input (Fixed width for "$0000000")
+                MinimalInput(
+                    value = item.precioUnitario,
+                    label = "Precio",
+                    modifier = Modifier.width(90.dp), 
+                    onValueChange = { onUpdate(item.cantidad, it) },
+                    prefix = "$"
+                )
+
+                // Quantity Input (Fixed width for "0000")
+                MinimalInput(
+                    value = item.cantidad,
+                    label = "Cant.",
+                    modifier = Modifier.width(50.dp),
+                    onValueChange = { onUpdate(it, item.precioUnitario) }
+                )
+                
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Total Preview
                 Text(
-                    text = "${item.cantidad} x ${currencyFormatter.format(item.precioUnitario)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = currencyFormatter.format(item.cantidad * item.precioUnitario),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible
                 )
             }
-            
-            Text(
-                text = currencyFormatter.format(item.cantidad * item.precioUnitario),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
-            }
         }
+    }
+}
+
+@Composable
+fun MinimalInput(
+    value: Double,
+    label: String,
+    modifier: Modifier = Modifier,
+    onValueChange: (Double) -> Unit,
+    prefix: String? = null
+) {
+    var text by remember(value) { mutableStateOf(if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)) }
+
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp,
+            maxLines = 1
+        )
+        
+        BasicTextField(
+            value = text,
+            onValueChange = { 
+                val filtered = it.filter { char -> char.isDigit() || char == '.' }
+                text = filtered
+                val num = filtered.toDoubleOrNull()
+                if (num != null) {
+                    onValueChange(num)
+                }
+            },
+            singleLine = true, // CRITICAL: Prevents line breaks
+            maxLines = 1,
+            textStyle = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp, 
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (prefix != null) {
+                        Text(
+                            prefix, 
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
     }
 }
 
@@ -358,47 +493,94 @@ fun BudgetItemCard(
 fun BudgetTotalsFooter(
     subtotal: Double,
     total: Double,
+    onAddItemClick: () -> Unit,
     onSaveDraft: () -> Unit,
     onApprove: () -> Unit
 ) {
-    val currencyFormatter = remember { NumberFormat.getCurrencyInstance(Locale("es", "AR")) }
+    val currencyFormatter = remember { 
+        val cf = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
+        cf.maximumFractionDigits = 0
+        cf
+    }
 
     Surface(
         tonalElevation = 8.dp,
-        shadowElevation = 8.dp
+        shadowElevation = 16.dp, // Strong shadow to separate from content
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Subtotal:", style = MaterialTheme.typography.bodyLarge)
-                Text(currencyFormatter.format(subtotal), style = MaterialTheme.typography.bodyLarge)
+            // 1. Add Item Button (Top, Full Width, Compact)
+            OutlinedButton(
+                onClick = onAddItemClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(vertical = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("AGREGAR MATERIAL O MANO DE OBRA", style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp))
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("TOTAL:", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+            // 2. Totals Row (Compact, Single Line)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    currencyFormatter.format(total),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "Subtotal: ${currencyFormatter.format(subtotal)}",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "TOTAL: ",
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = currencyFormatter.format(total),
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // 3. Action Buttons (Side by Side, Compact)
+            Row(
+                modifier = Modifier.fillMaxWidth(), 
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedButton(
                     onClick = onSaveDraft,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Text("Guardar Borrador")
+                    Text("Guardar Borrador", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
                 }
+                
                 Button(
                     onClick = onApprove,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Text("Guardar y Aprobar")
+                    Text("Aprobar", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
                 }
             }
         }

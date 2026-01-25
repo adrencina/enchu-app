@@ -58,6 +58,23 @@ class MaterialRepositoryImpl @Inject constructor(
 
     override suspend fun syncMaterials() {
         withContext(Dispatchers.IO) {
+            // 0. Immediate Fallback: If DB is empty, populate with dummy data RIGHT NOW
+            // This ensures the user has data instantly, even before checking network
+            if (materialDao.getCount() == 0) {
+                try {
+                    val type = object : TypeToken<List<MaterialEntity>>() {}.type
+                    val materials: List<MaterialEntity> = gson.fromJson(DUMMY_JSON, type)
+                    materialDao.insertAll(materials)
+                    
+                    // Set version to 1 to mark as initialized
+                    context.dataStore.edit { preferences ->
+                        preferences[MATERIALS_VERSION_KEY] = 1
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             try {
                 // 1. Check Remote Version (Cloud)
                 // If this fails (e.g. offline or doc doesn't exist), we catch and verify if local DB is empty
@@ -90,14 +107,9 @@ class MaterialRepositoryImpl @Inject constructor(
                         val type = object : TypeToken<List<MaterialEntity>>() {}.type
                         gson.fromJson<List<MaterialEntity>>(jsonString, type)
                     } catch (e: Exception) {
-                        // If download fails (e.g. file missing), use Dummy data for test
-                        // ONLY if it's the first sync (localVersion == 0) to ensure app is usable
-                        if (localVersion == 0) {
-                            val type = object : TypeToken<List<MaterialEntity>>() {}.type
-                            gson.fromJson<List<MaterialEntity>>(DUMMY_JSON, type)
-                        } else {
-                            throw e // Re-throw if it's an update failure
-                        }
+                        // If download fails, we already have dummy data or old data, so just log/ignore
+                        // unless we want to retry logic.
+                        throw e 
                     }
 
                     // 4. Update Room
@@ -110,17 +122,9 @@ class MaterialRepositoryImpl @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                // Final safety net: if DB is empty, populate with dummy data
-                if (materialDao.getCount() == 0) {
-                     val type = object : TypeToken<List<MaterialEntity>>() {}.type
-                     val materials: List<MaterialEntity> = gson.fromJson(DUMMY_JSON, type)
-                     materialDao.insertAll(materials)
-                     
-                     // Set version to 1 to avoid re-populating on next launch if remote is unreachable
-                     context.dataStore.edit { preferences ->
-                        preferences[MATERIALS_VERSION_KEY] = 1
-                    }
-                }
+                // Network error or other sync issues. 
+                // We already populated dummy data at step 0 if needed, so nothing critical to do here.
+                e.printStackTrace()
             }
         }
     }
