@@ -43,6 +43,7 @@ import com.adrencina.enchu.viewmodel.ProfileViewModel
 import com.adrencina.enchu.viewmodel.SettingsViewModel
 import com.google.firebase.auth.FirebaseUser
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = hiltViewModel(),
@@ -62,13 +63,21 @@ fun ProfileScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        TopAppBar(
+            title = { Text("Menú") },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background
+            )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(Dimens.PaddingMedium),
             horizontalAlignment = Alignment.CenterHorizontally,

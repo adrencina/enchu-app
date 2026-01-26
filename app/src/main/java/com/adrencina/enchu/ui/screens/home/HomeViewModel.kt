@@ -15,8 +15,9 @@ import javax.inject.Inject
 sealed class HomeUiState {
     object Loading : HomeUiState()
     data class Success(
-        val obras: List<Obra>, 
-        val archivedCount: Int = 0,
+        val userName: String = "",
+        val activeObras: List<Obra>, 
+        val archivedObras: List<Obra>,
         val plan: String = "FREE"
     ) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
@@ -60,28 +61,42 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.getUserProfile()
                 .flatMapLatest { userProfile ->
+                    val userName = userProfile?.displayName?.split(" ")?.firstOrNull() ?: "Usuario"
                     val orgId = userProfile?.organizationId ?: ""
-                    organizationRepository.getOrganization(orgId)
+                    
+                    organizationRepository.getOrganization(orgId).map { org ->
+                        userName to org
+                    }
                 }
-                .flatMapLatest { organization ->
+                .flatMapLatest { (userName, organization) ->
                     val plan = organization?.plan ?: "FREE"
+                    
                     combine(
                         obraRepository.getObras(),
                         obraRepository.getArchivedObras(),
                         _searchQuery
-                    ) { activeObras, archivedObras, query ->
+                    ) { activeObras: List<Obra>, archivedList: List<Obra>, query: String ->
                         if (query.isBlank()) {
-                            HomeUiState.Success(activeObras, archivedObras.size, plan)
+                            HomeUiState.Success(
+                                userName = userName,
+                                activeObras = activeObras,
+                                archivedObras = archivedList,
+                                plan = plan
+                            )
                         } else {
-                            val allObras = activeObras + archivedObras
+                            val allObras = activeObras + archivedList
                             val filteredObras = allObras.filter { obra ->
                                 obra.nombreObra.contains(query, ignoreCase = true) ||
                                 obra.clienteNombre.contains(query, ignoreCase = true) ||
-                                obra.estado.contains(query, ignoreCase = true) ||
-                                obra.direccion.contains(query, ignoreCase = true)
+                                (obra.estado ?: "").contains(query, ignoreCase = true) ||
+                                (obra.direccion ?: "").contains(query, ignoreCase = true)
                             }
-                            // Cuando se busca, mostramos todo junto y ocultamos la barra inferior de archivados
-                            HomeUiState.Success(filteredObras, 0, plan)
+                            HomeUiState.Success(
+                                userName = userName,
+                                activeObras = filteredObras,
+                                archivedObras = emptyList(), 
+                                plan = plan
+                            )
                         }
                     }
                 }

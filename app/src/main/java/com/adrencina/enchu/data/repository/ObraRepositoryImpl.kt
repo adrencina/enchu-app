@@ -135,6 +135,15 @@ class ObraRepositoryImpl @Inject constructor(
                 Result.failure(e)
             }
         }
+
+        override suspend fun deleteObra(obraId: String): Result<Unit> {
+            return try {
+                firestore.collection("obras").document(obraId).delete().await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     override suspend fun saveObra(obra: Obra): Result<Unit> {
         return try {
             val userId = auth.currentUser?.uid

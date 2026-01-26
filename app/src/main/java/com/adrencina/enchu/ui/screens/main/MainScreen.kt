@@ -182,14 +182,14 @@ fun CustomBottomNavigation(
     onNavigate: (String) -> Unit,
     onFabClick: () -> Unit
 ) {
-    // Definimos los items y sus etiquetas
+    // Definimos los items (sin etiquetas visibles)
     val leftItems = listOf(
         BottomNavItem.Home to "Obras",
         BottomNavItem.Clientes to "Clientes"
     )
     val rightItems = listOf(
         BottomNavItem.Presupuestos to "Presupuesto",
-        BottomNavItem.Profile to "Perfil"
+        BottomNavItem.Profile to "Menú"
     )
 
     // Colores basados en el tema de la aplicación
@@ -205,7 +205,7 @@ fun CustomBottomNavigation(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .height(65.dp),
             color = barBackgroundColor,
             tonalElevation = 4.dp,
             shadowElevation = 8.dp
@@ -213,7 +213,7 @@ fun CustomBottomNavigation(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp), // Reducido a 12dp
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -265,9 +265,9 @@ fun CustomBottomNavigation(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
-                .size(55.dp)
+                .size(56.dp)
                 .align(Alignment.TopCenter)
-                .offset(y = (-15).dp) // Bajado otros 4dp (-19 + 4 = -15)
+                .offset(y = (-20).dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
@@ -285,6 +285,7 @@ fun CustomBottomNavItem(
     isSelected: Boolean,
     activeColor: Color,
     inactiveColor: Color,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -297,13 +298,14 @@ fun CustomBottomNavItem(
     )
 
     Column(
-        modifier = Modifier
+        modifier = modifier
+            .offset(y = (-4).dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(4.dp) // Reducido padding interno
+            .padding(4.dp)
             .scale(scale),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -312,15 +314,7 @@ fun CustomBottomNavItem(
             imageVector = icon,
             contentDescription = label,
             tint = if (isSelected) activeColor else inactiveColor,
-            modifier = Modifier.size(24.dp) // Reducido a 24dp
-        )
-        Spacer(modifier = Modifier.height(2.dp)) // Reducido espacio vertical
-        Text(
-            text = label,
-            fontSize = 10.sp, // Reducido a 10sp para evitar saltos de línea
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) activeColor else inactiveColor,
-            maxLines = 1 // Asegurar una sola línea
+            modifier = Modifier.size(28.dp)
         )
     }
 }

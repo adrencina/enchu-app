@@ -1,11 +1,13 @@
 package com.adrencina.enchu.ui.screens.archived_obras
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -85,9 +87,44 @@ fun ArchivedObrasScreen(
                             contentPadding = PaddingValues(Dimens.PaddingMedium),
                             verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
                         ) {
-                            items(state.obras) { obra ->
-                                ArchivedObraItem(obra = obra, onClick = { onObraClick(obra.id) })
-                                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            items(state.obras, key = { it.id }) { obra ->
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = {
+                                        if (it == SwipeToDismissBoxValue.EndToStart) {
+                                            viewModel.deleteObra(obra.id)
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    }
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    backgroundContent = {
+                                        val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) 
+                                            MaterialTheme.colorScheme.errorContainer 
+                                        else Color.Transparent
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(color, MaterialTheme.shapes.small)
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Eliminar",
+                                                tint = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
+                                    },
+                                    content = {
+                                        ArchivedObraItem(obra = obra, onClick = { onObraClick(obra.id) })
+                                    }
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             }
                         }
                     }
@@ -103,7 +140,9 @@ fun ArchivedObraItem(
     onClick: () -> Unit
 ) {
     ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .clickable(onClick = onClick),
         headlineContent = {
             Text(
                 text = obra.nombreObra,

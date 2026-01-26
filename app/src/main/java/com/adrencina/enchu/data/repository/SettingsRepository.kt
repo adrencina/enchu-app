@@ -27,7 +27,7 @@ class SettingsRepository @Inject constructor(
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data
         .map { preferences ->
-            ThemeMode.valueOf(preferences[THEME_MODE_KEY] ?: ThemeMode.SYSTEM.name)
+            ThemeMode.valueOf(preferences[THEME_MODE_KEY] ?: ThemeMode.LIGHT.name)
         }
 
     suspend fun saveThemeMode(mode: ThemeMode) {

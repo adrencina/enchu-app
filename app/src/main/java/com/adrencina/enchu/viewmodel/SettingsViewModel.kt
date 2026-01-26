@@ -21,7 +21,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = ThemeMode.SYSTEM
+            initialValue = ThemeMode.LIGHT
         )
 
     fun saveThemeMode(mode: ThemeMode) {

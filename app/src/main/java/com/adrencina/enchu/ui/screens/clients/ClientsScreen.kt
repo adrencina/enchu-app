@@ -81,13 +81,14 @@ fun ClientsScreen(
 
     val isSelectionMode = onClientSelected != null
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(horizontal = Dimens.PaddingMedium)
         ) {
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))

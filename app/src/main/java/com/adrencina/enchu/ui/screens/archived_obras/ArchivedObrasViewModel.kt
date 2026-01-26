@@ -37,4 +37,10 @@ class ArchivedObrasViewModel @Inject constructor(
                 }
         }
     }
+
+    fun deleteObra(obraId: String) {
+        viewModelScope.launch {
+            repository.deleteObra(obraId)
+        }
+    }
 }

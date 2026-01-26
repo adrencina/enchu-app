@@ -29,6 +29,8 @@ interface ObraRepository {
 
     suspend fun archiveObra(obraId: String): Result<Unit>
 
+    suspend fun deleteObra(obraId: String): Result<Unit>
+
     // Tareas
     fun getTareas(obraId: String): Flow<List<Tarea>>
     suspend fun addTarea(obraId: String, tarea: Tarea): Result<Unit>
