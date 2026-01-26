@@ -84,7 +84,14 @@ fun AppNavigation() {
             )
         }
 
-        composable(Routes.MAIN_WRAPPER) {
+        composable(Routes.MAIN_WRAPPER) { backStackEntry ->
+            val targetTab = backStackEntry.savedStateHandle.get<Int>("target_tab")
+            if (targetTab != null) {
+                backStackEntry.savedStateHandle.remove<Int>("target_tab")
+            }
+            
+            val profileViewModel: com.adrencina.enchu.viewmodel.ProfileViewModel = hiltViewModel()
+
             MainScreen(
                 onObraClick = { obraId ->
                     navController.navigate(Routes.createObraDetailRoute(obraId))
@@ -97,7 +104,10 @@ fun AppNavigation() {
                     }
                 },
                 onAddBudgetClick = {
-                    navController.navigate(Routes.NEW_BUDGET_SCREEN)
+                    navController.navigate(Routes.createNewBudgetRoute())
+                },
+                onEditBudgetClick = { budgetId ->
+                    navController.navigate(Routes.createNewBudgetRoute(budgetId))
                 },
                 onAddClientClick = {
                     navController.navigate(Routes.ADD_CLIENT_SCREEN)
@@ -105,21 +115,41 @@ fun AppNavigation() {
                 onClientClick = { clientId ->
                     navController.navigate(Routes.createClientDetailRoute(clientId))
                 },
-                onArchivedObrasClick = { navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN) },
+                onArchivedObrasClick = {
+                    navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN)
+                },
                 onLogout = {
+                    profileViewModel.logout()
                     navController.navigate(Routes.LOGIN_SCREEN) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(0)
                     }
                 },
                 onNavigateToTeamScreen = {
                     navController.navigate(Routes.TEAM_SCREEN)
-                }
+                },
+                budgetTabToOpen = targetTab
             )
         }
 
-        composable(Routes.NEW_BUDGET_SCREEN) {
+        composable(
+            route = Routes.NEW_BUDGET_SCREEN,
+            arguments = listOf(
+                navArgument("budgetId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             NewBudgetScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onBudgetSaved = { isSent ->
+                    val tabIndex = if (isSent) 1 else 0
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("target_tab", tabIndex)
+                    navController.popBackStack()
+                }
             )
         }
 

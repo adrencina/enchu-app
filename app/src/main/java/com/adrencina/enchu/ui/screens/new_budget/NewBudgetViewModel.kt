@@ -1,16 +1,25 @@
 package com.adrencina.enchu.ui.screens.new_budget
 
+import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.local.PresupuestoDao
 import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoEntity
 import com.adrencina.enchu.data.model.PresupuestoItemEntity
+import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
+import com.adrencina.enchu.data.repository.AuthRepository
+import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.core.utils.BudgetNumberManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.*
 import javax.inject.Inject
 
@@ -23,18 +32,79 @@ data class NewBudgetUiState(
     val items: List<PresupuestoItemEntity> = emptyList(),
     val isLoading: Boolean = false,
     val subtotal: Double = 0.0,
-    val total: Double = 0.0
+    val total: Double = 0.0,
+    val validity: String = "15",
+    val notes: String = "",
+    val discountInput: String = "",
+    val discountPercent: Double = 0.0,
+    val discountAmount: Double = 0.0,
+    val budgetNumber: Int = 0,
+    val isEditingSentBudget: Boolean = false
 )
 
 @HiltViewModel
 class NewBudgetViewModel @Inject constructor(
-    private val presupuestoDao: PresupuestoDao
+    private val presupuestoDao: PresupuestoDao,
+    savedStateHandle: SavedStateHandle,
+    private val generatePresupuestoPdfUseCase: GeneratePresupuestoPdfUseCase,
+    private val authRepository: AuthRepository,
+    private val organizationRepository: OrganizationRepository,
+    private val budgetNumberManager: BudgetNumberManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NewBudgetUiState())
     val uiState: StateFlow<NewBudgetUiState> = _uiState.asStateFlow()
 
-    private val presupuestoId = UUID.randomUUID().toString()
+    private val budgetIdArg: String? = savedStateHandle["budgetId"]
+    private val presupuestoId = budgetIdArg ?: UUID.randomUUID().toString()
+
+    init {
+        if (budgetIdArg != null) {
+            loadBudget(budgetIdArg)
+        }
+    }
+
+    private fun loadBudget(id: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            val existingBudget = presupuestoDao.getPresupuestoWithItemsById(id)
+            if (existingBudget != null) {
+                val tempClient = Cliente(
+                    id = existingBudget.presupuesto.clienteId,
+                    nombre = existingBudget.presupuesto.clienteNombre,
+                    direccion = existingBudget.presupuesto.clienteDireccion,
+                    telefono = existingBudget.presupuesto.clienteTelefono,
+                    email = existingBudget.presupuesto.clienteEmail,
+                    organizationId = ""
+                )
+                
+                val discPercent = existingBudget.presupuesto.descuento
+                val discInput = if (discPercent == 0.0) "" else if (discPercent % 1.0 == 0.0) discPercent.toInt().toString() else discPercent.toString()
+                
+                // Determinamos si ya fue enviado
+                val isSent = existingBudget.presupuesto.estado == "ENVIADO" || existingBudget.presupuesto.numero > 0
+
+                _uiState.value = _uiState.value.copy(
+                    currentStep = 3,
+                    selectedClient = tempClient,
+                    budgetTitle = existingBudget.presupuesto.titulo,
+                    items = existingBudget.items,
+                    subtotal = existingBudget.presupuesto.subtotal,
+                    total = existingBudget.presupuesto.total,
+                    validity = existingBudget.presupuesto.validez.toString(),
+                    notes = existingBudget.presupuesto.notas,
+                    discountPercent = discPercent,
+                    discountInput = discInput,
+                    budgetNumber = existingBudget.presupuesto.numero,
+                    isEditingSentBudget = isSent,
+                    isLoading = false
+                )
+                recalculateTotals()
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
 
     fun onClientSelected(cliente: Cliente) {
         _uiState.value = _uiState.value.copy(
@@ -48,6 +118,30 @@ class NewBudgetViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(budgetTitle = newTitle)
     }
 
+    fun onValidityChanged(newValidity: String) {
+        if (newValidity.all { it.isDigit() }) {
+             _uiState.value = _uiState.value.copy(validity = newValidity)
+        }
+    }
+
+    fun onNotesChanged(newNotes: String) {
+        _uiState.value = _uiState.value.copy(notes = newNotes)
+    }
+    
+    fun onDiscountChanged(newInput: String) {
+        if (newInput.isEmpty()) {
+            _uiState.value = _uiState.value.copy(discountInput = "", discountPercent = 0.0)
+            recalculateTotals()
+            return
+        }
+        if (newInput.count { it == '.' } <= 1 && newInput.all { it.isDigit() || it == '.' }) {
+            val discountVal = newInput.toDoubleOrNull() ?: 0.0
+            val finalDiscount = discountVal.coerceIn(0.0, 100.0)
+            _uiState.value = _uiState.value.copy(discountInput = newInput, discountPercent = finalDiscount)
+            recalculateTotals()
+        }
+    }
+
     fun addItemFromMaterial(item: PresupuestoItem) {
         val newItem = PresupuestoItemEntity(
             presupuestoId = presupuestoId,
@@ -59,12 +153,14 @@ class NewBudgetViewModel @Inject constructor(
             orden = _uiState.value.items.size
         )
         val newItems = _uiState.value.items + newItem
-        updateTotals(newItems)
+        _uiState.value = _uiState.value.copy(items = newItems)
+        recalculateTotals()
     }
 
     fun removeItem(index: Int) {
         val newItems = _uiState.value.items.toMutableList().apply { removeAt(index) }
-        updateTotals(newItems)
+        _uiState.value = _uiState.value.copy(items = newItems)
+        recalculateTotals()
     }
 
     fun updateItem(index: Int, newQuantity: Double, newPrice: Double) {
@@ -72,20 +168,25 @@ class NewBudgetViewModel @Inject constructor(
             val oldItem = this[index]
             this[index] = oldItem.copy(cantidad = newQuantity, precioUnitario = newPrice)
         }
-        updateTotals(newItems)
+        _uiState.value = _uiState.value.copy(items = newItems)
+        recalculateTotals()
     }
 
-    private fun updateTotals(items: List<PresupuestoItemEntity>) {
-        val subtotal = items.sumOf { it.cantidad * it.precioUnitario }
-        _uiState.value = _uiState.value.copy(
-            items = items,
+    private fun recalculateTotals() {
+        val state = _uiState.value
+        val subtotal = state.items.sumOf { it.cantidad * it.precioUnitario }
+        val discountAmount = subtotal * (state.discountPercent / 100)
+        val total = (subtotal - discountAmount).coerceAtLeast(0.0)
+        
+        _uiState.value = state.copy(
             subtotal = subtotal,
-            total = subtotal // Por ahora total = subtotal (sin impuestos/descuentos aplicados)
+            discountAmount = discountAmount,
+            total = total
         )
     }
 
     fun nextStep() {
-        if (_uiState.value.currentStep < 3) {
+        if (_uiState.value.currentStep < 4) {
             _uiState.value = _uiState.value.copy(currentStep = _uiState.value.currentStep + 1)
         }
     }
@@ -97,25 +198,84 @@ class NewBudgetViewModel @Inject constructor(
     }
 
     fun saveDraft() {
+        // Si ya estaba enviado, NO lo bajamos a borrador, mantenemos estado ENVIADO
+        val status = if (_uiState.value.isEditingSentBudget) "ENVIADO" else "PENDIENTE"
+        val number = _uiState.value.budgetNumber // Mantener número original si existe
+        saveBudgetWithStatus(status, number)
+    }
+
+    fun finalizeBudget() {
+        // Asignar número correlativo SOLO si no tiene uno
+        val currentNum = _uiState.value.budgetNumber
+        val finalNum = if (currentNum <= 0) budgetNumberManager.getNextNumber() else currentNum
+        saveBudgetWithStatus("ENVIADO", finalNum)
+    }
+
+    private fun saveBudgetWithStatus(status: String, number: Int) {
         viewModelScope.launch {
             val state = _uiState.value
             val client = state.selectedClient ?: return@launch
-            
+            val validezInt = state.validity.toIntOrNull() ?: 15
+
             val presupuesto = PresupuestoEntity(
                 id = presupuestoId,
                 titulo = state.budgetTitle,
                 clienteId = client.id,
                 clienteNombre = client.nombre,
-                clienteApellido = "", // Opcional, Cliente solo tiene nombre en tu modelo
+                clienteApellido = "",
                 clienteDireccion = client.direccion,
                 clienteTelefono = client.telefono,
                 clienteEmail = client.email,
                 subtotal = state.subtotal,
+                descuento = state.discountPercent,
                 total = state.total,
-                estado = "PENDIENTE"
+                validez = validezInt,
+                notas = state.notes,
+                estado = status,
+                numero = number
             )
-            
             presupuestoDao.upsertPresupuestoWithItems(presupuesto, state.items)
         }
+    }
+
+    suspend fun generatePdf(context: Context): File {
+        val state = _uiState.value
+        val userProfile = authRepository.getUserProfile().firstOrNull()
+        val orgId = userProfile?.organizationId
+        
+        val organization = if (!orgId.isNullOrBlank()) {
+            organizationRepository.getOrganization(orgId).firstOrNull()
+        } else {
+            null
+        }
+
+        val validezInt = state.validity.toIntOrNull() ?: 15
+        val displayNum = if (state.budgetNumber > 0) state.budgetNumber else budgetNumberManager.peekNextNumber()
+
+        val obra = Obra(
+            id = presupuestoId,
+            nombreObra = state.budgetTitle,
+            clienteId = state.selectedClient?.id ?: "",
+            clienteNombre = state.selectedClient?.nombre ?: "",
+            direccion = state.selectedClient?.direccion ?: "",
+            telefono = state.selectedClient?.telefono ?: "",
+            validez = validezInt,
+            notas = state.notes,
+            descuento = state.discountPercent,
+            presupuestoTotal = state.total,
+            budgetNumber = displayNum
+        )
+        
+        val itemsDomain = state.items.map { 
+            PresupuestoItem(
+                id = it.localId.toString(),
+                descripcion = it.descripcion,
+                cantidad = it.cantidad,
+                precioUnitario = it.precioUnitario,
+                tipo = it.tipo
+            )
+        }
+        
+        return generatePresupuestoPdfUseCase(obra, itemsDomain, organization)
     }
 }

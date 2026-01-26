@@ -43,11 +43,13 @@ fun MainScreen(
     onObraClick: (String) -> Unit,
     onAddObraClick: () -> Unit,
     onAddBudgetClick: () -> Unit,
+    onEditBudgetClick: (String) -> Unit,
     onAddClientClick: () -> Unit,
     onClientClick: (String) -> Unit,
     onArchivedObrasClick: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToTeamScreen: () -> Unit
+    onNavigateToTeamScreen: () -> Unit,
+    budgetTabToOpen: Int? = null
 ) {
     val bottomNavController = rememberNavController()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -61,6 +63,16 @@ fun MainScreen(
     val onClearNewObraResult: () -> Unit = {
         navBackStackEntry?.savedStateHandle?.remove<String>("new_obra_result")
     }
+    
+    LaunchedEffect(budgetTabToOpen) {
+        if (budgetTabToOpen != null) {
+            bottomNavController.navigate(Routes.PRESUPUESTOS_SCREEN) {
+                popUpTo(bottomNavController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -73,7 +85,13 @@ fun MainScreen(
                         restoreState = true
                     }
                 },
-                onFabClick = { showBottomSheet = true }
+                onFabClick = {
+                    when (currentDestination?.route) {
+                        Routes.PRESUPUESTOS_SCREEN -> onAddBudgetClick()
+                        Routes.CLIENTES_SCREEN -> onAddClientClick()
+                        else -> showBottomSheet = true
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -98,7 +116,11 @@ fun MainScreen(
                 )
             }
             composable(Routes.PRESUPUESTOS_SCREEN) {
-                PresupuestosScreen()
+                PresupuestosScreen(
+                    onNewBudgetClick = onAddBudgetClick,
+                    onEditBudgetClick = onEditBudgetClick,
+                    initialTab = budgetTabToOpen
+                )
             }
             composable(Routes.PROFILE_SCREEN) {
                 ProfileScreen(

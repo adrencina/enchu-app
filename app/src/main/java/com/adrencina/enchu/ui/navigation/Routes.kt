@@ -16,7 +16,15 @@ object Routes {
     const val PROFILE_SCREEN = "profile_screen"
     const val TEAM_SCREEN = "team_screen"
     const val PRESUPUESTOS_SCREEN = "presupuestos_screen"
-    const val NEW_BUDGET_SCREEN = "new_budget_screen"
+    const val NEW_BUDGET_SCREEN = "new_budget_screen?budgetId={budgetId}"
+
+    fun createNewBudgetRoute(budgetId: String? = null): String {
+        return if (budgetId != null) {
+            "new_budget_screen?budgetId=$budgetId"
+        } else {
+            "new_budget_screen"
+        }
+    }
 
     // Rutas para futuras pantallas
     const val ADD_OBRA_SCREEN = "add_obra_screen"

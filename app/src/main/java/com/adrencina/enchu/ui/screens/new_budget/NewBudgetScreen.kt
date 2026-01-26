@@ -1,40 +1,39 @@
 package com.adrencina.enchu.ui.screens.new_budget
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.items // Añado este por si acaso
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.BackHandler
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.utils.PickPhoneContact
 import com.adrencina.enchu.core.utils.getContactDetails
@@ -45,20 +44,53 @@ import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.MaterialSearchDial
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.util.UUID
+
+// Imports para PDF Zoom
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
+import android.content.Intent
+import androidx.core.content.FileProvider
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewBudgetScreen(
     viewModel: NewBudgetViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onBudgetSaved: (Boolean) -> Unit // true = enviado
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showMaterialSearch by remember { mutableStateOf(false) }
     var showManualClientDialog by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // Intercept system back button
+    val sharePdf = {
+        scope.launch {
+            val file = viewModel.generatePdf(context)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Compartir Presupuesto"))
+        }
+    }
+
     BackHandler(enabled = uiState.currentStep > 1) {
         viewModel.previousStep()
     }
@@ -72,12 +104,13 @@ fun NewBudgetScreen(
                             text = when (uiState.currentStep) {
                                 1 -> "Seleccionar Cliente"
                                 2 -> "Datos Generales"
-                                else -> "Carga de Materiales"
+                                3 -> "Carga de Materiales"
+                                else -> "Revisar Presupuesto"
                             },
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            text = "Paso ${uiState.currentStep} de 3",
+                            text = "Paso ${uiState.currentStep} de 4",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -96,6 +129,13 @@ fun NewBudgetScreen(
                             contentDescription = "Volver"
                         )
                     }
+                },
+                actions = {
+                    if (uiState.currentStep == 4) {
+                        IconButton(onClick = { sharePdf() }) {
+                            Icon(Icons.Default.Share, contentDescription = "Compartir PDF", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
             )
         },
@@ -104,14 +144,16 @@ fun NewBudgetScreen(
                 BudgetTotalsFooter(
                     subtotal = uiState.subtotal,
                     total = uiState.total,
-                    onAddItemClick = { showMaterialSearch = true }, // New action in footer
+                    discountInput = uiState.discountInput,
+                    isEditingSentBudget = uiState.isEditingSentBudget,
+                    onDiscountChange = viewModel::onDiscountChanged,
+                    onAddItemClick = { showMaterialSearch = true },
                     onSaveDraft = {
                         viewModel.saveDraft()
-                        onNavigateBack()
+                        onBudgetSaved(uiState.isEditingSentBudget)
                     },
                     onApprove = {
-                        viewModel.saveDraft()
-                        onNavigateBack()
+                        viewModel.nextStep()
                     }
                 )
             }
@@ -125,8 +167,8 @@ fun NewBudgetScreen(
                 when (step) {
                     1 -> {
                         ClientsScreen(
-                            onAddClientClick = { /* No usado en modo selección si onAddManualClientClick está presente */ },
-                            onClientClick = { /* No se usa en modo selección */ },
+                            onAddClientClick = { },
+                            onClientClick = { },
                             onClientSelected = { cliente ->
                                 viewModel.onClientSelected(cliente)
                             },
@@ -139,6 +181,10 @@ fun NewBudgetScreen(
                         BudgetInfoStep(
                             title = uiState.budgetTitle,
                             onTitleChange = viewModel::onTitleChanged,
+                            validity = uiState.validity,
+                            onValidityChange = viewModel::onValidityChanged,
+                            notes = uiState.notes,
+                            onNotesChange = viewModel::onNotesChanged,
                             clientName = "${uiState.selectedClient?.nombre ?: ""}",
                             onNext = { viewModel.nextStep() }
                         )
@@ -146,9 +192,26 @@ fun NewBudgetScreen(
                     3 -> {
                         BudgetItemsStep(
                             items = uiState.items,
-                            // onAddItemClick removed (now in footer)
                             onRemoveItem = viewModel::removeItem,
                             onUpdateItem = viewModel::updateItem
+                        )
+                    }
+                    4 -> {
+                        BudgetPreviewStep(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            onSaveDraft = {
+                                viewModel.saveDraft()
+                                onBudgetSaved(false)
+                            },
+                            onApprove = {
+                                if (uiState.isEditingSentBudget) {
+                                    viewModel.saveDraft()
+                                } else {
+                                    viewModel.finalizeBudget()
+                                }
+                                onBudgetSaved(true)
+                            }
                         )
                     }
                 }
@@ -246,7 +309,7 @@ fun ManualClientDialog(
                         nombre = name.trim(),
                         direccion = address.trim(),
                         telefono = phone.trim(),
-                        organizationId = "" // Temporal
+                        organizationId = ""
                     )
                     onConfirm(tempClient)
                 },
@@ -267,6 +330,10 @@ fun ManualClientDialog(
 fun BudgetInfoStep(
     title: String,
     onTitleChange: (String) -> Unit,
+    validity: String,
+    onValidityChange: (String) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit,
     clientName: String,
     onNext: () -> Unit
 ) {
@@ -281,14 +348,37 @@ fun BudgetInfoStep(
             onValueChange = {},
             label = { Text("Cliente") },
             readOnly = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
         )
 
         OutlinedTextField(
             value = title,
             onValueChange = onTitleChange,
             label = { Text("Título del Presupuesto") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        )
+
+        OutlinedTextField(
+            value = validity,
+            onValueChange = onValidityChange,
+            label = { Text("Validez de oferta (días)") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp)
+        )
+
+        OutlinedTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            label = { Text("Notas / Condiciones") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            maxLines = 5,
+            shape = RoundedCornerShape(8.dp)
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -296,7 +386,7 @@ fun BudgetInfoStep(
         Button(
             onClick = onNext,
             modifier = Modifier.fillMaxWidth(),
-            enabled = title.isNotBlank()
+            enabled = title.isNotBlank() && validity.isNotBlank()
         ) {
             Text("Siguiente: Cargar Materiales")
         }
@@ -366,7 +456,6 @@ fun BudgetItemCard(
     item: PresupuestoItemEntity,
     onUpdate: (Double, Double) -> Unit
 ) {
-    // Formateador personalizado para pesos argentinos sin decimales
     val currencyFormatter = remember { 
         val format = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
         format.maximumFractionDigits = 0
@@ -382,7 +471,6 @@ fun BudgetItemCard(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Description
             Text(
                 text = item.descripcion,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
@@ -392,13 +480,11 @@ fun BudgetItemCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Edit Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Bottom, 
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Price Input (Fixed width for "$0000000")
                 MinimalInput(
                     value = item.precioUnitario,
                     label = "Precio",
@@ -407,7 +493,6 @@ fun BudgetItemCard(
                     prefix = "$"
                 )
 
-                // Quantity Input (Fixed width for "0000")
                 MinimalInput(
                     value = item.cantidad,
                     label = "Cant.",
@@ -417,7 +502,6 @@ fun BudgetItemCard(
                 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Total Preview
                 Text(
                     text = currencyFormatter.format(item.cantidad * item.precioUnitario),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -460,7 +544,7 @@ fun MinimalInput(
                     onValueChange(num)
                 }
             },
-            singleLine = true, // CRITICAL: Prevents line breaks
+            singleLine = true,
             maxLines = 1,
             textStyle = MaterialTheme.typography.bodySmall.copy(
                 fontSize = 13.sp, 
@@ -493,6 +577,9 @@ fun MinimalInput(
 fun BudgetTotalsFooter(
     subtotal: Double,
     total: Double,
+    discountInput: String,
+    isEditingSentBudget: Boolean,
+    onDiscountChange: (String) -> Unit,
     onAddItemClick: () -> Unit,
     onSaveDraft: () -> Unit,
     onApprove: () -> Unit
@@ -506,15 +593,15 @@ fun BudgetTotalsFooter(
     Surface(
         tonalElevation = 8.dp,
         shadowElevation = 16.dp, // Strong shadow to separate from content
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.padding(bottom = 12.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 17.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. Add Item Button (Top, Full Width, Compact)
             OutlinedButton(
                 onClick = onAddItemClick,
                 modifier = Modifier
@@ -522,28 +609,60 @@ fun BudgetTotalsFooter(
                     .height(32.dp),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(vertical = 0.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("AGREGAR MATERIAL O MANO DE OBRA", style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp))
             }
 
-            // 2. Totals Row (Compact, Single Line)
+            // Totals Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Subtotal: ${currencyFormatter.format(subtotal)}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Subtotal
+                Column {
+                    Text("Subtotal", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(currencyFormatter.format(subtotal), style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), fontWeight = FontWeight.SemiBold)
+                }
+
+                // Discount Input
+                Column {
+                    Text("Desc. (%)", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BasicTextField(
+                        value = discountInput,
+                        onValueChange = onDiscountChange,
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, color = MaterialTheme.colorScheme.error),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            Row(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .width(70.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("- ", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.error)
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (discountInput.isEmpty()) {
+                                        Text("0", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                                    }
+                                    innerTextField()
+                                }
+                                Text("%", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    )
+                }
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Total
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "TOTAL: ",
+                        text = "TOTAL",
                         style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -556,20 +675,23 @@ fun BudgetTotalsFooter(
                 }
             }
             
-            // 3. Action Buttons (Side by Side, Compact)
+            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(), 
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
-                    onClick = onSaveDraft,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    Text("Guardar Borrador", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
+                if (!isEditingSentBudget) {
+                    OutlinedButton(
+                        onClick = onSaveDraft,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    ) {
+                        Text("Guardar Borrador", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
+                    }
                 }
                 
                 Button(
@@ -580,9 +702,158 @@ fun BudgetTotalsFooter(
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Text("Aprobar", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
+                    Text("Siguiente: Revisar", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun BudgetPreviewStep(
+    uiState: NewBudgetUiState,
+    viewModel: NewBudgetViewModel,
+    onSaveDraft: () -> Unit,
+    onApprove: () -> Unit
+) {
+    val context = LocalContext.current
+    var pdfBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var isLoadingPdf by remember { mutableStateOf(true) }
+    
+    // Zoom State
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(Unit) {
+        isLoadingPdf = true
+        try {
+            val file = viewModel.generatePdf(context)
+            
+            withContext(Dispatchers.IO) {
+                val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                val pdfRenderer = PdfRenderer(fileDescriptor)
+                val page = pdfRenderer.openPage(0)
+                
+                val density = context.resources.displayMetrics.density
+                val width = (page.width * 2).toInt()
+                val height = (page.height * 2).toInt()
+                
+                val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bitmap)
+                canvas.drawColor(android.graphics.Color.WHITE)
+                
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                
+                page.close()
+                pdfRenderer.close()
+                fileDescriptor.close()
+                
+                pdfBitmap = bitmap
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoadingPdf = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text(
+            text = "Vista Previa del Documento", 
+            style = MaterialTheme.typography.titleMedium, 
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
+        // Contenedor del PDF Renderizado con Zoom
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.707f)
+                .background(Color.LightGray, RoundedCornerShape(4.dp))
+                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(4.dp))
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(1f, 3f)
+                        if (scale > 1f) {
+                            val maxTranslateX = (size.width * (scale - 1)) / 2
+                            val maxTranslateY = (size.height * (scale - 1)) / 2
+                            offset = Offset(
+                                x = (offset.x + pan.x).coerceIn(-maxTranslateX, maxTranslateX),
+                                y = (offset.y + pan.y).coerceIn(-maxTranslateY, maxTranslateY)
+                            )
+                        } else {
+                            offset = Offset.Zero
+                        }
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLoadingPdf) {
+                CircularProgressIndicator()
+            } else if (pdfBitmap != null) {
+                Image(
+                    bitmap = pdfBitmap!!.asImageBitmap(),
+                    contentDescription = "Vista previa del PDF",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White)
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offset.x,
+                            translationY = offset.y
+                        )
+                )
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Text("Error al generar vista previa", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Botones Finales en Fila
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (uiState.isEditingSentBudget) {
+                Button(
+                    onClick = onApprove,
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Guardar Cambios", style = MaterialTheme.typography.labelMedium)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onSaveDraft,
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                ) {
+                    Text("Borrador", style = MaterialTheme.typography.labelMedium)
+                }
+
+                Button(
+                    onClick = onApprove,
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Confirmar", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(8.dp))
     }
 }

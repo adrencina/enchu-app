@@ -29,6 +29,12 @@ data class Obra(
     val budgetNumber: Int = 0, // Número correlativo asignado a esta obra
     @get:PropertyName("isArchived")
     val isArchived: Boolean = false,
+    
+    // Datos del Presupuesto
+    val descuento: Double = 0.0, // Porcentaje de descuento
+    val validez: Int = 15,
+    val notas: String = "",
+    val presupuestoTotal: Double = 0.0,
 
     @ServerTimestamp val fechaCreacion: Date? = null
 )

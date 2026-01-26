@@ -22,5 +22,7 @@ data class PresupuestoEntity(
     val creadoEn: Long = System.currentTimeMillis(),
     val aprobadoEn: Long? = null,
     val aprobadoPor: String? = null,
-    val notas: String = ""
+    val notas: String = "",
+    val validez: Int = 15,
+    val numero: Int = 0 // Número correlativo (Talonario)
 )

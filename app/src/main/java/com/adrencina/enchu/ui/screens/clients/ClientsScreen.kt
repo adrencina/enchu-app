@@ -82,19 +82,7 @@ fun ClientsScreen(
     val isSelectionMode = onClientSelected != null
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            // Solo mostrar FAB si NO estamos en modo selección (para crear cliente DB normal)
-            if (!isSelectionMode) {
-                FloatingActionButton(
-                    onClick = onAddClientClick,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Agregar Cliente")
-                }
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
