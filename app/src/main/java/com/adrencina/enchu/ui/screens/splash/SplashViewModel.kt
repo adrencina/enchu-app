@@ -25,7 +25,8 @@ class SplashViewModel @Inject constructor(
 ) : ViewModel() {
 
     // Un SharedFlow es perfecto para emitir eventos que deben ser consumidos solo una vez.
-    private val _uiEvent = MutableSharedFlow<SplashUiEvent>()
+    // Usamos replay=1 para evitar condiciones de carrera donde el evento se emite antes de que la UI lo escuche.
+    private val _uiEvent = MutableSharedFlow<SplashUiEvent>(replay = 1)
     val uiEvent = _uiEvent.asSharedFlow()
 
     init {
@@ -34,7 +35,8 @@ class SplashViewModel @Inject constructor(
 
     private fun checkAuthState() {
         viewModelScope.launch {
-            delay(1500L) // Delay para mejorar la experiencia de usuario
+            // Se elimina el delay artificial para mejorar la velocidad de arranque.
+            // delay(1500L) 
 
             if (repo.currentUser != null) {
                 // Usamos firstOrNull para obtener el primer valor y no quedarnos esperando si el Flow nunca emite

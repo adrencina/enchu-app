@@ -1,6 +1,10 @@
 package com.adrencina.enchu.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,7 +40,10 @@ fun AppNavigation() {
         navController = navController,
         startDestination = Routes.SPLASH_SCREEN
     ) {
-        composable(Routes.SPLASH_SCREEN) {
+        composable(
+            route = Routes.SPLASH_SCREEN,
+            exitTransition = { fadeOut(animationSpec = tween(400)) }
+        ) {
             val splashViewModel = hiltViewModel<SplashViewModel>()
             SplashScreen(viewModel = splashViewModel)
             
@@ -64,9 +71,18 @@ fun AppNavigation() {
             }
         }
 
-        composable(Routes.LOGIN_SCREEN) {
+        composable(
+            route = Routes.LOGIN_SCREEN,
+            enterTransition = { fadeIn(animationSpec = tween(400)) },
+            exitTransition = { fadeOut(animationSpec = tween(400)) }
+        ) {
             LoginScreen(
-                onLoginSuccess = {
+                onNavigateToHome = {
+                    navController.navigate(Routes.MAIN_WRAPPER) {
+                        popUpTo(Routes.LOGIN_SCREEN) { inclusive = true }
+                    }
+                },
+                onNavigateToWelcome = {
                     navController.navigate(Routes.WELCOME_SCREEN) {
                         popUpTo(Routes.LOGIN_SCREEN) { inclusive = true }
                     }
@@ -74,7 +90,14 @@ fun AppNavigation() {
             )
         }
 
-        composable(Routes.WELCOME_SCREEN) {
+        composable(
+            route = Routes.WELCOME_SCREEN,
+            enterTransition = { 
+                fadeIn(animationSpec = tween(400)) + 
+                scaleIn(initialScale = 0.95f, animationSpec = tween(400)) 
+            },
+            exitTransition = { fadeOut(animationSpec = tween(500)) }
+        ) {
             WelcomeScreen(
                 onProfileCreated = {
                     navController.navigate(Routes.MAIN_WRAPPER) {
@@ -84,7 +107,13 @@ fun AppNavigation() {
             )
         }
 
-        composable(Routes.MAIN_WRAPPER) { backStackEntry ->
+        composable(
+            route = Routes.MAIN_WRAPPER,
+            enterTransition = { 
+                fadeIn(animationSpec = tween(400)) + 
+                scaleIn(initialScale = 0.95f, animationSpec = tween(400)) 
+            }
+        ) { backStackEntry ->
             val targetTab = backStackEntry.savedStateHandle.get<Int>("target_tab")
             if (targetTab != null) {
                 backStackEntry.savedStateHandle.remove<Int>("target_tab")
@@ -119,7 +148,7 @@ fun AppNavigation() {
                     navController.navigate(Routes.ARCHIVED_OBRAS_SCREEN)
                 },
                 onLogout = {
-                    profileViewModel.logout()
+                    // El logout ya se realizó en ProfileViewModel. Solo navegamos.
                     navController.navigate(Routes.LOGIN_SCREEN) {
                         popUpTo(0)
                     }

@@ -59,9 +59,9 @@ fun HomeScreen(
     ) {
         when (val state = uiState) {
             is HomeUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                // Estado de carga silencioso: Mantenemos el fondo limpio mientras cargan los datos.
+                // Esto evita el 'flickeo' de un spinner durante la transición rápida desde Login.
+                Box(modifier = Modifier.fillMaxSize())
             }
             is HomeUiState.Error -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -121,29 +121,45 @@ fun HomeDashboardContent(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Sección Mis Obras (Activas)
-            if (state.activeObras.isNotEmpty()) {
-                ActiveWorksRow(obras = state.activeObras, onClick = onObraClick)
-            } else if (searchQuery.isEmpty()) {
-                Text(
-                    text = "No tienes obras en curso",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+            if (searchQuery.isNotEmpty() && state.activeObras.isEmpty() && state.archivedObras.isEmpty()) {
+                // Estado de "Búsqueda sin resultados"
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No se encontraron resultados para \"$searchQuery\"",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            } else {
+                // Flujo normal o con resultados parciales
+                
+                // Sección Mis Obras (Activas) - Siempre visible (maneja su propio empty state)
+                // Nota: Si estamos buscando, ActiveWorksRow mostrará solo las que coincidan.
+                // Si la búsqueda no arroja activas pero sí archivadas, esto se mostrará vacío (lo cual es correcto o mejorable).
+                // Para simplificar: Si no hay búsqueda, mostramos SIEMPRE. Si hay búsqueda, mostramos solo si hay coincidencias.
+                
+                if (searchQuery.isEmpty() || state.activeObras.isNotEmpty()) {
+                    ActiveWorksRow(obras = state.activeObras, onClick = onObraClick)
+                }
 
-            // Sección Obras Archivadas
-            if (state.archivedObras.isNotEmpty()) {
-                ArchivedWorksPreview(
-                    obras = state.archivedObras,
-                    onViewAll = onArchivedClick,
-                    onClick = onObraClick
-                )
+                // Sección Obras Archivadas - Siempre visible en modo normal
+                if (searchQuery.isEmpty() || state.archivedObras.isNotEmpty()) {
+                    ArchivedWorksPreview(
+                        obras = state.archivedObras,
+                        onViewAll = onArchivedClick,
+                        onClick = onObraClick
+                    )
+                }
+                
+                // Grid de Informes (Solo visible si NO estamos buscando)
+                if (searchQuery.isEmpty()) {
+                    ReportsGrid()
+                }
             }
-
-            // Grid de Informes
-            ReportsGrid()
         }
     }
 }

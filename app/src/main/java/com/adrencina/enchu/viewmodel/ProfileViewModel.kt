@@ -49,31 +49,39 @@ class ProfileViewModel @Inject constructor(
 
     private fun loadUserProfile() {
         viewModelScope.launch {
-            authRepository.getUserProfile().collectLatest { profile ->
-                _uiState.update { it.copy(user = authRepository.currentUser, userProfile = profile) }
-                profile?.organizationId?.let { orgId ->
-                    loadOrganization(orgId)
+            try {
+                authRepository.getUserProfile().collectLatest { profile ->
+                    _uiState.update { it.copy(user = authRepository.currentUser, userProfile = profile) }
+                    profile?.organizationId?.let { orgId ->
+                        loadOrganization(orgId)
+                    }
                 }
+            } catch (e: Exception) {
+                // Error silencioso (común al cerrar sesión)
             }
         }
     }
 
     private fun loadOrganization(orgId: String) {
         viewModelScope.launch {
-            organizationRepository.getOrganization(orgId).collectLatest { org ->
-                _uiState.update { it.copy(organization = org) }
-                org?.members?.let { memberIds ->
-                    if (memberIds.isNotEmpty()) {
-                        val memberProfiles = mutableListOf<UserProfile>()
-                        for (memberId in memberIds) {
-                            val memberProfile = authRepository.getUserProfileById(memberId)
-                            memberProfile?.let { memberProfiles.add(it) }
+            try {
+                organizationRepository.getOrganization(orgId).collectLatest { org ->
+                    _uiState.update { it.copy(organization = org) }
+                    org?.members?.let { memberIds ->
+                        if (memberIds.isNotEmpty()) {
+                            val memberProfiles = mutableListOf<UserProfile>()
+                            for (memberId in memberIds) {
+                                val memberProfile = authRepository.getUserProfileById(memberId)
+                                memberProfile?.let { memberProfiles.add(it) }
+                            }
+                            _uiState.update { it.copy(organizationMembers = memberProfiles) }
+                        } else {
+                            _uiState.update { it.copy(organizationMembers = emptyList()) }
                         }
-                        _uiState.update { it.copy(organizationMembers = memberProfiles) }
-                    } else {
-                        _uiState.update { it.copy(organizationMembers = emptyList()) }
                     }
                 }
+            } catch (e: Exception) {
+                // Error silencioso
             }
         }
     }
@@ -81,13 +89,21 @@ class ProfileViewModel @Inject constructor(
     private fun loadStats() {
         viewModelScope.launch {
             launch {
-                obraRepository.getObras().collectLatest { obras ->
-                    _uiState.update { it.copy(obrasCount = obras.size) }
+                try {
+                    obraRepository.getObras().collectLatest { obras ->
+                        _uiState.update { it.copy(obrasCount = obras.size) }
+                    }
+                } catch (e: Exception) {
+                    // Error silencioso
                 }
             }
             launch {
-                clienteRepository.getClientes().collectLatest { clientes ->
-                    _uiState.update { it.copy(clientesCount = clientes.size) }
+                try {
+                    clienteRepository.getClientes().collectLatest { clientes ->
+                        _uiState.update { it.copy(clientesCount = clientes.size) }
+                    }
+                } catch (e: Exception) {
+                    // Error silencioso
                 }
             }
         }

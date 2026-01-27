@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
 import com.adrencina.enchu.core.resources.AppImages
@@ -38,13 +41,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+
 /**
  * Composable de pantalla: maneja la lógica, el estado y la interacción con el ViewModel.
  */
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onNavigateToWelcome: () -> Unit
 ) {
     val signInState by viewModel.signInState.collectAsState()
     val context = LocalContext.current
@@ -58,7 +64,12 @@ fun LoginScreen(
                 val account = task.getResult(ApiException::class.java)
                 viewModel.onSignInResult(account.idToken)
             } catch (e: ApiException) {
-                viewModel.onSignInResult(null)
+                // Código 12501: El usuario canceló el diálogo (botón atrás). No es un error real.
+                if (e.statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                    // No hacemos nada, simplemente no llamamos al ViewModel con error.
+                } else {
+                    viewModel.onSignInResult(null)
+                }
             }
         }
     )
@@ -74,11 +85,16 @@ fun LoginScreen(
 
     LaunchedEffect(key1 = signInState.isSignInSuccessful) {
         if (signInState.isSignInSuccessful) {
-            onLoginSuccess() // This will now navigate to WelcomeScreen via AppNavigation
+            if (signInState.needsOnboarding) {
+                onNavigateToWelcome()
+            } else {
+                onNavigateToHome()
+            }
         }
     }
 
     LoginScreenContent(
+        isLoading = signInState.isLoading,
         error = signInState.signInError,
         onSignInClick = ::onGoogleSignInClick
     )
@@ -90,6 +106,7 @@ fun LoginScreen(
 @Composable
 fun LoginScreenContent(
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
     error: String?,
     onSignInClick: () -> Unit
 ) {
@@ -97,47 +114,75 @@ fun LoginScreenContent(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimens.PaddingLarge)
-                .testTag("login_screen_content"),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            val isDark = isSystemInDarkTheme()
-            
-            Image(
-                painter = painterResource(id = AppImages.Logo),
-                contentDescription = AppStrings.splashLogoDescription,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .size(Dimens.LoginLogoSize)
-                    .semantics { contentDescription = AppStrings.splashLogoDescription },
-                colorFilter = if (isDark) ColorFilter.tint(Color.White) else null
-            )
+                    .fillMaxSize()
+                    .padding(horizontal = Dimens.PaddingLarge)
+                    .testTag("login_screen_content"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                val isDark = isSystemInDarkTheme()
+                
+                Image(
+                    painter = painterResource(id = AppImages.Logo),
+                    contentDescription = AppStrings.splashLogoDescription,
+                    modifier = Modifier
+                        .size(Dimens.LoginLogoSize)
+                        .semantics { contentDescription = AppStrings.splashLogoDescription },
+                    colorFilter = if (isDark) ColorFilter.tint(Color.White) else null
+                )
 
-            Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
+                Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
 
-            Text(
-                text = AppStrings.appName,
-                style = MaterialTheme.typography.displaySmall, // De tu Typography.kt
-                color = MaterialTheme.colorScheme.primary // De tu Color.kt
-            )
-
-            Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
-
-            AppGoogleSignInButton(onClick = onSignInClick)
-
-            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-
-            if (error != null) {
                 Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = AppStrings.appName,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        letterSpacing = (-0.5).sp // Un toque moderno de kerning negativo
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Tu negocio eléctrico, bajo control",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Color secundario para el tagline
                     textAlign = TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(48.dp)) // Espacio generoso antes del botón
+
+                AppGoogleSignInButton(
+                    onClick = onSignInClick,
+                    enabled = !isLoading,
+                    isLoading = isLoading
+                )
+
+                Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+
+                if (error != null) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
+            
+            // Footer discreto
+            Text(
+                text = "v2.0 - Dashboard Edition",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = Dimens.PaddingLarge)
+            )
         }
     }
 }
