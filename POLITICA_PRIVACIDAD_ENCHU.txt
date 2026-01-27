@@ -1,0 +1,49 @@
+POLÍTICA DE PRIVACIDAD - ENCHU
+
+Última actualización: 26 de enero de 2026
+
+1. INTRODUCCIÓN
+Enchu (en adelante, "la Aplicación" o "nosotros") es una herramienta de software diseñada para facilitar la gestión de presupuestos, clientes y obras para electricistas y profesionales afines. Nos comprometemos a proteger la privacidad de nuestros usuarios. Esta Política de Privacidad describe cómo recopilamos, usamos, almacenamos y protegemos su información personal.
+
+2. INFORMACIÓN QUE RECOPILAMOS
+
+A. Información proporcionada por el usuario:
+- Datos de Cuenta: Al registrarse o iniciar sesión mediante Google, recopilamos su nombre completo, dirección de correo electrónico y foto de perfil. Esto se utiliza para la autenticación, personalización de la interfaz y gestión de su cuenta.
+- Datos de Perfil Profesional: Para personalizar los presupuestos generados, recopilamos datos de su negocio como Razón Social, CUIT/Identificación Fiscal, Logo, Teléfono y Dirección comercial.
+- Datos de Clientes y Obras: La información que usted ingresa sobre sus propios clientes (nombres, teléfonos, domicilios) y obras se almacena exclusivamente para prestar el servicio de gestión y generación de documentos PDF. Usted es el responsable de contar con el consentimiento de sus clientes para procesar dichos datos.
+
+B. Permisos del Dispositivo:
+- Contactos (READ_CONTACTS / Selector Nativo): La aplicación permite seleccionar un contacto de su agenda para autocompletar formularios de clientes. NO recopilamos ni subimos su lista de contactos completa a nuestros servidores. Solo accedemos a los datos del contacto específico que usted selecciona voluntariamente.
+- Almacenamiento y Multimedia: Solicitamos acceso para subir imágenes (ej: fotos de tableros) o documentos (planos) y para guardar los presupuestos PDF generados. Este acceso se limita a los archivos que usted selecciona o crea.
+
+C. Información recopilada automáticamente:
+- Datos Técnicos y de Fallos: Utilizamos servicios como Google Firebase Crashlytics para recopilar informes de errores cuando la aplicación se cierra inesperadamente. Esto puede incluir modelo del dispositivo, versión del sistema operativo y trazas de la pila del error, pero no información que lo identifique personalmente de forma directa.
+
+3. USO DE LA INFORMACIÓN
+Utilizamos sus datos para los siguientes fines:
+- Prestar el servicio: Generar presupuestos profesionales, organizar el historial de obras y gestionar la base de datos de clientes.
+- Autenticación: Verificar su identidad y proteger su cuenta mediante Google Authentication.
+- Mejora del servicio: Analizar estadísticas de uso anónimas para optimizar el rendimiento de la aplicación.
+- Comunicación: Enviar notificaciones importantes sobre el estado del servicio o cambios en estas políticas.
+
+4. COMPARTICIÓN DE DATOS Y TERCEROS
+Enchu NO vende, alquila ni comercializa sus datos personales con anunciantes ni terceros. Compartimos información únicamente con proveedores de servicios esenciales para la infraestructura de la App:
+
+- Google Firebase (EE. UU.): Proveedor de servicios en la nube donde se alojan de forma segura nuestra base de datos (Firestore), autenticación (Auth) y archivos (Storage).
+- Google Analytics & Crashlytics: Para monitoreo de estabilidad y análisis de uso.
+
+5. SEGURIDAD DE LOS DATOS
+Implementamos medidas de seguridad robustas para proteger su información. Todas las comunicaciones entre la aplicación y nuestros servidores se realizan mediante conexiones encriptadas (HTTPS/TLS). Los datos sensibles se almacenan en servidores protegidos con estrictos controles de acceso.
+
+6. DERECHOS DEL USUARIO (ACCESO Y ELIMINACIÓN)
+Usted conserva el control total sobre sus datos.
+- Rectificación: Puede modificar sus datos comerciales y personales desde la sección "Menú > Configuración" de la aplicación.
+- Eliminación de Cuenta: Si desea eliminar su cuenta y todos los datos asociados (obras, clientes, perfil), puede solicitarlo directamente enviando un correo electrónico a adr.encina@gmail.com con el asunto "Baja de Cuenta". Procesaremos su solicitud en un plazo máximo de 30 días.
+
+7. CAMBIOS A ESTA POLÍTICA
+Podemos actualizar esta Política de Privacidad ocasionalmente para reflejar cambios en nuestras prácticas o requerimientos legales. Le notificaremos sobre cambios significativos a través de la aplicación o por correo electrónico.
+
+8. CONTACTO
+Si tiene preguntas o inquietudes sobre esta Política de Privacidad, puede contactarnos en:
+Correo electrónico: adr.encina@gmail.com
+Desarrollador: Adrian Encina

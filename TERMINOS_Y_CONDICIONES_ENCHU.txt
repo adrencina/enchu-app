@@ -1,0 +1,44 @@
+TÉRMINOS Y CONDICIONES DE USO - ENCHU
+
+Última actualización: 26 de enero de 2026
+
+1. ACEPTACIÓN DE LOS TÉRMINOS
+Al descargar, instalar o utilizar la aplicación móvil "Enchu" (en adelante, "la Aplicación"), usted acepta estar legalmente vinculado por estos Términos y Condiciones. Si no está de acuerdo con alguno de estos términos, por favor no utilice la Aplicación.
+
+2. DESCRIPCIÓN DEL SERVICIO
+Enchu es una herramienta de software ("Software as a Service") diseñada para asistir a electricistas y profesionales técnicos en la gestión administrativa de sus negocios. Sus funciones principales incluyen:
+- Creación y generación de presupuestos en formato PDF.
+- Gestión de bases de datos de clientes y obras.
+- Seguimiento de estados de obras (Activas, Archivadas).
+
+3. RESPONSABILIDAD DEL USUARIO Y USO PROFESIONAL
+3.1. Herramienta de Apoyo: La Aplicación es una herramienta de ayuda administrativa. Enchu NO realiza validaciones técnicas de ingeniería eléctrica ni garantiza el cumplimiento de normativas locales (como AEA en Argentina o equivalentes).
+3.2. Responsabilidad Profesional: Usted, como profesional, es el único responsable de la exactitud técnica, los precios, los materiales y la viabilidad de los presupuestos y obras que gestione a través de la Aplicación. Enchu no se hace responsable por errores de cálculo, subestimación de costos o fallas en instalaciones eléctricas derivadas del uso de la app.
+3.3. Legalidad de los Datos: Usted garantiza que tiene derecho a ingresar los datos de sus clientes en la Aplicación y que utilizará los presupuestos generados de acuerdo con las leyes fiscales y comerciales vigentes en su país.
+
+4. CUENTAS Y SEGURIDAD
+- Para acceder a todas las funciones, debe autenticarse mediante una cuenta de Google.
+- Usted es responsable de mantener la confidencialidad de sus credenciales de acceso.
+- Enchu no se hace responsable por accesos no autorizados derivados de la negligencia del usuario en la protección de su dispositivo o cuenta de Google.
+
+5. PLANES Y PAGOS (FREEMIUM)
+5.1. Plan Gratuito (FREE): Permite el uso de la aplicación con limitaciones funcionales (ej. límite de 3 obras activas simultáneas, marca de agua en PDFs, o almacenamiento limitado).
+5.2. Plan Profesional (PRO): Ofrece capacidades ampliadas mediante una suscripción.
+5.3. Cambios en el Servicio: Nos reservamos el derecho de modificar los límites del plan gratuito o las características del plan de pago en cualquier momento, notificando a los usuarios con antelación razonable.
+
+6. PROPIEDAD INTELECTUAL
+- La Aplicación: El código fuente, diseño visual, logotipos y la marca "Enchu" son propiedad exclusiva de los desarrolladores.
+- Sus Datos: Los datos de sus clientes, obras y los PDFs generados son de su propiedad. Enchu solo actúa como depositario y procesador de estos datos para brindarle el servicio.
+
+7. DISPONIBILIDAD Y RESPONSABILIDAD
+La Aplicación se proporciona "tal cual" y "según disponibilidad". Aunque nos esforzamos por mantener el servicio activo 24/7 y los datos seguros (usando Google Cloud/Firebase), no garantizamos que el servicio sea ininterrumpido o libre de errores.
+En la máxima medida permitida por la ley, Enchu no será responsable por daños indirectos, lucro cesante o pérdida de datos que resulten del uso o la imposibilidad de uso de la Aplicación.
+
+8. MODIFICACIONES A LOS TÉRMINOS
+Podemos actualizar estos términos ocasionalmente. El uso continuado de la Aplicación después de dichos cambios constituirá su aceptación de los nuevos términos.
+
+9. LEY APLICABLE
+Estos términos se rigen por las leyes de la República Argentina (o el país de residencia del desarrollador), y cualquier disputa se someterá a los tribunales competentes de dicha jurisdicción.
+
+10. CONTACTO
+Para soporte técnico o consultas legales, contáctenos en: adr.encina@gmail.com

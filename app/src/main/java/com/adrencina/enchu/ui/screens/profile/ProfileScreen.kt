@@ -1,5 +1,7 @@
 package com.adrencina.enchu.ui.screens.profile
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,23 +15,24 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Business
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,7 +40,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.adrencina.enchu.data.model.Organization
 import com.adrencina.enchu.data.repository.ThemeMode
-import com.adrencina.enchu.ui.screens.profile.EditOrganizationDialog
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ProfileViewModel
 import com.adrencina.enchu.viewmodel.SettingsViewModel
@@ -53,6 +55,17 @@ fun ProfileScreen(
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
+    val context = LocalContext.current
+
+    // Función auxiliar para abrir enlaces
+    fun openUrl(url: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Manejar error si no hay navegador (raro)
+        }
+    }
 
     if (uiState.showEditOrgDialog && uiState.organization != null) {
         EditOrganizationDialog(
@@ -68,10 +81,18 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // TopAppBar minimalista
         TopAppBar(
-            title = { Text("Menú") },
+            title = { 
+                Text(
+                    "Menú", 
+                    style = MaterialTheme.typography.titleLarge, 
+                    fontWeight = FontWeight.Bold 
+                ) 
+            },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background
+                containerColor = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.onBackground
             )
         )
 
@@ -79,326 +100,245 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(Dimens.PaddingMedium),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Header de Perfil
-            ProfileHeaderSection(user = uiState.user)
+            // 1. Tarjeta de Perfil Compacta
+            ProfileCompactCard(user = uiState.user, organization = uiState.organization)
 
-            // 2. Estadísticas
-            StatsRowSection(
+            // 2. Resumen Rápido (Stats)
+            StatsRowCompact(
                 obrasCount = uiState.obrasCount,
                 clientesCount = uiState.clientesCount
             )
 
-            // 3. Suscripción y Almacenamiento
-            SubscriptionCardSection(organization = uiState.organization)
-
-            // 4. Menú de Configuración
-            ConfigurationMenuSection(
-                themeMode = themeMode,
-                onThemeModeChange = settingsViewModel::saveThemeMode,
-                onEditOrgClick = profileViewModel::onEditOrgClick,
-                onManageTeamClick = onNavigateToTeamScreen,
-                onLogout = {
-                    profileViewModel.logout()
-                    onLogout()
-                }
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
-
-@Composable
-fun ProfileHeaderSection(user: FirebaseUser?) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val photoUrl = user?.photoUrl
-
-        if (photoUrl != null) {
-            Image(
-                painter = rememberAsyncImagePainter(photoUrl),
-                contentDescription = "Foto de perfil",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Surface(
-                modifier = Modifier.size(100.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shadowElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = user?.displayName?.take(1)?.uppercase() ?: "U",
-                        style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = user?.displayName ?: "Usuario",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = user?.email ?: "correo@ejemplo.com",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-fun StatsRowSection(obrasCount: Int, clientesCount: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatItem(
-                icon = Icons.Outlined.Build,
-                value = obrasCount.toString(),
-                label = "OBRAS"
-            )
-
-            VerticalDivider(
-                modifier = Modifier.height(40.dp),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            )
-
-            StatItem(
-                icon = Icons.Outlined.People,
-                value = clientesCount.toString(),
-                label = "CLIENTES"
-            )
-        }
-    }
-}
-
-@Composable
-fun StatItem(icon: ImageVector, value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 1.sp
-        )
-    }
-}
-
-@Composable
-fun SubscriptionCardSection(organization: Organization?) {
-    val plan = organization?.plan ?: "FREE"
-    val storageUsedBytes = organization?.storageUsed ?: 0L
-    val storageLimitBytes = 50 * 1024 * 1024L // 50 MB
-    
-    val storageUsedMB = storageUsedBytes.toDouble() / (1024 * 1024)
-    val storageProgress = if (plan == "PRO") 0f else (storageUsedBytes.toFloat() / storageLimitBytes).coerceIn(0f, 1f)
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "TU SUSCRIPCIÓN",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = if (plan == "PRO") "Plan Profesional" else "Plan Gratuito",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (plan == "PRO") "Todo ilimitado" else "Límite de 3 obras",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    Surface(
-                        color = if (plan == "PRO") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = if (plan == "PRO") "PRO" else "FREE",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (plan == "PRO") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-
-                if (plan == "FREE") {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Almacenamiento",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = String.format("%.1f MB / 50 MB", storageUsedMB),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (storageProgress > 0.9f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { storageProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(CircleShape),
-                        color = if (storageProgress > 0.9f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfigurationMenuSection(
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
-    onEditOrgClick: () -> Unit,
-    onManageTeamClick: () -> Unit,
-    onLogout: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "CONFIGURACIÓN",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column {
+            // 3. Gestión del Negocio
+            SettingsSection(title = "NEGOCIO") {
                 MenuItem(
                     icon = Icons.Default.Business,
                     text = "Datos de Empresa",
-                    onClick = onEditOrgClick
+                    onClick = profileViewModel::onEditOrgClick
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                
                 MenuItem(
                     icon = Icons.Default.Group,
                     text = "Mi Equipo",
-                    onClick = onManageTeamClick
+                    onClick = onNavigateToTeamScreen
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                
+                // Aquí iría Suscripción en el futuro si se hace clickeable
                 MenuItem(
-                    icon = Icons.Default.Settings,
-                    text = "Ajustes",
-                    onClick = { /* TODO */ }
+                    icon = if (uiState.organization?.plan == "PRO") Icons.Outlined.Build else Icons.Outlined.Build,
+                    text = "Suscripción: ${uiState.organization?.plan ?: "FREE"}",
+                    onClick = { /* TODO: Abrir pantalla de suscripción */ },
+                    trailing = {
+                        Surface(
+                            color = if (uiState.organization?.plan == "PRO") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text(
+                                text = if (uiState.organization?.plan == "PRO") "PRO" else "FREE",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (uiState.organization?.plan == "PRO") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            }
 
-                // Item de Modo Oscuro con Switch
+            // 4. Configuración App
+            SettingsSection(title = "APLICACIÓN") {
                 val isDark = themeMode == ThemeMode.DARK
                 MenuItem(
                     icon = Icons.Default.DarkMode,
                     text = "Modo Oscuro",
-                    onClick = { onThemeModeChange(if (isDark) ThemeMode.LIGHT else ThemeMode.DARK) },
+                    onClick = { settingsViewModel.saveThemeMode(if (isDark) ThemeMode.LIGHT else ThemeMode.DARK) },
                     trailing = {
                         Switch(
                             checked = isDark,
                             onCheckedChange = { checked ->
-                                onThemeModeChange(if (checked) ThemeMode.DARK else ThemeMode.LIGHT)
-                            }
+                                settingsViewModel.saveThemeMode(if (checked) ThemeMode.DARK else ThemeMode.LIGHT)
+                            },
+                            modifier = Modifier.scale(0.8f) // Switch un poco más pequeño
                         )
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                
+            }
+
+            // 5. Legal y Soporte (IMPORTANTE para Play Store)
+            SettingsSection(title = "LEGAL") {
+                MenuItem(
+                    icon = Icons.Default.PrivacyTip,
+                    text = "Políticas de Privacidad",
+                    onClick = { openUrl("https://gist.githubusercontent.com/adrencina/01be9c72a52a0f980f996dbe99bd7c46/raw/dbbf89917e7828a9f4b4174d348b2c7dbff126cb/politica_privacidad.md") }
+                )
+                MenuItem(
+                    icon = Icons.Default.Gavel, // O Description
+                    text = "Términos y Condiciones",
+                    onClick = { openUrl("https://gist.githubusercontent.com/adrencina/a5554210b4eb92f61e65da2e0b983bb4/raw/2f12c7bb21df618ab3c0186ce64705c045d12db2/terminos_condiciones.md") }
+                )
                 MenuItem(
                     icon = Icons.Default.Info,
-                    text = "Acerca de Enchu",
-                    onClick = { /* TODO */ }
+                    text = "Acerca de Enchu v2.1",
+                    onClick = { /* TODO: Mostrar dialogo de versión */ }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 6. Cerrar Sesión (Estilo Botón Peligroso pero elegante)
+            OutlinedButton(
+                onClick = {
+                    profileViewModel.logout()
+                    onLogout()
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                    containerColor = Color.Transparent
+                )
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Cerrar Sesión", fontWeight = FontWeight.SemiBold)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfileCompactCard(user: FirebaseUser?, organization: Organization?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar
+            val photoUrl = user?.photoUrl
+            if (photoUrl != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(photoUrl),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.size(60.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = user?.displayName?.take(1)?.uppercase() ?: "U",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Info Texto
+            Column {
+                Text(
+                    text = user?.displayName ?: "Usuario",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = user?.email ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = organization?.name ?: "Sin Organización",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Botón de Cerrar Sesión
-        OutlinedButton(
-            onClick = onLogout,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+@Composable
+fun StatsRowCompact(obrasCount: Int, clientesCount: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Obras
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(imageVector = Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Cerrar Sesión", fontWeight = FontWeight.Bold)
+            Column(
+                modifier = Modifier.padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(Icons.Outlined.Build, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Text(obrasCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Obras", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        
+        // Clientes
+        Card(
+            modifier = Modifier.weight(1f),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(Icons.Outlined.People, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Text(clientesCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Clientes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                content()
+            }
         }
     }
 }
@@ -414,19 +354,19 @@ fun MenuItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp), // Padding ajustado para ser compacto pero tocable
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -437,8 +377,8 @@ fun MenuItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(16.dp)
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                modifier = Modifier.size(14.dp)
             )
         }
     }
