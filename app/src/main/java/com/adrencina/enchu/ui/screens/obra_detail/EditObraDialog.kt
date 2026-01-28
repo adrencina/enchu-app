@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.DialogProperties
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.ui.theme.Dimens
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.adrencina.enchu.data.model.Cliente
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -24,6 +24,7 @@ fun EditObraDialog(
     onEstadoChanged: (String) -> Unit,
     onTelefonoChanged: (String) -> Unit,
     onDireccionChanged: (String) -> Unit,
+    onClienteChanged: (Cliente) -> Unit,
     onToggleExpand: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -33,6 +34,41 @@ fun EditObraDialog(
         title = { Text("Editar Obra") },
         text = {
             Column(modifier = Modifier.verticalScroll(scrollState)) {
+                // Selector de Cliente
+                var clientExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = clientExpanded,
+                    onExpandedChange = { clientExpanded = !clientExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        readOnly = true,
+                        value = uiState.editedCliente?.nombre ?: "Sin cliente asignado",
+                        onValueChange = {},
+                        label = { Text("Cliente") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = clientExpanded) },
+                        colors = ExposedDropdownMenuDefaults.textFieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = clientExpanded,
+                        onDismissRequest = { clientExpanded = false }
+                    ) {
+                        uiState.allClientes.forEach { cliente ->
+                            DropdownMenuItem(
+                                text = { Text(cliente.nombre) },
+                                onClick = {
+                                    onClienteChanged(cliente)
+                                    clientExpanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+
                 TextField(
                     value = uiState.editedObraName,
                     onValueChange = onNameChanged,

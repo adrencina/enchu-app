@@ -51,6 +51,10 @@ import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientDetailViewModel
 import androidx.compose.material.icons.filled.Edit
 
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientDetailScreen(
@@ -69,6 +73,27 @@ fun ClientDetailScreen(
         )
     }
 
+    if (uiState.showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDismissDeleteDialog,
+            title = { Text("Eliminar Cliente") },
+            text = { Text("¿Estás seguro de que quieres eliminar a este cliente? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onConfirmDelete(onSuccess = onNavigateBack) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onDismissDeleteDialog) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,6 +106,9 @@ fun ClientDetailScreen(
                 actions = {
                      IconButton(onClick = viewModel::onEditClick) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar Cliente")
+                    }
+                     IconButton(onClick = viewModel::onDeleteClick) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar Cliente", tint = MaterialTheme.colorScheme.error)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

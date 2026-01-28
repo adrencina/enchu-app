@@ -64,6 +64,10 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
 import java.util.Date
 
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.ButtonDefaults
+
 // Main entry point
 @Composable
 fun ObraDetailScreen(
@@ -110,6 +114,7 @@ fun ObraDetailScreen(
         onDismissMenu = viewModel::onDismissMenu,
         onEditObra = viewModel::onEditObra,
         onArchiveObra = viewModel::onArchiveObra,
+        onDeleteObraClick = viewModel::onDeleteObraClick, // Nuevo
         onExportPdf = viewModel::onExportPdf,
         onTabSelected = viewModel::onTabSelected,
         onFabPressed = viewModel::onFabPressed,
@@ -120,9 +125,12 @@ fun ObraDetailScreen(
         onEstadoChanged = viewModel::onEstadoChanged,
         onTelefonoChanged = viewModel::onTelefonoChanged,
         onDireccionChanged = viewModel::onDireccionChanged,
+        onClienteChanged = viewModel::onClienteChanged, // Nuevo
         onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog,
         onDismissArchiveDialog = viewModel::onDismissArchiveDialog,
         onConfirmArchive = viewModel::onConfirmArchive,
+        onDismissDeleteDialog = viewModel::onDismissDeleteDialog, // Nuevo
+        onConfirmDelete = viewModel::onConfirmDelete, // Nuevo
         onAddTarea = viewModel::onAddTarea,
         onToggleTarea = viewModel::onToggleTarea,
         onDeleteTarea = viewModel::onDeleteTarea,
@@ -146,6 +154,7 @@ fun ObraDetailScreenContent(
     onDismissMenu: () -> Unit,
     onEditObra: () -> Unit,
     onArchiveObra: () -> Unit,
+    onDeleteObraClick: () -> Unit,
     onExportPdf: () -> Unit,
     onTabSelected: (Int) -> Unit,
     onFabPressed: () -> Unit,
@@ -156,9 +165,12 @@ fun ObraDetailScreenContent(
     onEstadoChanged: (String) -> Unit,
     onTelefonoChanged: (String) -> Unit,
     onDireccionChanged: (String) -> Unit,
+    onClienteChanged: (com.adrencina.enchu.data.model.Cliente) -> Unit,
     onToggleExpandEditDialog: () -> Unit,
     onDismissArchiveDialog: () -> Unit,
     onConfirmArchive: () -> Unit,
+    onDismissDeleteDialog: () -> Unit,
+    onConfirmDelete: () -> Unit,
     onAddTarea: (String) -> Unit,
     onToggleTarea: (Tarea) -> Unit,
     onDeleteTarea: (Tarea) -> Unit,
@@ -207,6 +219,18 @@ fun ObraDetailScreenContent(
                                     onClick = onExportPdf
                                 )
                             }
+                            // Opción Eliminar (Separada visualmente si es posible, o al final)
+                            DropdownMenuItem(
+                                text = { Text("Eliminar Obra", color = MaterialTheme.colorScheme.error) },
+                                onClick = onDeleteObraClick,
+                                leadingIcon = { 
+                                    Icon(
+                                        imageVector = Icons.Default.Delete, 
+                                        contentDescription = null, 
+                                        tint = MaterialTheme.colorScheme.error
+                                    ) 
+                                }
+                            )
                         }
                     }
                 }
@@ -254,6 +278,7 @@ fun ObraDetailScreenContent(
                             onEstadoChanged = onEstadoChanged,
                             onTelefonoChanged = onTelefonoChanged,
                             onDireccionChanged = onDireccionChanged,
+                            onClienteChanged = onClienteChanged, // Pasamos el callback
                             onToggleExpand = onToggleExpandEditDialog
                         )
                     }
@@ -262,6 +287,27 @@ fun ObraDetailScreenContent(
                         ArchiveConfirmationDialog(
                             onDismiss = onDismissArchiveDialog,
                             onConfirm = onConfirmArchive
+                        )
+                    }
+                    
+                    if (uiState.showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = onDismissDeleteDialog,
+                            title = { Text("Eliminar Obra") },
+                            text = { Text("¿Estás seguro de que quieres eliminar esta obra y todos sus datos asociados? Esta acción es irreversible.") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = onConfirmDelete,
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("Eliminar")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = onDismissDeleteDialog) {
+                                    Text("Cancelar")
+                                }
+                            }
                         )
                     }
 
@@ -505,6 +551,7 @@ fun ObraDetailScreenContentPreview() {
             onDismissMenu = {},
             onEditObra = {},
             onArchiveObra = {},
+            onDeleteObraClick = {},
             onExportPdf = {},
             onTabSelected = {},
             onFabPressed = {},
@@ -515,9 +562,12 @@ fun ObraDetailScreenContentPreview() {
             onEstadoChanged = {},
             onTelefonoChanged = {},
             onDireccionChanged = {},
+            onClienteChanged = {},
             onToggleExpandEditDialog = {},
             onDismissArchiveDialog = {},
             onConfirmArchive = {},
+            onDismissDeleteDialog = {},
+            onConfirmDelete = {},
             onAddTarea = {},
             onToggleTarea = {},
             onDeleteTarea = {},

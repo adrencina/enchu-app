@@ -42,7 +42,7 @@ import com.adrencina.enchu.ui.screens.presupuestos.PresupuestosScreen
 fun MainScreen(
     onObraClick: (String) -> Unit,
     onAddObraClick: () -> Unit,
-    onAddBudgetClick: () -> Unit,
+    onAddBudgetClick: (String?) -> Unit, // Updated signature
     onEditBudgetClick: (String) -> Unit,
     onAddClientClick: () -> Unit,
     onClientClick: (String) -> Unit,
@@ -87,7 +87,7 @@ fun MainScreen(
                 },
                 onFabClick = {
                     when (currentDestination?.route) {
-                        Routes.PRESUPUESTOS_SCREEN -> onAddBudgetClick()
+                        Routes.PRESUPUESTOS_SCREEN -> onAddBudgetClick(null)
                         Routes.CLIENTES_SCREEN -> onAddClientClick()
                         else -> showBottomSheet = true
                     }
@@ -112,12 +112,13 @@ fun MainScreen(
             composable(Routes.CLIENTES_SCREEN) {
                 ClientsScreen(
                     onAddClientClick = onAddClientClick,
-                    onClientClick = onClientClick
+                    onClientClick = onClientClick,
+                    onCreateBudgetClick = { clientId -> onAddBudgetClick(clientId) }
                 )
             }
             composable(Routes.PRESUPUESTOS_SCREEN) {
                 PresupuestosScreen(
-                    onNewBudgetClick = onAddBudgetClick,
+                    onNewBudgetClick = { onAddBudgetClick(null) },
                     onEditBudgetClick = onEditBudgetClick,
                     initialTab = budgetTabToOpen
                 )
@@ -155,7 +156,7 @@ fun MainScreen(
                         },
                         modifier = Modifier.clickable {
                             showBottomSheet = false
-                            onAddBudgetClick()
+                            onAddBudgetClick(null)
                         }
                     )
                     
@@ -204,57 +205,61 @@ fun CustomBottomNavigation(
         // 1. La Barra de Navegación
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(65.dp),
+                .fillMaxWidth(),
             color = barBackgroundColor,
             tonalElevation = 4.dp,
             shadowElevation = 8.dp
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Grupo Izquierdo
+            Column {
                 Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(65.dp)
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    leftItems.forEach { (screen, label) ->
-                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                        CustomBottomNavItem(
-                            icon = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
-                            label = label,
-                            isSelected = isSelected,
-                            activeColor = activeColor,
-                            inactiveColor = inactiveColor,
-                            onClick = { onNavigate(screen.route) }
-                        )
+                    // Grupo Izquierdo
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        leftItems.forEach { (screen, label) ->
+                            val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                            CustomBottomNavItem(
+                                icon = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
+                                label = label,
+                                isSelected = isSelected,
+                                activeColor = activeColor,
+                                inactiveColor = inactiveColor,
+                                onClick = { onNavigate(screen.route) }
+                            )
+                        }
+                    }
+
+                    // Espaciador central para el FAB
+                    Spacer(modifier = Modifier.width(70.dp))
+
+                    // Grupo Derecho
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        rightItems.forEach { (screen, label) ->
+                            val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                            CustomBottomNavItem(
+                                icon = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
+                                label = label,
+                                isSelected = isSelected,
+                                activeColor = activeColor,
+                                inactiveColor = inactiveColor,
+                                onClick = { onNavigate(screen.route) }
+                            )
+                        }
                     }
                 }
-
-                // Espaciador central para el FAB
-                Spacer(modifier = Modifier.width(70.dp))
-
-                // Grupo Derecho
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    rightItems.forEach { (screen, label) ->
-                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                        CustomBottomNavItem(
-                            icon = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
-                            label = label,
-                            isSelected = isSelected,
-                            activeColor = activeColor,
-                            inactiveColor = inactiveColor,
-                            onClick = { onNavigate(screen.route) }
-                        )
-                    }
-                }
+                // Espaciador para respetar la barra de navegación del sistema (Edge-to-Edge)
+                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             }
         }
 

@@ -5,21 +5,23 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Avance
+import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
+import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.data.repository.OrganizationRepository
 import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
 import com.adrencina.enchu.domain.use_case.SaveAvanceUseCase
 import com.adrencina.enchu.domain.use_case.SaveFileToWorkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
-import com.adrencina.enchu.data.repository.OrganizationRepository
 
-// Usamos una clase sellada para seguir el patrón de HomeUiState
 sealed class ObraDetailUiState {
     object Loading : ObraDetailUiState()
     data class Success(
@@ -27,19 +29,22 @@ sealed class ObraDetailUiState {
         val tareas: List<Tarea> = emptyList(),
         val avances: List<Avance> = emptyList(),
         val presupuestoItems: List<PresupuestoItem> = emptyList(),
+        val allClientes: List<Cliente> = emptyList(),
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
         val showArchiveDialog: Boolean = false,
+        val showDeleteDialog: Boolean = false,
         val showAddAvanceDialog: Boolean = false,
         val showAddPresupuestoItemDialog: Boolean = false,
-        val showAddTareaDialog: Boolean = false, // Nuevo estado
+        val showAddTareaDialog: Boolean = false,
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
         val isEditDialogExpanded: Boolean = false,
         val editedTelefono: String = "",
-        val editedDireccion: String = ""
+        val editedDireccion: String = "",
+        val editedCliente: Cliente? = null
     ) : ObraDetailUiState()
     data class Error(val message: String) : ObraDetailUiState()
 }
@@ -53,6 +58,7 @@ sealed class ObraDetailEffect {
 @HiltViewModel
 class ObraDetailViewModel @Inject constructor(
     private val repository: ObraRepository,
+    private val clienteRepository: ClienteRepository,
     private val saveFileToWorkUseCase: SaveFileToWorkUseCase,
     private val saveAvanceUseCase: SaveAvanceUseCase,
     private val generatePresupuestoPdfUseCase: GeneratePresupuestoPdfUseCase,
@@ -68,24 +74,78 @@ class ObraDetailViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<ObraDetailEffect>()
     val effect = _effect.asSharedFlow()
 
+    private var dataLoadingJob: Job? = null
+
     init {
         if (obraId.isBlank()) {
             _uiState.value = ObraDetailUiState.Error("Error de navegación: ID de obra no encontrado.")
         } else {
-            loadObraDetails()
+            loadData()
         }
     }
 
-    // --- Manejo de eventos con funciones públicas, como en HomeViewModel ---
+    private fun loadData() {
+        dataLoadingJob?.cancel()
+        dataLoadingJob = viewModelScope.launch {
+            // Cargar Obra (Trigger principal)
+            launch {
+                repository.getObraById(obraId)
+                    .catch { e -> 
+                        _uiState.value = ObraDetailUiState.Error("Error cargando obra: ${e.message}")
+                    }
+                    .collect { obra ->
+                        if (obra != null) {
+                            _uiState.update { current ->
+                                if (current is ObraDetailUiState.Success) {
+                                    current.copy(obra = obra)
+                                } else {
+                                    ObraDetailUiState.Success(obra = obra)
+                                }
+                            }
+                        } else {
+                            _uiState.value = ObraDetailUiState.Error("Obra no encontrada")
+                        }
+                    }
+            }
 
-    fun onTabSelected(index: Int) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(selectedTabIndex = index)
-            } else {
-                currentState // No hacer nada si no estamos en estado Success
+            // Cargar Subcolecciones independientemente
+            launch {
+                repository.getTareas(obraId).collect { tareas ->
+                    updateSuccessState { it.copy(tareas = tareas) }
+                }
+            }
+            launch {
+                repository.getAvances(obraId).collect { avances ->
+                    updateSuccessState { it.copy(avances = avances) }
+                }
+            }
+            launch {
+                repository.getPresupuestoItems(obraId).collect { items ->
+                    updateSuccessState { it.copy(presupuestoItems = items) }
+                }
+            }
+            launch {
+                clienteRepository.getClientes().collect { clientes ->
+                    updateSuccessState { it.copy(allClientes = clientes) }
+                }
             }
         }
+    }
+
+    private fun updateSuccessState(update: (ObraDetailUiState.Success) -> ObraDetailUiState.Success) {
+        _uiState.update { current ->
+            if (current is ObraDetailUiState.Success) {
+                update(current)
+            } else {
+                current
+            }
+        }
+    }
+
+    // --- Actions ---
+
+    fun onTabSelected(index: Int) {
+        updateSuccessState { it.copy(selectedTabIndex = index) }
     }
 
     fun onBackPressed() {
@@ -93,112 +153,59 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onMenuPressed() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(isMenuExpanded = true)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(isMenuExpanded = true) }
     }
 
     fun onDismissMenu() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(isMenuExpanded = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(isMenuExpanded = false) }
     }
 
     fun onEditObra() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(
-                    isMenuExpanded = false,
-                    showEditDialog = true,
-                    editedObraName = currentState.obra.nombreObra,
-                    editedObraDescription = currentState.obra.descripcion,
-                    editedObraEstado = currentState.obra.estado,
-                    editedTelefono = currentState.obra.telefono,
-                    editedDireccion = currentState.obra.direccion
-                )
-            } else {
-                currentState
-            }
+        updateSuccessState { currentState ->
+            val currentClient = currentState.allClientes.find { it.id == currentState.obra.clienteId }
+            currentState.copy(
+                isMenuExpanded = false,
+                showEditDialog = true,
+                editedObraName = currentState.obra.nombreObra,
+                editedObraDescription = currentState.obra.descripcion,
+                editedObraEstado = currentState.obra.estado,
+                editedTelefono = currentState.obra.telefono,
+                editedDireccion = currentState.obra.direccion,
+                editedCliente = currentClient
+            )
         }
     }
 
     fun onDismissEditDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                // Resetea el estado de expansión al cerrar el diálogo
-                currentState.copy(showEditDialog = false, isEditDialogExpanded = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(showEditDialog = false, isEditDialogExpanded = false) }
     }
 
     fun onToggleExpandEditDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(isEditDialogExpanded = !currentState.isEditDialogExpanded)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(isEditDialogExpanded = !it.isEditDialogExpanded) }
     }
 
     fun onNameChanged(newName: String) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedObraName = newName.take(50))
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(editedObraName = newName.take(50)) }
     }
 
     fun onDescriptionChanged(newDescription: String) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedObraDescription = newDescription.take(200))
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(editedObraDescription = newDescription.take(200)) }
     }
 
     fun onEstadoChanged(newEstado: String) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedObraEstado = newEstado)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(editedObraEstado = newEstado) }
     }
 
     fun onTelefonoChanged(newTelefono: String) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedTelefono = newTelefono.take(20))
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(editedTelefono = newTelefono.take(20)) }
     }
 
     fun onDireccionChanged(newDireccion: String) {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(editedDireccion = newDireccion.take(100))
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(editedDireccion = newDireccion.take(100)) }
+    }
+
+    fun onClienteChanged(cliente: Cliente) {
+        updateSuccessState { it.copy(editedCliente = cliente) }
     }
 
     fun onConfirmEdit() {
@@ -210,34 +217,45 @@ class ObraDetailViewModel @Inject constructor(
                     descripcion = currentState.editedObraDescription,
                     estado = currentState.editedObraEstado,
                     telefono = currentState.editedTelefono,
-                    direccion = currentState.editedDireccion
+                    direccion = currentState.editedDireccion,
+                    clienteId = currentState.editedCliente?.id ?: currentState.obra.clienteId,
+                    clienteNombre = currentState.editedCliente?.nombre ?: currentState.obra.clienteNombre
                 )
                 repository.updateObra(updatedObra)
-                // TODO: Handle success/error result with a Toast/Snackbar
             }
         }
         onDismissEditDialog()
     }
 
-    fun onArchiveObra() {
+    fun onDeleteObraClick() {
         onDismissMenu()
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(showArchiveDialog = true)
-            } else {
-                currentState
+        updateSuccessState { it.copy(showDeleteDialog = true) }
+    }
+
+    fun onDismissDeleteDialog() {
+        updateSuccessState { it.copy(showDeleteDialog = false) }
+    }
+
+    fun onConfirmDelete() {
+        dataLoadingJob?.cancel()
+        onDismissDeleteDialog()
+        viewModelScope.launch {
+            try {
+                repository.deleteObra(obraId)
+                onBackPressed()
+            } catch (e: Exception) {
+                // Ignore
             }
         }
     }
 
+    fun onArchiveObra() {
+        onDismissMenu()
+        updateSuccessState { it.copy(showArchiveDialog = true) }
+    }
+
     fun onDismissArchiveDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(showArchiveDialog = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(showArchiveDialog = false) }
     }
 
     fun onConfirmArchive() {
@@ -251,49 +269,23 @@ class ObraDetailViewModel @Inject constructor(
     fun onFabPressed() {
         val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         when (currentState.selectedTabIndex) {
-            0 -> { // Registros (Avances)
-                _uiState.update { currentState.copy(showAddAvanceDialog = true) }
-            }
-            1 -> { // Archivos
-                viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
-            }
-            2 -> { // Tareas
-                _uiState.update { currentState.copy(showAddTareaDialog = true) }
-            }
-            3 -> { // Presupuesto
-                _uiState.update { currentState.copy(showAddPresupuestoItemDialog = true) }
-            }
+            0 -> updateSuccessState { it.copy(showAddAvanceDialog = true) }
+            1 -> viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
+            2 -> updateSuccessState { it.copy(showAddTareaDialog = true) }
+            3 -> updateSuccessState { it.copy(showAddPresupuestoItemDialog = true) }
         }
     }
 
     fun onDismissAddTareaDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(showAddTareaDialog = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(showAddTareaDialog = false) }
     }
 
     fun onDismissAddAvanceDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(showAddAvanceDialog = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(showAddAvanceDialog = false) }
     }
     
     fun onDismissAddPresupuestoItemDialog() {
-        _uiState.update { currentState ->
-            if (currentState is ObraDetailUiState.Success) {
-                currentState.copy(showAddPresupuestoItemDialog = false)
-            } else {
-                currentState
-            }
-        }
+        updateSuccessState { it.copy(showAddPresupuestoItemDialog = false) }
     }
 
     fun onAddPresupuestoItem(item: PresupuestoItem) {
@@ -312,7 +304,6 @@ class ObraDetailViewModel @Inject constructor(
     fun onExportPdf() {
         val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            // 1. Obtener organización
             val orgId = currentState.obra.organizationId
             val organization = if (orgId.isNotBlank()) {
                 organizationRepository.getOrganization(orgId).first()
@@ -322,20 +313,14 @@ class ObraDetailViewModel @Inject constructor(
 
             var currentObra = currentState.obra
 
-            // 2. Si la obra no tiene número de presupuesto, asignarle uno nuevo
             if (currentObra.budgetNumber == 0 && organization != null) {
                 val nextNumber = organization.lastBudgetNumber + 1
-                
-                // Actualizar organización con el nuevo contador
                 val updatedOrg = organization.copy(lastBudgetNumber = nextNumber)
                 organizationRepository.updateOrganization(updatedOrg)
-
-                // Actualizar obra con su nuevo número asignado
                 currentObra = currentObra.copy(budgetNumber = nextNumber)
                 repository.updateObra(currentObra)
             }
             
-            // 3. Generar PDF con la obra actualizada (ya tiene su número)
             val file = generatePresupuestoPdfUseCase(currentObra, currentState.presupuestoItems, organization)
             _effect.emit(ObraDetailEffect.SharePdf(file))
         }
@@ -343,19 +328,11 @@ class ObraDetailViewModel @Inject constructor(
 
     fun onConfirmAddAvance(descripcion: String, uris: List<Uri>) {
         viewModelScope.launch {
-            // Mostrar loading si se desea, por ahora cerramos dialogo y procesamos en bg
             onDismissAddAvanceDialog()
             try {
                 saveAvanceUseCase(obraId, descripcion, uris)
             } catch (e: Exception) {
-                e.printStackTrace() // Log error to console
-                _uiState.update { currentState ->
-                     if (currentState is ObraDetailUiState.Success) {
-                         ObraDetailUiState.Error("Error al crear avance: ${e.message}")
-                     } else {
-                         currentState
-                     }
-                }
+                e.printStackTrace()
             }
         }
     }
@@ -389,66 +366,6 @@ class ObraDetailViewModel @Inject constructor(
     fun onDeleteTarea(tarea: Tarea) {
         viewModelScope.launch {
             repository.deleteTarea(obraId, tarea.id)
-        }
-    }
-
-    private fun loadObraDetails() {
-        android.util.Log.d("ObraDetailViewModel", "Iniciando carga resiliente para obra: $obraId")
-        
-        // 1. Cargar la Obra (Principal)
-        viewModelScope.launch {
-            repository.getObraById(obraId)
-                .catch { e ->
-                    android.util.Log.e("ObraDetailViewModel", "Error cargando Obra", e)
-                    _uiState.update { 
-                        if (it is ObraDetailUiState.Success) it // Mantener estado previo si existe
-                        else ObraDetailUiState.Error("No se pudo cargar la obra: ${e.message}") 
-                    }
-                }
-                .collect { obra ->
-                    _uiState.update { current ->
-                        if (current is ObraDetailUiState.Success) {
-                            current.copy(obra = obra)
-                        } else {
-                            // Primer éxito: inicializamos el estado Success
-                            ObraDetailUiState.Success(obra = obra)
-                        }
-                    }
-                    // Una vez que tenemos la obra, disparamos la carga de lo demás
-                    loadSubCollections()
-                }
-        }
-    }
-
-    private fun loadSubCollections() {
-        // Cargar Tareas
-        viewModelScope.launch {
-            repository.getTareas(obraId)
-                .catch { e -> 
-                    android.util.Log.e("ObraDetailViewModel", "Error cargando Tareas", e) 
-                    // No hacemos nada, la lista se queda vacía por defecto en el estado Success
-                }
-                .collect { tareas ->
-                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(tareas = tareas) else it }
-                }
-        }
-
-        // Cargar Avances
-        viewModelScope.launch {
-            repository.getAvances(obraId)
-                .catch { e -> android.util.Log.e("ObraDetailViewModel", "Error cargando Avances", e) }
-                .collect { avances ->
-                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(avances = avances) else it }
-                }
-        }
-
-        // Cargar Presupuesto
-        viewModelScope.launch {
-            repository.getPresupuestoItems(obraId)
-                .catch { e -> android.util.Log.e("ObraDetailViewModel", "Error cargando Presupuesto", e) }
-                .collect { items ->
-                    _uiState.update { if (it is ObraDetailUiState.Success) it.copy(presupuestoItems = items) else it }
-                }
         }
     }
 }

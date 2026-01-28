@@ -16,13 +16,18 @@ object Routes {
     const val PROFILE_SCREEN = "profile_screen"
     const val TEAM_SCREEN = "team_screen"
     const val PRESUPUESTOS_SCREEN = "presupuestos_screen"
-    const val NEW_BUDGET_SCREEN = "new_budget_screen?budgetId={budgetId}"
+    const val NEW_BUDGET_SCREEN = "new_budget_screen?budgetId={budgetId}&clientId={clientId}"
 
-    fun createNewBudgetRoute(budgetId: String? = null): String {
-        return if (budgetId != null) {
-            "new_budget_screen?budgetId=$budgetId"
+    fun createNewBudgetRoute(budgetId: String? = null, clientId: String? = null): String {
+        val base = "new_budget_screen"
+        val params = mutableListOf<String>()
+        if (budgetId != null) params.add("budgetId=$budgetId")
+        if (clientId != null) params.add("clientId=$clientId")
+        
+        return if (params.isEmpty()) {
+            base
         } else {
-            "new_budget_screen"
+            "$base?${params.joinToString("&")}"
         }
     }
 

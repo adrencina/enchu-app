@@ -23,6 +23,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,14 +83,15 @@ fun NewBudgetScreen(
 
     val sharePdf = {
         scope.launch {
-            val file = viewModel.generatePdf(context)
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            viewModel.generatePdf(context)?.let { file ->
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/pdf"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Compartir Presupuesto"))
             }
-            context.startActivity(Intent.createChooser(intent, "Compartir Presupuesto"))
         }
     }
 
@@ -169,6 +173,7 @@ fun NewBudgetScreen(
                         ClientsScreen(
                             onAddClientClick = { },
                             onClientClick = { },
+                            onCreateBudgetClick = { }, // Not used in wizard mode
                             onClientSelected = { cliente ->
                                 viewModel.onClientSelected(cliente)
                             },

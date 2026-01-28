@@ -132,11 +132,11 @@ fun AppNavigation() {
                         Log.e("AppNavigation", "Failed to navigate to AddObra", e)
                     }
                 },
-                onAddBudgetClick = {
-                    navController.navigate(Routes.createNewBudgetRoute())
+                onAddBudgetClick = { clientId ->
+                    navController.navigate(Routes.createNewBudgetRoute(clientId = clientId))
                 },
                 onEditBudgetClick = { budgetId ->
-                    navController.navigate(Routes.createNewBudgetRoute(budgetId))
+                    navController.navigate(Routes.createNewBudgetRoute(budgetId = budgetId))
                 },
                 onAddClientClick = {
                     navController.navigate(Routes.ADD_CLIENT_SCREEN)
@@ -164,6 +164,11 @@ fun AppNavigation() {
             route = Routes.NEW_BUDGET_SCREEN,
             arguments = listOf(
                 navArgument("budgetId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("clientId") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

@@ -10,5 +10,7 @@ interface ClienteRepository {
 
     suspend fun updateCliente(cliente: Cliente): Result<Unit>
 
+    suspend fun deleteCliente(clienteId: String): Result<Unit>
+
     suspend fun doesDniExist(dni: String): Boolean
 }

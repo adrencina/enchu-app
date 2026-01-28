@@ -1,6 +1,7 @@
 package com.adrencina.enchu.ui.screens.new_budget
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,21 +10,22 @@ import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoEntity
 import com.adrencina.enchu.data.model.PresupuestoItemEntity
+import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
 import com.adrencina.enchu.data.repository.AuthRepository
 import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.core.utils.BudgetNumberManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
 import javax.inject.Inject
-
-import com.adrencina.enchu.data.model.PresupuestoItem
 
 data class NewBudgetUiState(
     val currentStep: Int = 1,
@@ -49,18 +51,41 @@ class NewBudgetViewModel @Inject constructor(
     private val generatePresupuestoPdfUseCase: GeneratePresupuestoPdfUseCase,
     private val authRepository: AuthRepository,
     private val organizationRepository: OrganizationRepository,
-    private val budgetNumberManager: BudgetNumberManager
+    private val budgetNumberManager: BudgetNumberManager,
+    private val clienteRepository: ClienteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NewBudgetUiState())
     val uiState: StateFlow<NewBudgetUiState> = _uiState.asStateFlow()
 
     private val budgetIdArg: String? = savedStateHandle["budgetId"]
+    private val clientIdArg: String? = savedStateHandle["clientId"]
     private val presupuestoId = budgetIdArg ?: UUID.randomUUID().toString()
 
     init {
         if (budgetIdArg != null) {
             loadBudget(budgetIdArg)
+        } else if (clientIdArg != null) {
+            loadClient(clientIdArg)
+        }
+    }
+
+    private fun loadClient(clientId: String) {
+        viewModelScope.launch {
+            try {
+                val clientes = clienteRepository.getClientes().first()
+                val client = clientes.find { it.id == clientId }
+                
+                if (client != null) {
+                    _uiState.value = _uiState.value.copy(
+                        selectedClient = client,
+                        budgetTitle = "Presupuesto - ${client.nombre}",
+                        currentStep = 2
+                    )
+                }
+            } catch (e: Exception) {
+                // Ignore pre-selection on error
+            }
         }
     }
 
@@ -81,7 +106,6 @@ class NewBudgetViewModel @Inject constructor(
                 val discPercent = existingBudget.presupuesto.descuento
                 val discInput = if (discPercent == 0.0) "" else if (discPercent % 1.0 == 0.0) discPercent.toInt().toString() else discPercent.toString()
                 
-                // Determinamos si ya fue enviado
                 val isSent = existingBudget.presupuesto.estado == "ENVIADO" || existingBudget.presupuesto.numero > 0
 
                 _uiState.value = _uiState.value.copy(
@@ -175,18 +199,18 @@ class NewBudgetViewModel @Inject constructor(
     private fun recalculateTotals() {
         val state = _uiState.value
         val subtotal = state.items.sumOf { it.cantidad * it.precioUnitario }
-        val discountAmount = subtotal * (state.discountPercent / 100)
-        val total = (subtotal - discountAmount).coerceAtLeast(0.0)
+        val discountAmount = subtotal * (state.discountPercent / 100.0)
+        val total = subtotal - discountAmount
         
         _uiState.value = state.copy(
             subtotal = subtotal,
-            discountAmount = discountAmount,
-            total = total
+            total = total,
+            discountAmount = discountAmount
         )
     }
 
     fun nextStep() {
-        if (_uiState.value.currentStep < 4) {
+        if (_uiState.value.currentStep < 3) {
             _uiState.value = _uiState.value.copy(currentStep = _uiState.value.currentStep + 1)
         }
     }
@@ -198,75 +222,71 @@ class NewBudgetViewModel @Inject constructor(
     }
 
     fun saveDraft() {
-        // Si ya estaba enviado, NO lo bajamos a borrador, mantenemos estado ENVIADO
-        val status = if (_uiState.value.isEditingSentBudget) "ENVIADO" else "PENDIENTE"
-        val number = _uiState.value.budgetNumber // Mantener número original si existe
-        saveBudgetWithStatus(status, number)
+        viewModelScope.launch {
+            saveBudgetInternal(isSent = false)
+        }
     }
 
     fun finalizeBudget() {
-        // Asignar número correlativo SOLO si no tiene uno
-        val currentNum = _uiState.value.budgetNumber
-        val finalNum = if (currentNum <= 0) budgetNumberManager.getNextNumber() else currentNum
-        saveBudgetWithStatus("ENVIADO", finalNum)
-    }
-
-    private fun saveBudgetWithStatus(status: String, number: Int) {
         viewModelScope.launch {
-            val state = _uiState.value
-            val client = state.selectedClient ?: return@launch
-            val validezInt = state.validity.toIntOrNull() ?: 15
-
-            val presupuesto = PresupuestoEntity(
-                id = presupuestoId,
-                titulo = state.budgetTitle,
-                clienteId = client.id,
-                clienteNombre = client.nombre,
-                clienteApellido = "",
-                clienteDireccion = client.direccion,
-                clienteTelefono = client.telefono,
-                clienteEmail = client.email,
-                subtotal = state.subtotal,
-                descuento = state.discountPercent,
-                total = state.total,
-                validez = validezInt,
-                notas = state.notes,
-                estado = status,
-                numero = number
-            )
-            presupuestoDao.upsertPresupuestoWithItems(presupuesto, state.items)
+            saveBudgetInternal(isSent = true)
         }
     }
 
-    suspend fun generatePdf(context: Context): File {
+    private suspend fun saveBudgetInternal(isSent: Boolean) {
+        _uiState.value = _uiState.value.copy(isLoading = true)
         val state = _uiState.value
         val userProfile = authRepository.getUserProfile().firstOrNull()
-        val orgId = userProfile?.organizationId
         
-        val organization = if (!orgId.isNullOrBlank()) {
-            organizationRepository.getOrganization(orgId).firstOrNull()
-        } else {
-            null
+        if (state.selectedClient == null) {
+             _uiState.value = _uiState.value.copy(isLoading = false)
+             return
         }
 
-        val validezInt = state.validity.toIntOrNull() ?: 15
-        val displayNum = if (state.budgetNumber > 0) state.budgetNumber else budgetNumberManager.peekNextNumber()
+        var finalNumber = state.budgetNumber
+        if (isSent && finalNumber == 0) {
+            finalNumber = budgetNumberManager.getNextNumber()
+        }
 
-        val obra = Obra(
+        val presupuesto = PresupuestoEntity(
             id = presupuestoId,
-            nombreObra = state.budgetTitle,
-            clienteId = state.selectedClient?.id ?: "",
-            clienteNombre = state.selectedClient?.nombre ?: "",
-            direccion = state.selectedClient?.direccion ?: "",
-            telefono = state.selectedClient?.telefono ?: "",
-            validez = validezInt,
-            notas = state.notes,
+            titulo = state.budgetTitle,
+            clienteId = state.selectedClient.id,
+            clienteNombre = state.selectedClient.nombre,
+            clienteApellido = "", 
+            clienteDireccion = state.selectedClient.direccion,
+            clienteTelefono = state.selectedClient.telefono,
+            clienteEmail = state.selectedClient.email,
+            subtotal = state.subtotal,
+            total = state.total,
             descuento = state.discountPercent,
-            presupuestoTotal = state.total,
-            budgetNumber = displayNum
+            validez = state.validity.toIntOrNull() ?: 15,
+            notas = state.notes,
+            estado = if (isSent) "ENVIADO" else "BORRADOR",
+            numero = finalNumber,
+            creadoEn = System.currentTimeMillis()
         )
+
+        presupuestoDao.upsertPresupuestoWithItems(presupuesto, state.items)
+        _uiState.value = _uiState.value.copy(isLoading = false, budgetNumber = finalNumber)
+    }
+
+    suspend fun generatePdf(context: Context): File? {
+        val state = _uiState.value
+        val userProfile = authRepository.getUserProfile().firstOrNull()
+        val organization = if (userProfile != null) organizationRepository.getOrganization(userProfile.organizationId).firstOrNull() else null
         
-        val itemsDomain = state.items.map { 
+        if (state.selectedClient == null) return null
+
+        val obraMapping = Obra(
+            nombreObra = state.budgetTitle,
+            clienteNombre = state.selectedClient.nombre,
+            descuento = state.discountPercent,
+            notas = state.notes,
+            validez = state.validity.toIntOrNull() ?: 15
+        )
+
+        val domainItems = state.items.map {
             PresupuestoItem(
                 id = it.localId.toString(),
                 descripcion = it.descripcion,
@@ -275,7 +295,7 @@ class NewBudgetViewModel @Inject constructor(
                 tipo = it.tipo
             )
         }
-        
-        return generatePresupuestoPdfUseCase(obra, itemsDomain, organization)
+
+        return generatePresupuestoPdfUseCase(obraMapping, domainItems, organization)
     }
 }

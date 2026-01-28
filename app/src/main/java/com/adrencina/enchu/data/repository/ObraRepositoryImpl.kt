@@ -207,7 +207,9 @@ class ObraRepositoryImpl @Inject constructor(
                     "descripcion" to obra.descripcion,
                     "estado" to obra.estado,
                     "telefono" to obra.telefono,
-                    "direccion" to obra.direccion
+                    "direccion" to obra.direccion,
+                    "clienteId" to obra.clienteId,
+                    "clienteNombre" to obra.clienteNombre
                 )
             ).await()
             Result.success(Unit)

@@ -23,7 +23,8 @@ data class ClientDetailUiState(
     val obras: List<Obra> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
-    val showEditDialog: Boolean = false
+    val showEditDialog: Boolean = false,
+    val showDeleteDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -38,6 +39,8 @@ class ClientDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ClientDetailUiState())
     val uiState: StateFlow<ClientDetailUiState> = _uiState.asStateFlow()
 
+    private var isDeleting = false
+
     init {
         loadData()
     }
@@ -48,6 +51,28 @@ class ClientDetailViewModel @Inject constructor(
 
     fun onDismissEditDialog() {
         _uiState.update { it.copy(showEditDialog = false) }
+    }
+
+    fun onDeleteClick() {
+        _uiState.update { it.copy(showDeleteDialog = true) }
+    }
+
+    fun onDismissDeleteDialog() {
+        _uiState.update { it.copy(showDeleteDialog = false) }
+    }
+
+    fun onConfirmDelete(onSuccess: () -> Unit) {
+        isDeleting = true
+        onDismissDeleteDialog()
+        viewModelScope.launch {
+            try {
+                clienteRepository.deleteCliente(clientId)
+                onSuccess()
+            } catch (e: Exception) {
+                isDeleting = false
+                // Handle error
+            }
+        }
     }
 
     fun onConfirmEdit(updatedCliente: Cliente) {
@@ -65,9 +90,6 @@ class ClientDetailViewModel @Inject constructor(
     private fun loadData() {
         viewModelScope.launch {
             try {
-                // Combinamos el cliente específico y todas las obras para filtrar
-                // Nota: Idealmente repo.getObrasByClientId(id), pero filtramos aquí por ahora
-                
                 val safeClientFlow = clienteRepository.getClientes()
                 val obrasFlow = obraRepository.getObras()
                 
@@ -82,17 +104,23 @@ class ClientDetailViewModel @Inject constructor(
                             isLoading = false
                         )
                     } else {
-                        ClientDetailUiState(
-                            isLoading = false,
-                            error = "Cliente no encontrado"
-                        )
+                        if (!isDeleting) {
+                            ClientDetailUiState(
+                                isLoading = false,
+                                error = "Cliente no encontrado"
+                            )
+                        } else {
+                            ClientDetailUiState(isLoading = true) // Mantener loading mientras salimos
+                        }
                     }
                 }.collect { state ->
                     _uiState.value = state
                 }
 
             } catch (e: Exception) {
-                _uiState.value = ClientDetailUiState(isLoading = false, error = e.message)
+                if (!isDeleting) {
+                    _uiState.value = ClientDetailUiState(isLoading = false, error = e.message)
+                }
             }
         }
     }

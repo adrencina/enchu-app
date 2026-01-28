@@ -82,6 +82,16 @@ class ClienteRepositoryImpl @Inject constructor(
                 Result.failure(e)
             }
         }
+
+        override suspend fun deleteCliente(clienteId: String): Result<Unit> {
+            return try {
+                firestore.collection("clientes").document(clienteId).delete().await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
         override suspend fun doesDniExist(dni: String): Boolean {
             return try {
                 val userId = auth.currentUser?.uid ?: return false 

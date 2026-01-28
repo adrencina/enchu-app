@@ -2,83 +2,54 @@ package com.adrencina.enchu.ui.screens.clients
 
 import android.content.Intent
 import android.net.Uri
-import android.provider.CalendarContract
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.adrencina.enchu.data.model.Cliente
 import com.adrencina.enchu.ui.components.SearchBar
-import com.adrencina.enchu.ui.components.SwipeValue
-import com.adrencina.enchu.ui.components.SwipeableContactItem
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientsViewModel
-import com.adrencina.enchu.data.model.Cliente
 
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import kotlin.OptIn
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.background
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientsScreen(
     viewModel: ClientsViewModel = hiltViewModel(),
     onAddClientClick: () -> Unit,
     onClientClick: (String) -> Unit,
-    onClientSelected: ((Cliente) -> Unit)? = null,
+    onCreateBudgetClick: (String) -> Unit, // Nuevo callback
+    onClientSelected: ((Cliente) -> Unit)? = null, // Para modo selección (si se usa desde otro lado)
     onAddManualClientClick: (() -> Unit)? = null
 ) {
     val filteredClientes by viewModel.filteredClientes.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val context = LocalContext.current
-    val density = LocalDensity.current
-
+    
+    // Si onClientSelected no es nulo, estamos en modo selección "puro" (ej. desde Wizard), 
+    // pero aquí estamos rediseñando la pantalla principal de Clientes. 
+    // Asumiremos que el modo "normal" es el principal.
+    
     val isSelectionMode = onClientSelected != null
 
     Column(
@@ -86,85 +57,76 @@ fun ClientsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        CenterAlignedTopAppBar(
+            title = { 
+                Text(
+                    text = if (isSelectionMode) "Seleccionar Cliente" else "Clientes",
+                    fontWeight = FontWeight.SemiBold
+                ) 
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background
+            )
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimens.PaddingMedium)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
-            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-            
+            // Barra de Búsqueda
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.PaddingMedium, vertical = Dimens.PaddingSmall),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = viewModel::onSearchQueryChange,
-                    placeholder = "Buscar cliente...",
+                    placeholder = "Buscar por nombre, teléfono...",
                     modifier = Modifier.weight(1f)
                 )
 
                 if (isSelectionMode && onAddManualClientClick != null) {
                     FilledTonalIconButton(
                         onClick = onAddManualClientClick,
-                        modifier = Modifier.size(48.dp), // Tamaño cómodo
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Manual / Contacto")
+                        Icon(Icons.Default.PersonAdd, contentDescription = "Manual")
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall),
-                contentPadding = PaddingValues(bottom = 80.dp) // Space for FAB
-            ) {
-                items(
-                    items = filteredClientes,
-                    key = { it.id } // Stable key for efficiency
-                ) { cliente ->
-                    
-                    if (isSelectionMode) {
-                        MinimalClientItem(
+            if (filteredClientes.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (searchQuery.isNotEmpty()) "No se encontraron clientes" else "No hay clientes registrados",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 24.dp), // Espaciado limpio final
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredClientes, key = { it.id }) { cliente ->
+                        ClientItem(
                             cliente = cliente,
-                            onClick = { onClientSelected?.invoke(cliente) }
-                        )
-                    } else {
-                        // AnchoredDraggableState for each item
-                        val anchors = with(density) {
-                            DraggableAnchors {
-                                SwipeValue.Closed at 0f
-                                SwipeValue.Open at -145.dp.toPx() // Increased reveal width for better spacing
-                            }
-                        }
-
-                        val state = remember(cliente.id) {
-                            AnchoredDraggableState(
-                                initialValue = SwipeValue.Closed,
-                                anchors = anchors,
-                                positionalThreshold = { distance: Float -> distance * 0.3f }, // Easier to open
-                                velocityThreshold = { with(density) { 100.dp.toPx() } },
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                ),
-                            )
-                        }
-
-                        SwipeableContactItem(
-                            state = state,
-                            cliente = cliente,
-                            onClick = { 
-                                onClientClick(cliente.id) 
+                            onClick = {
+                                if (isSelectionMode) {
+                                    onClientSelected?.invoke(cliente)
+                                } else {
+                                    onClientClick(cliente.id)
+                                }
                             },
                             onCallClick = {
-                                 if (cliente.telefono.isNotBlank()) {
+                                if (cliente.telefono.isNotBlank()) {
                                     val intent = Intent(Intent.ACTION_DIAL).apply {
                                         data = Uri.parse("tel:${cliente.telefono}")
                                     }
@@ -172,7 +134,7 @@ fun ClientsScreen(
                                 }
                             },
                             onWhatsAppClick = {
-                                 if (cliente.telefono.isNotBlank()) {
+                                if (cliente.telefono.isNotBlank()) {
                                     try {
                                         val url = "https://api.whatsapp.com/send?phone=${cliente.telefono}"
                                         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -180,20 +142,18 @@ fun ClientsScreen(
                                         }
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
-                                        // Handle case where WA is not installed
+                                        // Ignore
                                     }
                                 }
                             },
-                            onScheduleClick = {
-                                 val intent = Intent(Intent.ACTION_INSERT).apply {
-                                    data = CalendarContract.Events.CONTENT_URI
-                                    putExtra(CalendarContract.Events.TITLE, "Reunión con ${cliente.nombre}")
-                                    if (cliente.telefono.isNotBlank()) {
-                                        putExtra(CalendarContract.Events.DESCRIPTION, "Teléfono: ${cliente.telefono}")
-                                    }
-                                }
-                                context.startActivity(intent)
-                            }
+                            onCreateBudgetClick = {
+                                onCreateBudgetClick(cliente.id)
+                            },
+                            showMenu = !isSelectionMode // Ocultar menú en modo selección
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = Dimens.PaddingMedium),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -202,37 +162,112 @@ fun ClientsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MinimalClientItem(
+fun ClientItem(
     cliente: Cliente,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCallClick: () -> Unit,
+    onWhatsAppClick: () -> Unit,
+    onCreateBudgetClick: () -> Unit,
+    showMenu: Boolean = true
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    ListItem(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .background(MaterialTheme.colorScheme.background),
+        headlineContent = {
             Text(
                 text = cliente.nombre,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), // Suavizado
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
+        },
+        supportingContent = {
+            if (cliente.telefono.isNotBlank()) {
+                Text(
+                    text = cliente.telefono,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        leadingContent = {
+            Surface(
+                shape = CircleShape,
+                color = getAvatarColor(cliente.nombre),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = cliente.nombre.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        },
+        trailingContent = {
+            if (showMenu) {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Opciones",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Crear Presupuesto") },
+                            leadingIcon = { 
+                                Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary) 
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onCreateBudgetClick()
+                            }
+                        )
+                        if (cliente.telefono.isNotBlank()) {
+                            DropdownMenuItem(
+                                text = { Text("WhatsApp") },
+                                leadingIcon = { 
+                                    Icon(Icons.Default.Message, contentDescription = null, tint = Color(0xFF25D366)) 
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onWhatsAppClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Llamar") },
+                                leadingIcon = { 
+                                    Icon(Icons.Default.Call, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface) 
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onCallClick()
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
-    }
+    )
+}
+
+private fun getAvatarColor(name: String): Color {
+    val colors = listOf(
+        Color(0xFF1E88E5), Color(0xFF43A047), Color(0xFFE53935),
+        Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1)
+    )
+    val index = kotlin.math.abs(name.hashCode()) % colors.size
+    return colors[index]
 }
 
