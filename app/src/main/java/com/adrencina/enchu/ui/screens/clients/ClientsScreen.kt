@@ -175,8 +175,7 @@ fun ClientItem(
 
     ListItem(
         modifier = Modifier
-            .clickable(onClick = onClick)
-            .background(MaterialTheme.colorScheme.background),
+            .clickable(onClick = onClick), // Background is handled by ListItem containerColor
         headlineContent = {
             Text(
                 text = cliente.nombre,

@@ -114,10 +114,7 @@ fun AppNavigation() {
                 scaleIn(initialScale = 0.95f, animationSpec = tween(400)) 
             }
         ) { backStackEntry ->
-            val targetTab = backStackEntry.savedStateHandle.get<Int>("target_tab")
-            if (targetTab != null) {
-                backStackEntry.savedStateHandle.remove<Int>("target_tab")
-            }
+            val targetTab by backStackEntry.savedStateHandle.getStateFlow<Int?>("target_tab", null).collectAsState()
             
             val profileViewModel: com.adrencina.enchu.viewmodel.ProfileViewModel = hiltViewModel()
 
@@ -156,7 +153,10 @@ fun AppNavigation() {
                 onNavigateToTeamScreen = {
                     navController.navigate(Routes.TEAM_SCREEN)
                 },
-                budgetTabToOpen = targetTab
+                budgetTabToOpen = targetTab,
+                onBudgetTabConsumed = {
+                    backStackEntry.savedStateHandle["target_tab"] = null
+                }
             )
         }
 

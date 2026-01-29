@@ -42,14 +42,46 @@ private val DarkColors = darkColorScheme(
     onError = OnErrorOscuro,
 )
 
+// --- Esquemas Stitch ---
+private val StitchLightColors = lightColorScheme(
+    primary = StitchPrimary,
+    onPrimary = Color.White,
+    secondary = StitchPrimary, // Usamos el mismo primary como secundario por ahora o Stitch no dio secundario
+    onSecondary = Color.White,
+    background = StitchBackgroundLight,
+    onBackground = StitchTextPrimaryLight,
+    surface = StitchSurfaceLight,
+    onSurface = StitchTextPrimaryLight,
+    onSurfaceVariant = StitchTextSecondaryLight,
+    outline = StitchTextSecondaryLight, // Usamos secondary text para bordes
+    error = Error,
+    onError = OnError,
+)
+
+private val StitchDarkColors = darkColorScheme(
+    primary = StitchPrimary, // Podríamos necesitar aclarar esto para dark mode, pero probemos el original
+    onPrimary = Color.White, // Ojo con contraste en dark mode
+    secondary = StitchPrimary,
+    onSecondary = Color.White,
+    background = StitchBackgroundDark,
+    onBackground = StitchTextPrimaryDark,
+    surface = StitchSurfaceDark,
+    onSurface = StitchTextPrimaryDark,
+    onSurfaceVariant = StitchTextSecondaryDark,
+    outline = StitchTextSecondaryDark,
+    error = ErrorOscuro,
+    onError = OnErrorOscuro,
+)
+
 @Composable
 fun EnchuTheme(
     darkTheme: Boolean = isSystemInDarkTheme(), // Ahora toma del sistema por defecto
     content: @Composable () -> Unit
 ) {
+    // CAMBIO TEMPORAL: Usando paleta Stitch
     val colorScheme = when {
-        darkTheme -> DarkColors
-        else -> LightColors
+        darkTheme -> StitchDarkColors // Antes: DarkColors
+        else -> StitchLightColors     // Antes: LightColors
     }
     
     val view = LocalView.current

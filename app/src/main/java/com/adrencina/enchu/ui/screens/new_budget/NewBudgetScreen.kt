@@ -78,6 +78,14 @@ fun NewBudgetScreen(
     var showMaterialSearch by remember { mutableStateOf(false) }
     var showManualClientDialog by remember { mutableStateOf(false) }
     
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is NewBudgetUiEvent.BudgetSaved -> onBudgetSaved(event.isSent)
+            }
+        }
+    }
+    
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -154,7 +162,6 @@ fun NewBudgetScreen(
                     onAddItemClick = { showMaterialSearch = true },
                     onSaveDraft = {
                         viewModel.saveDraft()
-                        onBudgetSaved(uiState.isEditingSentBudget)
                     },
                     onApprove = {
                         viewModel.nextStep()
@@ -207,15 +214,9 @@ fun NewBudgetScreen(
                             viewModel = viewModel,
                             onSaveDraft = {
                                 viewModel.saveDraft()
-                                onBudgetSaved(false)
                             },
                             onApprove = {
-                                if (uiState.isEditingSentBudget) {
-                                    viewModel.saveDraft()
-                                } else {
-                                    viewModel.finalizeBudget()
-                                }
-                                onBudgetSaved(true)
+                                viewModel.finalizeBudget()
                             }
                         )
                     }

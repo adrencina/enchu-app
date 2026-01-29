@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 data class NewBudgetUiState(
     val currentStep: Int = 1,
@@ -44,6 +46,10 @@ data class NewBudgetUiState(
     val isEditingSentBudget: Boolean = false
 )
 
+sealed class NewBudgetUiEvent {
+    data class BudgetSaved(val isSent: Boolean) : NewBudgetUiEvent()
+}
+
 @HiltViewModel
 class NewBudgetViewModel @Inject constructor(
     private val presupuestoDao: PresupuestoDao,
@@ -54,6 +60,9 @@ class NewBudgetViewModel @Inject constructor(
     private val budgetNumberManager: BudgetNumberManager,
     private val clienteRepository: ClienteRepository
 ) : ViewModel() {
+
+    private val _uiEvent = Channel<NewBudgetUiEvent>(Channel.BUFFERED)
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     private val _uiState = MutableStateFlow(NewBudgetUiState())
     val uiState: StateFlow<NewBudgetUiState> = _uiState.asStateFlow()
@@ -131,6 +140,7 @@ class NewBudgetViewModel @Inject constructor(
     }
 
     fun onClientSelected(cliente: Cliente) {
+        android.util.Log.d("NewBudgetVM", "Client selected: ${cliente.nombre}")
         _uiState.value = _uiState.value.copy(
             selectedClient = cliente,
             budgetTitle = "Presupuesto - ${cliente.nombre}",
@@ -210,7 +220,7 @@ class NewBudgetViewModel @Inject constructor(
     }
 
     fun nextStep() {
-        if (_uiState.value.currentStep < 3) {
+        if (_uiState.value.currentStep < 4) {
             _uiState.value = _uiState.value.copy(currentStep = _uiState.value.currentStep + 1)
         }
     }
@@ -234,11 +244,13 @@ class NewBudgetViewModel @Inject constructor(
     }
 
     private suspend fun saveBudgetInternal(isSent: Boolean) {
+        android.util.Log.d("NewBudgetVM", "Starting saveBudgetInternal. isSent=$isSent")
         _uiState.value = _uiState.value.copy(isLoading = true)
         val state = _uiState.value
         val userProfile = authRepository.getUserProfile().firstOrNull()
         
         if (state.selectedClient == null) {
+             android.util.Log.e("NewBudgetVM", "Save failed: No client selected")
              _uiState.value = _uiState.value.copy(isLoading = false)
              return
         }
@@ -246,6 +258,7 @@ class NewBudgetViewModel @Inject constructor(
         var finalNumber = state.budgetNumber
         if (isSent && finalNumber == 0) {
             finalNumber = budgetNumberManager.getNextNumber()
+            android.util.Log.d("NewBudgetVM", "Generated new budget number: $finalNumber")
         }
 
         val presupuesto = PresupuestoEntity(
@@ -268,7 +281,9 @@ class NewBudgetViewModel @Inject constructor(
         )
 
         presupuestoDao.upsertPresupuestoWithItems(presupuesto, state.items)
+        android.util.Log.d("NewBudgetVM", "Presupuesto saved to DB. Sending BudgetSaved event.")
         _uiState.value = _uiState.value.copy(isLoading = false, budgetNumber = finalNumber)
+        _uiEvent.send(NewBudgetUiEvent.BudgetSaved(isSent))
     }
 
     suspend fun generatePdf(context: Context): File? {
@@ -278,12 +293,19 @@ class NewBudgetViewModel @Inject constructor(
         
         if (state.selectedClient == null) return null
 
+        val numberToShow = if (state.budgetNumber > 0) {
+            state.budgetNumber
+        } else {
+            budgetNumberManager.peekNextNumber()
+        }
+
         val obraMapping = Obra(
             nombreObra = state.budgetTitle,
             clienteNombre = state.selectedClient.nombre,
             descuento = state.discountPercent,
             notas = state.notes,
-            validez = state.validity.toIntOrNull() ?: 15
+            validez = state.validity.toIntOrNull() ?: 15,
+            budgetNumber = numberToShow
         )
 
         val domainItems = state.items.map {

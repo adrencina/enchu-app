@@ -34,3 +34,15 @@ val BordeGrisOscuro = Color(0xFF424242)   // Borde sutil en dark theme
 
 val ErrorOscuro = Color(0xFFCF6679)      // Color de error para dark theme
 val OnErrorOscuro = Color(0xFF2C2C2C)    // Texto sobre error en dark theme
+
+// --- Paleta Experimental Stitch ---
+val StitchPrimary = Color(0xFF007AFF)
+val StitchBackgroundLight = Color(0xFFF3F4F6)
+val StitchBackgroundDark = Color(0xFF111827)
+val StitchSurfaceLight = Color(0xFFFFFFFF)
+val StitchSurfaceDark = Color(0xFF1F2937)
+
+val StitchTextPrimaryLight = Color(0xFF111827)
+val StitchTextPrimaryDark = Color(0xFFF9FAFB)
+val StitchTextSecondaryLight = Color(0xFF6B7280)
+val StitchTextSecondaryDark = Color(0xFF9CA3AF)

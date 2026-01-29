@@ -49,7 +49,8 @@ fun MainScreen(
     onArchivedObrasClick: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToTeamScreen: () -> Unit,
-    budgetTabToOpen: Int? = null
+    budgetTabToOpen: Int? = null,
+    onBudgetTabConsumed: () -> Unit = {}
 ) {
     val bottomNavController = rememberNavController()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -71,6 +72,7 @@ fun MainScreen(
                 launchSingleTop = true
                 restoreState = true
             }
+            onBudgetTabConsumed()
         }
     }
 
@@ -86,7 +88,9 @@ fun MainScreen(
                     }
                 },
                 onFabClick = {
-                    when (currentDestination?.route) {
+                    val route = currentDestination?.route
+                    android.util.Log.d("MainScreen", "FAB Clicked. Route: $route")
+                    when (route) {
                         Routes.PRESUPUESTOS_SCREEN -> onAddBudgetClick(null)
                         Routes.CLIENTES_SCREEN -> onAddClientClick()
                         else -> showBottomSheet = true
