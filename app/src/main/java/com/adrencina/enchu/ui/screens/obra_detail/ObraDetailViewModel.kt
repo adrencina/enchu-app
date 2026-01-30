@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.data.model.Movimiento
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.Tarea
@@ -29,6 +30,7 @@ sealed class ObraDetailUiState {
         val tareas: List<Tarea> = emptyList(),
         val avances: List<Avance> = emptyList(),
         val presupuestoItems: List<PresupuestoItem> = emptyList(),
+        val movimientos: List<Movimiento> = emptyList(),
         val allClientes: List<Cliente> = emptyList(),
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
@@ -38,6 +40,7 @@ sealed class ObraDetailUiState {
         val showAddAvanceDialog: Boolean = false,
         val showAddPresupuestoItemDialog: Boolean = false,
         val showAddTareaDialog: Boolean = false,
+        val showAddMovimientoDialog: Boolean = false,
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: String = "",
@@ -122,6 +125,11 @@ class ObraDetailViewModel @Inject constructor(
             launch {
                 repository.getPresupuestoItems(obraId).collect { items ->
                     updateSuccessState { it.copy(presupuestoItems = items) }
+                }
+            }
+            launch {
+                repository.getMovimientos(obraId).collect { movimientos ->
+                    updateSuccessState { it.copy(movimientos = movimientos) }
                 }
             }
             launch {
@@ -273,6 +281,7 @@ class ObraDetailViewModel @Inject constructor(
             1 -> viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
             2 -> updateSuccessState { it.copy(showAddTareaDialog = true) }
             3 -> updateSuccessState { it.copy(showAddPresupuestoItemDialog = true) }
+            4 -> updateSuccessState { it.copy(showAddMovimientoDialog = true) }
         }
     }
 
@@ -288,6 +297,10 @@ class ObraDetailViewModel @Inject constructor(
         updateSuccessState { it.copy(showAddPresupuestoItemDialog = false) }
     }
 
+    fun onDismissAddMovimientoDialog() {
+        updateSuccessState { it.copy(showAddMovimientoDialog = false) }
+    }
+
     fun onAddPresupuestoItem(item: PresupuestoItem) {
         viewModelScope.launch {
             repository.addPresupuestoItem(obraId, item)
@@ -298,6 +311,37 @@ class ObraDetailViewModel @Inject constructor(
     fun onDeletePresupuestoItem(item: PresupuestoItem) {
         viewModelScope.launch {
             repository.deletePresupuestoItem(obraId, item.id)
+        }
+    }
+
+    fun onUpdateItemLogistics(item: PresupuestoItem, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?) {
+        viewModelScope.launch {
+            repository.updateItemLogistics(obraId, item.id, isComprado, isInstalado, costoReal)
+            
+            // Si se marca como comprado y hay un costo real, registrar automáticamente en la Caja como EGRESO
+            if (isComprado && costoReal != null) {
+                val mov = Movimiento(
+                    obraId = obraId,
+                    descripcion = "Compra: ${item.descripcion}",
+                    monto = costoReal * item.cantidad,
+                    tipo = "EGRESO",
+                    categoria = "MATERIALES"
+                )
+                repository.addMovimiento(obraId, mov)
+            }
+        }
+    }
+
+    fun onAddMovimiento(movimiento: Movimiento) {
+        viewModelScope.launch {
+            repository.addMovimiento(obraId, movimiento.copy(obraId = obraId))
+            onDismissAddMovimientoDialog()
+        }
+    }
+
+    fun onDeleteMovimiento(movimientoId: String) {
+        viewModelScope.launch {
+            repository.deleteMovimiento(obraId, movimientoId)
         }
     }
 

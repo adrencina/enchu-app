@@ -4,12 +4,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +29,8 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -59,14 +64,28 @@ import com.adrencina.enchu.ui.screens.obra_detail.presupuesto.PresupuestoScreen
 import com.adrencina.enchu.ui.screens.obra_detail.registros.AddAvanceDialog
 import com.adrencina.enchu.ui.screens.obra_detail.registros.RegistrosScreen
 import com.adrencina.enchu.ui.screens.obra_detail.tareas.TareasScreen
+import com.adrencina.enchu.ui.screens.obra_detail.caja.CajaScreen
+import com.adrencina.enchu.ui.screens.obra_detail.caja.AddMovimientoDialog
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
 import java.util.Date
 
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Task
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 
 // Main entry point
 @Composable
@@ -114,7 +133,7 @@ fun ObraDetailScreen(
         onDismissMenu = viewModel::onDismissMenu,
         onEditObra = viewModel::onEditObra,
         onArchiveObra = viewModel::onArchiveObra,
-        onDeleteObraClick = viewModel::onDeleteObraClick, // Nuevo
+        onDeleteObraClick = viewModel::onDeleteObraClick,
         onExportPdf = viewModel::onExportPdf,
         onTabSelected = viewModel::onTabSelected,
         onFabPressed = viewModel::onFabPressed,
@@ -125,12 +144,12 @@ fun ObraDetailScreen(
         onEstadoChanged = viewModel::onEstadoChanged,
         onTelefonoChanged = viewModel::onTelefonoChanged,
         onDireccionChanged = viewModel::onDireccionChanged,
-        onClienteChanged = viewModel::onClienteChanged, // Nuevo
+        onClienteChanged = viewModel::onClienteChanged,
         onToggleExpandEditDialog = viewModel::onToggleExpandEditDialog,
         onDismissArchiveDialog = viewModel::onDismissArchiveDialog,
         onConfirmArchive = viewModel::onConfirmArchive,
-        onDismissDeleteDialog = viewModel::onDismissDeleteDialog, // Nuevo
-        onConfirmDelete = viewModel::onConfirmDelete, // Nuevo
+        onDismissDeleteDialog = viewModel::onDismissDeleteDialog,
+        onConfirmDelete = viewModel::onConfirmDelete,
         onAddTarea = viewModel::onAddTarea,
         onToggleTarea = viewModel::onToggleTarea,
         onDeleteTarea = viewModel::onDeleteTarea,
@@ -140,6 +159,10 @@ fun ObraDetailScreen(
         onDismissAddPresupuestoItemDialog = viewModel::onDismissAddPresupuestoItemDialog,
         onConfirmAddPresupuestoItem = viewModel::onAddPresupuestoItem,
         onDeletePresupuestoItem = viewModel::onDeletePresupuestoItem,
+        onUpdatePresupuestoItemLogistics = viewModel::onUpdateItemLogistics,
+        onDismissAddMovimientoDialog = viewModel::onDismissAddMovimientoDialog,
+        onConfirmAddMovimiento = viewModel::onAddMovimiento,
+        onDeleteMovimiento = viewModel::onDeleteMovimiento,
         onDismissAddTareaDialog = viewModel::onDismissAddTareaDialog
     )
 }
@@ -180,9 +203,13 @@ fun ObraDetailScreenContent(
     onDismissAddPresupuestoItemDialog: () -> Unit,
     onConfirmAddPresupuestoItem: (PresupuestoItem) -> Unit,
     onDeletePresupuestoItem: (PresupuestoItem) -> Unit,
+    onUpdatePresupuestoItemLogistics: (PresupuestoItem, Boolean, Boolean, Double?) -> Unit,
+    onDismissAddMovimientoDialog: () -> Unit,
+    onConfirmAddMovimiento: (com.adrencina.enchu.data.model.Movimiento) -> Unit,
+    onDeleteMovimiento: (String) -> Unit,
     onDismissAddTareaDialog: () -> Unit
 ) {
-    val tabTitles = listOf("REGISTROS", "ARCHIVOS", "TAREAS", "PRESUPUESTO")
+    val tabTitles = listOf("LOG", "ARCHIVOS", "TAREAS", "MATERIALES", "CAJA")
 
     Scaffold(
         topBar = {
@@ -335,6 +362,13 @@ fun ObraDetailScreenContent(
                         )
                     }
 
+                    if (uiState.showAddMovimientoDialog) {
+                        AddMovimientoDialog(
+                            onDismiss = onDismissAddMovimientoDialog,
+                            onConfirm = onConfirmAddMovimiento
+                        )
+                    }
+
                     ObraInfoSection(obra = uiState.obra)
 
                     ObraDetailTabs(
@@ -348,11 +382,14 @@ fun ObraDetailScreenContent(
                         tareas = uiState.tareas,
                         avances = uiState.avances,
                         presupuestoItems = uiState.presupuestoItems,
+                        movimientos = uiState.movimientos,
                         onAddTarea = onAddTarea,
                         onToggleTarea = onToggleTarea,
                         onDeleteTarea = onDeleteTarea,
                         onDeleteAvance = onDeleteAvance,
                         onDeletePresupuestoItem = onDeletePresupuestoItem,
+                        onUpdatePresupuestoItemLogistics = onUpdatePresupuestoItemLogistics,
+                        onDeleteMovimiento = onDeleteMovimiento,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -400,75 +437,126 @@ private fun ObraDetailTopAppBar(
     )
 }
 
-// Info Section
+// Info Section Minimalista
 @Composable
 private fun ObraInfoSection(obra: Obra) {
-    androidx.compose.material3.Card(
+    var isDescriptionExpanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimens.PaddingMedium, vertical = Dimens.PaddingSmall),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { isDescriptionExpanded = !isDescriptionExpanded }
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = obra.nombreObra,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f)
             )
-            if (obra.descripcion.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+            
+            Spacer(modifier = Modifier.width(8.dp))
+
+            SuggestionChip(
+                onClick = { /* No action */ },
+                label = { 
+                    Text(
+                        text = obra.estado, 
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = if (obra.estado == "En Proceso") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurface
+                ),
+                border = null,
+                modifier = Modifier.height(24.dp)
+            )
+        }
+
+        if (obra.descripcion.isNotBlank()) {
+            AnimatedVisibility(visible = isDescriptionExpanded) {
                 Text(
                     text = obra.descripcion,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            SuggestionChip(
-                onClick = { /* No action */ },
-                label = { Text(obra.estado) },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = Exito.copy(alpha = 0.8f),
-                    labelColor = Color.White
-                ),
-                border = null,
-                modifier = Modifier.height(26.dp) // Chip un poco más compacto
-            )
+            if (!isDescriptionExpanded) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(
+                        text = "Ver descripción",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }
 
-// Tabs
+// Tabs Minimalistas con Iconos
 @Composable
 private fun ObraDetailTabs(selectedTabIndex: Int, tabTitles: List<String>, onTabSelected: (Int) -> Unit) {
-    TabRow(
+    val icons = listOf(
+        Icons.Default.Description, // LOG
+        Icons.Default.Folder,      // ARCHIVOS
+        Icons.Default.Task,        // TAREAS
+        Icons.Default.ShoppingCart,// MATERIALES
+        Icons.Default.AttachMoney  // CAJA
+    )
+
+    ScrollableTabRow(
         selectedTabIndex = selectedTabIndex,
         containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onBackground
+        contentColor = MaterialTheme.colorScheme.primary,
+        edgePadding = 0.dp,
+        indicator = { tabPositions ->
+            if (selectedTabIndex < tabPositions.size) {
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                    height = 3.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     ) {
         tabTitles.forEachIndexed { index, title ->
             Tab(
                 selected = selectedTabIndex == index,
                 onClick = { onTabSelected(index) },
-                text = { 
-                    Text(
-                        text = title, 
-                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 10.sp,
-                        letterSpacing = (-0.5).sp,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
-                    ) 
-                }
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (index < icons.size) {
+                            Icon(
+                                imageVector = icons[index],
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = title,
+                            fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
+                selectedContentColor = MaterialTheme.colorScheme.primary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -481,11 +569,14 @@ private fun TabContentArea(
     tareas: List<Tarea>,
     avances: List<Avance>,
     presupuestoItems: List<PresupuestoItem>,
+    movimientos: List<com.adrencina.enchu.data.model.Movimiento>,
     onAddTarea: (String) -> Unit,
     onToggleTarea: (Tarea) -> Unit,
     onDeleteTarea: (Tarea) -> Unit,
     onDeleteAvance: (Avance) -> Unit,
     onDeletePresupuestoItem: (PresupuestoItem) -> Unit,
+    onUpdatePresupuestoItemLogistics: (PresupuestoItem, Boolean, Boolean, Double?) -> Unit,
+    onDeleteMovimiento: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -503,7 +594,12 @@ private fun TabContentArea(
             )
             3 -> PresupuestoScreen(
                 presupuestoItems = presupuestoItems,
-                onDeleteItem = onDeletePresupuestoItem
+                onDeleteItem = onDeletePresupuestoItem,
+                onUpdateLogistics = onUpdatePresupuestoItemLogistics
+            )
+            4 -> CajaScreen(
+                movimientos = movimientos,
+                onDeleteMovimiento = onDeleteMovimiento
             )
         }
     }
@@ -577,6 +673,10 @@ fun ObraDetailScreenContentPreview() {
             onDismissAddPresupuestoItemDialog = {},
             onConfirmAddPresupuestoItem = {},
             onDeletePresupuestoItem = {},
+            onUpdatePresupuestoItemLogistics = { _, _, _, _ -> },
+            onDismissAddMovimientoDialog = {},
+            onConfirmAddMovimiento = {},
+            onDeleteMovimiento = {},
             onDismissAddTareaDialog = {}
         )
     }

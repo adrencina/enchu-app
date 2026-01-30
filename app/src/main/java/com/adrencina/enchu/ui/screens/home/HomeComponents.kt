@@ -29,7 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrencina.enchu.data.model.Obra
+import java.text.NumberFormat
 import java.time.LocalTime
+import java.util.Locale
 
 @Composable
 fun DashboardHeader(
@@ -314,22 +316,30 @@ fun DashboardArchivedCard(obra: Obra, onClick: () -> Unit) {
 }
 
 @Composable
-fun ReportsGrid() {
+fun ReportsGrid(
+    saldoTotal: Double = 0.0,
+    totalPendiente: Double = 0.0,
+    totalGastado: Double = 0.0
+) {
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply { maximumFractionDigits = 0 } }
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text("Informes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
+        Text("Tu Negocio (Global)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
         
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ReportCard(
                 icon = Icons.Default.TrendingUp,
                 color = Color(0xFF4CAF50),
-                label = "Ganancia Real",
+                label = "Saldo Actual",
+                value = currencyFormat.format(saldoTotal),
                 modifier = Modifier.weight(1f)
             )
             ReportCard(
                 icon = Icons.Default.Payments,
                 color = Color(0xFFFF9800),
-                label = "Saldos Pendientes",
+                label = "Por Cobrar",
+                value = currencyFormat.format(totalPendiente),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -337,14 +347,16 @@ fun ReportsGrid() {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ReportCard(
                 icon = Icons.Default.AssignmentLate,
-                color = Color(0xFF2196F3),
-                label = "¿Presupuesté bien?",
+                color = Color(0xFFE91E63), // Pink/Redish for expenses
+                label = "Gastos Totales",
+                value = currencyFormat.format(totalGastado),
                 modifier = Modifier.weight(1f)
             )
             ReportCard(
                 icon = Icons.Default.EmojiEvents,
                 color = Color(0xFFFFC107),
-                label = "Ranking Trabajos",
+                label = "Ranking",
+                value = "Ver más", // Placeholder logic
                 modifier = Modifier.weight(1f)
             )
         }
@@ -352,9 +364,9 @@ fun ReportsGrid() {
 }
 
 @Composable
-fun ReportCard(icon: ImageVector, color: Color, label: String, modifier: Modifier = Modifier) {
+fun ReportCard(icon: ImageVector, color: Color, label: String, value: String? = null, modifier: Modifier = Modifier) {
     ElevatedCard(
-        modifier = modifier.height(70.dp),
+        modifier = modifier.height(80.dp), // A bit taller for value
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
@@ -372,15 +384,25 @@ fun ReportCard(icon: ImageVector, color: Color, label: String, modifier: Modifie
                     Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 14.sp
-            )
+            Spacer(Modifier.width(10.dp))
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (value != null) {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }

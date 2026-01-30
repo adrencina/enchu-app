@@ -1,6 +1,7 @@
 package com.adrencina.enchu.data.repository
 
 import com.adrencina.enchu.data.model.Avance
+import com.adrencina.enchu.data.model.Movimiento
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.PresupuestoWithItems
@@ -383,6 +384,44 @@ class ObraRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getMovimientos(obraId: String): Flow<List<Movimiento>> {
+        return callbackFlow {
+            val listener = firestore.collection("obras").document(obraId).collection("movimientos")
+                .orderBy("fecha", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val movimientos = snapshot.documents.mapNotNull { it.toObject(Movimiento::class.java) }
+                        trySend(movimientos).isSuccess
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    }
+
+    override suspend fun addMovimiento(obraId: String, movimiento: Movimiento): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("movimientos")
+                .add(movimiento).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteMovimiento(obraId: String, movimientoId: String): Result<Unit> {
+        return try {
+            firestore.collection("obras").document(obraId).collection("movimientos").document(movimientoId)
+                .delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun getPresupuestoItems(obraId: String): Flow<List<PresupuestoItem>> {
         return callbackFlow {
             val listener = firestore.collection("obras").document(obraId).collection("presupuesto_items")
@@ -433,6 +472,28 @@ class ObraRepositoryImpl @Inject constructor(
         return try {
             firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId)
                 .delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateItemLogistics(
+        obraId: String,
+        itemId: String,
+        isComprado: Boolean,
+        isInstalado: Boolean,
+        costoReal: Double?
+    ): Result<Unit> {
+        return try {
+            val updates = mapOf(
+                "isComprado" to isComprado,
+                "isInstalado" to isInstalado,
+                "costoReal" to costoReal
+            )
+            firestore.collection("obras").document(obraId)
+                .collection("presupuesto_items").document(itemId)
+                .update(updates).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

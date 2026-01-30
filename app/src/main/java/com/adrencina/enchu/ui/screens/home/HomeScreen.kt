@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.R
@@ -107,59 +108,69 @@ fun HomeDashboardContent(
             onMenuClick = onMenuClick
         )
 
-        // 2. Contenido Estático (Con Scroll de seguridad)
+        // 2. Contenido Scrollable
         Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Barra de Búsqueda
             DashboardSearchBar(
                 query = searchQuery,
                 onQueryChange = onSearchQueryChange
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            
+            Spacer(Modifier.height(12.dp))
 
-            if (searchQuery.isNotEmpty() && state.activeObras.isEmpty() && state.archivedObras.isEmpty()) {
-                // Estado de "Búsqueda sin resultados"
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No se encontraron resultados para \"$searchQuery\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            } else {
-                // Flujo normal o con resultados parciales
-                
-                // Sección Mis Obras (Activas) - Siempre visible (maneja su propio empty state)
-                // Nota: Si estamos buscando, ActiveWorksRow mostrará solo las que coincidan.
-                // Si la búsqueda no arroja activas pero sí archivadas, esto se mostrará vacío (lo cual es correcto o mejorable).
-                // Para simplificar: Si no hay búsqueda, mostramos SIEMPRE. Si hay búsqueda, mostramos solo si hay coincidencias.
-                
-                if (searchQuery.isEmpty() || state.activeObras.isNotEmpty()) {
-                    ActiveWorksRow(obras = state.activeObras, onClick = onObraClick)
-                }
+            ActiveWorksRow(
+                obras = state.activeObras,
+                onClick = onObraClick
+            )
 
-                // Sección Obras Archivadas - Siempre visible en modo normal
-                if (searchQuery.isEmpty() || state.archivedObras.isNotEmpty()) {
-                    ArchivedWorksPreview(
-                        obras = state.archivedObras,
-                        onViewAll = onArchivedClick,
-                        onClick = onObraClick
-                    )
-                }
-                
-                // Grid de Informes (Solo visible si NO estamos buscando)
-                if (searchQuery.isEmpty()) {
-                    ReportsGrid()
-                }
+            // Grid de Informes Financieros REALES
+            ReportsGrid(
+                saldoTotal = state.saldoTotal,
+                totalPendiente = state.totalPendiente,
+                totalGastado = state.totalGastado
+            )
+            
+            // ... resto del contenido (Archivados, etc)
+            if (state.archivedObras.isNotEmpty()) {
+                ArchivedWorksRow(
+                    obras = state.archivedObras,
+                    onClick = onArchivedClick // O navegar a detalle
+                )
+            }
+            
+            Spacer(Modifier.height(80.dp)) // Espacio para BottomBar
+        }
+    }
+}
+
+@Composable
+fun ArchivedWorksRow(
+    obras: List<com.adrencina.enchu.data.model.Obra>,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Archivados recientes",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(onClick = onClick) {
+                Text("Ver todo")
             }
         }
+        
+        // ... (Simpler list or row for archived)
     }
 }

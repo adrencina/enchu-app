@@ -2,6 +2,7 @@ package com.adrencina.enchu.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adrencina.enchu.data.model.Movimiento
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.repository.AuthRepository
 import com.adrencina.enchu.data.repository.ObraRepository
@@ -18,7 +19,11 @@ sealed class HomeUiState {
         val userName: String = "",
         val activeObras: List<Obra>, 
         val archivedObras: List<Obra>,
-        val plan: String = "FREE"
+        val plan: String = "FREE",
+        val totalCobrado: Double = 0.0,
+        val totalGastado: Double = 0.0,
+        val saldoTotal: Double = 0.0,
+        val totalPendiente: Double = 0.0
     ) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
@@ -71,32 +76,71 @@ class HomeViewModel @Inject constructor(
                 .flatMapLatest { (userName, organization) ->
                     val plan = organization?.plan ?: "FREE"
                     
+                    // Combinamos Obras Activas y Archivadas
                     combine(
                         obraRepository.getObras(),
                         obraRepository.getArchivedObras(),
                         _searchQuery
-                    ) { activeObras: List<Obra>, archivedList: List<Obra>, query: String ->
-                        if (query.isBlank()) {
-                            HomeUiState.Success(
-                                userName = userName,
-                                activeObras = activeObras,
-                                archivedObras = archivedList,
-                                plan = plan
+                    ) { activeObras, archivedObras, query ->
+                        Triple(activeObras, archivedObras, query)
+                    }.flatMapLatest { (activeObras, archivedObras, query) ->
+                        
+                        // Si no hay obras activas, emitimos estado con ceros
+                        if (activeObras.isEmpty()) {
+                            flowOf(
+                                HomeUiState.Success(
+                                    userName = userName,
+                                    activeObras = emptyList(),
+                                    archivedObras = archivedObras,
+                                    plan = plan
+                                )
                             )
                         } else {
-                            val allObras = activeObras + archivedList
-                            val filteredObras = allObras.filter { obra ->
-                                obra.nombreObra.contains(query, ignoreCase = true) ||
-                                obra.clienteNombre.contains(query, ignoreCase = true) ||
-                                (obra.estado ?: "").contains(query, ignoreCase = true) ||
-                                (obra.direccion ?: "").contains(query, ignoreCase = true)
+                            // Si hay obras, obtenemos los movimientos de CADA una para calcular totales
+                            val flowsMovimientos = activeObras.map { obra ->
+                                obraRepository.getMovimientos(obra.id).map { movimientos ->
+                                    obra.id to movimientos
+                                }
                             }
-                            HomeUiState.Success(
-                                userName = userName,
-                                activeObras = filteredObras,
-                                archivedObras = emptyList(), 
-                                plan = plan
-                            )
+
+                            // Combinamos los flujos de movimientos
+                            combine(flowsMovimientos) { arrayMovimientos ->
+                                // arrayMovimientos es Array<Pair<String, List<Movimiento>>>
+                                val allMovimientos = arrayMovimientos.flatMap { it.second }
+                                
+                                val totalIngresos = allMovimientos.filter { it.tipo == "INGRESO" }.sumOf { it.monto }
+                                val totalEgresos = allMovimientos.filter { it.tipo == "EGRESO" }.sumOf { it.monto }
+                                val saldo = totalIngresos - totalEgresos
+                                
+                                // Calculamos lo pendiente (Presupuestado - Cobrado)
+                                // Nota: Esto es aproximado. Asume que todo ingreso cuenta como pago del presupuesto.
+                                // Idealmente se filtraría por categoría "PAGO_CLIENTE".
+                                val totalPresupuestado = activeObras.sumOf { it.presupuestoTotal }
+                                val totalCobradoClientes = allMovimientos
+                                    .filter { it.tipo == "INGRESO" && (it.categoria == "PAGO_CLIENTE" || it.categoria == "ADELANTO" || it.categoria == "OTRO") } // Asumimos general por ahora
+                                    .sumOf { it.monto }
+                                    
+                                val pendiente = (totalPresupuestado - totalCobradoClientes).coerceAtLeast(0.0)
+
+                                // Filtrado por búsqueda (si aplica)
+                                val filteredActive = if (query.isBlank()) activeObras else activeObras.filter { 
+                                    it.nombreObra.contains(query, true) || it.clienteNombre.contains(query, true)
+                                }
+                                val filteredArchived = if (query.isBlank()) archivedObras else archivedObras.filter {
+                                    it.nombreObra.contains(query, true)
+                                }
+
+                                HomeUiState.Success(
+                                    userName = userName,
+                                    activeObras = filteredActive,
+                                    archivedObras = filteredArchived,
+                                    plan = plan,
+                                    totalCobrado = totalIngresos,
+                                    totalGastado = totalEgresos,
+                                    saldoTotal = saldo,
+                                    totalPendiente = pendiente
+                                )
+                            }
                         }
                     }
                 }

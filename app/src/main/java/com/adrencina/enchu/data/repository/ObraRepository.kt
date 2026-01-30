@@ -1,6 +1,7 @@
 package com.adrencina.enchu.data.repository
 
 import com.adrencina.enchu.data.model.Avance
+import com.adrencina.enchu.data.model.Movimiento
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
 import com.adrencina.enchu.data.model.PresupuestoWithItems
@@ -50,9 +51,25 @@ interface ObraRepository {
     suspend fun addAvance(obraId: String, avance: Avance): Result<Unit>
     suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit>
 
+    // Caja (Movimientos)
+    fun getMovimientos(obraId: String): Flow<List<Movimiento>>
+    suspend fun addMovimiento(obraId: String, movimiento: Movimiento): Result<Unit>
+    suspend fun deleteMovimiento(obraId: String, movimientoId: String): Result<Unit>
+
     // Presupuesto
     fun getPresupuestoItems(obraId: String): Flow<List<PresupuestoItem>>
     suspend fun addPresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit>
     suspend fun updatePresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit>
     suspend fun deletePresupuestoItem(obraId: String, itemId: String): Result<Unit>
+    
+    /**
+     * Actualiza el estado logístico de un ítem (Comprado, Instalado) y su costo real.
+     */
+    suspend fun updateItemLogistics(
+        obraId: String, 
+        itemId: String, 
+        isComprado: Boolean, 
+        isInstalado: Boolean, 
+        costoReal: Double?
+    ): Result<Unit>
 }
