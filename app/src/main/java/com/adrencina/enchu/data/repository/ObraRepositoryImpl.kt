@@ -3,6 +3,7 @@ package com.adrencina.enchu.data.repository
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.data.model.PresupuestoWithItems
 import com.adrencina.enchu.data.model.Tarea
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,7 +19,69 @@ class ObraRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : ObraRepository {
 
-                    override fun getObras(): Flow<List<Obra>> {
+    override suspend fun createObraFromPresupuesto(presupuesto: PresupuestoWithItems): Result<String> {
+        return try {
+            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("Usuario no autenticado"))
+            
+            // Obtener organizationId
+            val userSnapshot = firestore.collection("users").document(userId).get().await()
+            val organizationId = userSnapshot.getString("organizationId") ?: ""
+
+            // 1. Crear Referencia para la nueva Obra
+            val obraRef = firestore.collection("obras").document()
+            val obraId = obraRef.id
+
+            // 2. Mapear PresupuestoEntity -> Obra
+            val entity = presupuesto.presupuesto
+            val nuevaObra = Obra(
+                id = obraId,
+                userId = userId,
+                organizationId = organizationId,
+                clienteId = entity.clienteId,
+                clienteNombre = "${entity.clienteNombre} ${entity.clienteApellido}".trim(),
+                nombreObra = entity.titulo,
+                direccion = entity.clienteDireccion,
+                telefono = entity.clienteTelefono,
+                estado = "En Proceso", // Estado inicial al aceptar
+                budgetNumber = entity.numero,
+                presupuestoTotal = entity.total,
+                descuento = entity.descuento,
+                validez = entity.validez,
+                notas = entity.notas,
+                fechaCreacion = null // Firestore pondrá el ServerTimestamp
+            )
+
+            // 3. PASO 1: Crear la Obra PRIMERO (sin batch para asegurar existencia)
+            // Esto asegura que las reglas de seguridad que validan "parent.userId" funcionen para los items
+            obraRef.set(nuevaObra).await()
+
+            // 4. PASO 2: Crear Items en Batch (ahora que la obra existe)
+            if (presupuesto.items.isNotEmpty()) {
+                val batch = firestore.batch()
+                presupuesto.items.forEach { itemEntity ->
+                    val itemRef = obraRef.collection("presupuesto_items").document()
+                    val itemFirestore = PresupuestoItem(
+                        id = itemRef.id,
+                        descripcion = itemEntity.descripcion,
+                        cantidad = itemEntity.cantidad,
+                        precioUnitario = itemEntity.precioUnitario,
+                        tipo = itemEntity.tipo,
+                        fechaCreacion = null // ServerTimestamp
+                    )
+                    batch.set(itemRef, itemFirestore)
+                }
+                batch.commit().await()
+            }
+
+            Result.success(obraId)
+        } catch (e: Exception) {
+            // Si falla la creación de items, idealmente deberíamos borrar la obra o alertar.
+            // Por ahora, retornamos el fallo.
+            Result.failure(e)
+        }
+    }
+
+    override fun getObras(): Flow<List<Obra>> {
 
                         val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
 

@@ -115,11 +115,17 @@ fun AppNavigation() {
             }
         ) { backStackEntry ->
             val targetTab by backStackEntry.savedStateHandle.getStateFlow<Int?>("target_tab", null).collectAsState()
+            val resetToHome by backStackEntry.savedStateHandle.getStateFlow<Boolean>("reset_to_home", false).collectAsState()
             
             val profileViewModel: com.adrencina.enchu.viewmodel.ProfileViewModel = hiltViewModel()
 
             MainScreen(
                 onObraClick = { obraId ->
+                    navController.navigate(Routes.createObraDetailRoute(obraId))
+                },
+                onObraAccepted = { obraId ->
+                    // Marcamos flag para que al volver (o en background), MainScreen vaya a Home
+                    backStackEntry.savedStateHandle["reset_to_home"] = true
                     navController.navigate(Routes.createObraDetailRoute(obraId))
                 },
                 onAddObraClick = {
@@ -156,6 +162,10 @@ fun AppNavigation() {
                 budgetTabToOpen = targetTab,
                 onBudgetTabConsumed = {
                     backStackEntry.savedStateHandle["target_tab"] = null
+                },
+                shouldResetToHome = resetToHome,
+                onResetToHomeConsumed = {
+                    backStackEntry.savedStateHandle["reset_to_home"] = false
                 }
             )
         }

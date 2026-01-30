@@ -33,12 +33,31 @@ fun PresupuestosScreen(
     viewModel: PresupuestosViewModel = hiltViewModel(),
     onNewBudgetClick: () -> Unit,
     onEditBudgetClick: (String) -> Unit,
+    onNavigateToObra: (String) -> Unit,
     initialTab: Int? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(initialTab ?: 0) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Manejo de eventos (Navegación y Errores)
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is PresupuestosEvent.NavigateToObra -> {
+                    android.util.Log.d("PresupuestosScreen", "Navigating to Obra: ${event.obraId}")
+                    onNavigateToObra(event.obraId)
+                }
+                is PresupuestosEvent.ShowError -> {
+                    android.util.Log.e("PresupuestosScreen", "Error: ${event.message}")
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
     
     LaunchedEffect(initialTab) {
+        android.util.Log.d("PresupuestosScreen", "initialTab changed to: $initialTab")
         if (initialTab != null) {
             selectedTabIndex = initialTab
         }
@@ -47,6 +66,7 @@ fun PresupuestosScreen(
     val tabs = listOf("Borradores", "Enviados")
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Column {
                 TopAppBar(
@@ -127,7 +147,7 @@ fun PresupuestosScreen(
                                     presupuesto = item,
                                     isSent = selectedTabIndex == 1,
                                     onClick = { onEditBudgetClick(item.presupuesto.id) },
-                                    onCreateObra = { /* TODO: Implementar creación de Obra */ }
+                                    onCreateObra = { viewModel.acceptBudget(item) }
                                 )
                             }
                         )

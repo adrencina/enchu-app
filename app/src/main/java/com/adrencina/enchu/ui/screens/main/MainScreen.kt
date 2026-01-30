@@ -41,6 +41,7 @@ import com.adrencina.enchu.ui.screens.presupuestos.PresupuestosScreen
 @Composable
 fun MainScreen(
     onObraClick: (String) -> Unit,
+    onObraAccepted: (String) -> Unit,
     onAddObraClick: () -> Unit,
     onAddBudgetClick: (String?) -> Unit, // Updated signature
     onEditBudgetClick: (String) -> Unit,
@@ -50,7 +51,9 @@ fun MainScreen(
     onLogout: () -> Unit,
     onNavigateToTeamScreen: () -> Unit,
     budgetTabToOpen: Int? = null,
-    onBudgetTabConsumed: () -> Unit = {}
+    onBudgetTabConsumed: () -> Unit = {},
+    shouldResetToHome: Boolean = false,
+    onResetToHomeConsumed: () -> Unit = {}
 ) {
     val bottomNavController = rememberNavController()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -65,14 +68,30 @@ fun MainScreen(
         navBackStackEntry?.savedStateHandle?.remove<String>("new_obra_result")
     }
     
+    // Efecto para abrir pestaña de presupuestos específica
     LaunchedEffect(budgetTabToOpen) {
+        android.util.Log.d("MainScreen", "budgetTabToOpen changed to: $budgetTabToOpen")
         if (budgetTabToOpen != null) {
             bottomNavController.navigate(Routes.PRESUPUESTOS_SCREEN) {
                 popUpTo(bottomNavController.graph.findStartDestination().id) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
+            // Pequeño delay para asegurar que la pantalla destino se componga y reciba el estado
+            kotlinx.coroutines.delay(300) 
             onBudgetTabConsumed()
+        }
+    }
+    
+    // Efecto para volver al Home silenciosamente (usado cuando se acepta una obra)
+    LaunchedEffect(shouldResetToHome) {
+        if (shouldResetToHome) {
+            bottomNavController.navigate(Routes.HOME_SCREEN) {
+                popUpTo(bottomNavController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            onResetToHomeConsumed()
         }
     }
 
@@ -124,6 +143,7 @@ fun MainScreen(
                 PresupuestosScreen(
                     onNewBudgetClick = { onAddBudgetClick(null) },
                     onEditBudgetClick = onEditBudgetClick,
+                    onNavigateToObra = onObraAccepted, // Usamos el callback específico para resetear stack
                     initialTab = budgetTabToOpen
                 )
             }

@@ -281,7 +281,7 @@ class NewBudgetViewModel @Inject constructor(
         )
 
         presupuestoDao.upsertPresupuestoWithItems(presupuesto, state.items)
-        android.util.Log.d("NewBudgetVM", "Presupuesto saved to DB. Sending BudgetSaved event.")
+        android.util.Log.d("NewBudgetVM", "Presupuesto saved to DB. State: ${presupuesto.estado}. Sending BudgetSaved event.")
         _uiState.value = _uiState.value.copy(isLoading = false, budgetNumber = finalNumber)
         _uiEvent.send(NewBudgetUiEvent.BudgetSaved(isSent))
     }

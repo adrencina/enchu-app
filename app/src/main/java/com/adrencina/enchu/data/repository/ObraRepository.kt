@@ -3,6 +3,7 @@ package com.adrencina.enchu.data.repository
 import com.adrencina.enchu.data.model.Avance
 import com.adrencina.enchu.data.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.data.model.PresupuestoWithItems
 import com.adrencina.enchu.data.model.Tarea
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,13 @@ import kotlinx.coroutines.flow.Flow
  * El resto de la app usará esta interfaz, no la implementación directa.
  */
 interface ObraRepository {
+
+    /**
+     * Crea una nueva Obra a partir de un Presupuesto existente (local).
+     * Transfiere los datos del cliente y los items del presupuesto a Firestore.
+     * @return Result<String> con el ID de la nueva obra creada.
+     */
+    suspend fun createObraFromPresupuesto(presupuesto: PresupuestoWithItems): Result<String>
 
     /**
      * Obtiene una lista de todas las obras de un usuario en tiempo real.
