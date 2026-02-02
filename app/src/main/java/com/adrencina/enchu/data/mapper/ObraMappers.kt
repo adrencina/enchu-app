@@ -67,6 +67,8 @@ fun Obra.toDocument(): ObraDocument {
 fun TareaDocument.toDomain(): Tarea {
     return Tarea(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcionTarea = this.descripcionTarea,
         completada = this.completada,
         fechaCreacion = this.fechaCreacion,
@@ -77,6 +79,8 @@ fun TareaDocument.toDomain(): Tarea {
 fun Tarea.toDocument(): TareaDocument {
     return TareaDocument(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcionTarea = this.descripcionTarea,
         completada = this.completada,
         fechaCreacion = this.fechaCreacion,
@@ -89,6 +93,8 @@ fun Tarea.toDocument(): TareaDocument {
 fun AvanceDocument.toDomain(): Avance {
     return Avance(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcion = this.descripcion,
         fotosUrls = this.fotosUrls,
         fecha = this.fecha
@@ -98,6 +104,8 @@ fun AvanceDocument.toDomain(): Avance {
 fun Avance.toDocument(): AvanceDocument {
     return AvanceDocument(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcion = this.descripcion,
         fotosUrls = this.fotosUrls,
         fecha = this.fecha
@@ -109,6 +117,8 @@ fun Avance.toDocument(): AvanceDocument {
 fun MovimientoDocument.toDomain(): Movimiento {
     return Movimiento(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         obraId = this.obraId,
         descripcion = this.descripcion,
         monto = this.monto,
@@ -121,6 +131,8 @@ fun MovimientoDocument.toDomain(): Movimiento {
 fun Movimiento.toDocument(): MovimientoDocument {
     return MovimientoDocument(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         obraId = this.obraId,
         descripcion = this.descripcion,
         monto = this.monto,
@@ -135,6 +147,8 @@ fun Movimiento.toDocument(): MovimientoDocument {
 fun PresupuestoItemDocument.toDomain(): PresupuestoItem {
     return PresupuestoItem(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcion = this.descripcion,
         cantidad = this.cantidad,
         unidad = null,
@@ -153,6 +167,8 @@ fun PresupuestoItemDocument.toDomain(): PresupuestoItem {
 fun PresupuestoItem.toDocument(): PresupuestoItemDocument {
     return PresupuestoItemDocument(
         id = this.id,
+        userId = this.userId,
+        organizationId = this.organizationId,
         descripcion = this.descripcion,
         cantidad = this.cantidad,
         precioUnitario = this.precioUnitario,

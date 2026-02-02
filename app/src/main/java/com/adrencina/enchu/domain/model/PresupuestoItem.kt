@@ -2,6 +2,8 @@ package com.adrencina.enchu.domain.model
 
 data class PresupuestoItem(
     val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val descripcion: String = "",
     val cantidad: Double = 0.0,
     val unidad: String? = null,

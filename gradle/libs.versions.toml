@@ -11,7 +11,7 @@ hiltWork = "1.2.0"
 paging = "3.3.0"
 startup = "1.1.1"
 composeBom = "2024.02.02"
-firebaseBom = "33.1.2"
+firebaseBom = "33.1.0"
 googleServicesAuth = "21.2.0"
 coil = "2.6.0"
 navigationCompose = "2.7.7"
@@ -79,8 +79,8 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx" }
-firebase-appcheck = { module = "com.google.firebase:firebase-appcheck-ktx", version = "18.0.0" }
-firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
+firebase-appcheck = { group = "com.google.firebase", name = "firebase-appcheck-ktx" }
+firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
 google-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "googleServicesAuth" }
 
 # Hilt

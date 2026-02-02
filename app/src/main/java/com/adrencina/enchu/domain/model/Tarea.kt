@@ -4,6 +4,8 @@ import java.util.Date
 
 data class Tarea(
     val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val descripcionTarea: String = "",
     val completada: Boolean = false,
     val fechaCreacion: Date? = null,

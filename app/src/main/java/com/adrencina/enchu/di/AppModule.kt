@@ -2,7 +2,9 @@ package com.adrencina.enchu.di
 
 import android.content.Context
 import androidx.room.Room
-import com.adrencina.enchu.data.encryption.PassphraseProvider
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.adrencina.enchu.data.local.security.KeyManager
 import com.adrencina.enchu.data.local.AppDatabase
 import com.adrencina.enchu.data.local.FileDao
 import com.adrencina.enchu.data.repository.AuthRepository
@@ -34,6 +36,16 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideFirebaseAppCheck(@ApplicationContext context: Context): FirebaseAppCheck {
+        val firebaseAppCheck = FirebaseAppCheck.getInstance()
+        firebaseAppCheck.installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
+        return firebaseAppCheck
+    }
+
+    @Provides
+    @Singleton
     fun provideOrganizationRepository(firestore: FirebaseFirestore, storage: FirebaseStorage): OrganizationRepository {
         return OrganizationRepositoryImpl(firestore, storage)
     }
@@ -61,9 +73,9 @@ object AppModule {
     @Singleton
     fun provideAppDatabase(
         @ApplicationContext context: Context,
-        passphraseProvider: PassphraseProvider
+        keyManager: KeyManager
     ): AppDatabase {
-        val passphrase = passphraseProvider.getPassphrase()
+        val passphrase = keyManager.getSafeDatabasePassphrase()
         val factory = SupportFactory(passphrase)
 
         val MIGRATION_1_2 = object : Migration(1, 2) {

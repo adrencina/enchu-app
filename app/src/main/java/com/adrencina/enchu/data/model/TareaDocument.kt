@@ -10,6 +10,8 @@ import java.util.Date
  */
 data class TareaDocument(
     @DocumentId val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val descripcionTarea: String = "",
     val completada: Boolean = false,
     @ServerTimestamp

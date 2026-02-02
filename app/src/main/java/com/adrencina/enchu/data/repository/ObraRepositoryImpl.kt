@@ -65,6 +65,8 @@ class ObraRepositoryImpl @Inject constructor(
                     val itemRef = obraRef.collection("presupuesto_items").document()
                     val itemDoc = PresupuestoItemDocument(
                         id = itemRef.id,
+                        userId = userId,
+                        organizationId = organizationId,
                         descripcion = itemDomain.descripcion,
                         cantidad = itemDomain.cantidad,
                         precioUnitario = itemDomain.precioUnitario,

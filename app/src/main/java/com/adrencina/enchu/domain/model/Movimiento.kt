@@ -4,6 +4,8 @@ import java.util.Date
 
 data class Movimiento(
     val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val obraId: String = "",
     val descripcion: String = "",
     val monto: Double = 0.0,

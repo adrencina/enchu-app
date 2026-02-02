@@ -16,7 +16,13 @@ class SaveAvanceUseCase @Inject constructor(
     private val repository: ObraRepository,
     private val storage: FirebaseStorage
 ) {
-    suspend operator fun invoke(obraId: String, descripcion: String, imageUris: List<Uri>): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend operator fun invoke(
+        obraId: String, 
+        descripcion: String, 
+        imageUris: List<Uri>,
+        userId: String,
+        organizationId: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val uploadedUrls = imageUris.map { uri ->
                 async {
@@ -28,6 +34,8 @@ class SaveAvanceUseCase @Inject constructor(
             }.awaitAll()
 
             val avance = Avance(
+                userId = userId,
+                organizationId = organizationId,
                 descripcion = descripcion,
                 fotosUrls = uploadedUrls
             )

@@ -109,7 +109,6 @@ dependencies {
 
     // Hilt (Inyección de Dependencias)
     implementation(libs.hilt.android)
-    implementation(libs.google.firebase.appcheck.playintegrity)
     kapt(libs.hilt.compiler)
     kapt(libs.androidx.hilt.compiler) // <-- ESTA ES LA LÍNEA NUEVA
     implementation(libs.androidx.hilt.navigation.compose)

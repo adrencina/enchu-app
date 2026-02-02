@@ -9,6 +9,8 @@ import java.util.Date
  */
 data class PresupuestoItemDocument(
     @DocumentId val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val descripcion: String = "",
     val cantidad: Double = 0.0,
     val precioUnitario: Double = 0.0,

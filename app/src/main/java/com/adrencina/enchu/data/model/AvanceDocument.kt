@@ -10,6 +10,8 @@ import java.util.Date
  */
 data class AvanceDocument(
     @DocumentId val id: String = "",
+    val userId: String = "",
+    val organizationId: String = "",
     val descripcion: String = "",
     val fotosUrls: List<String> = emptyList(),
     @ServerTimestamp

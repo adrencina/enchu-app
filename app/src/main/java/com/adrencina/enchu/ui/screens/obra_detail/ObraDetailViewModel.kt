@@ -303,8 +303,15 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onAddPresupuestoItem(item: PresupuestoItem) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            repository.addPresupuestoItem(obraId, item)
+            repository.addPresupuestoItem(
+                obraId, 
+                item.copy(
+                    userId = currentState.obra.userId,
+                    organizationId = currentState.obra.organizationId
+                )
+            )
             onDismissAddPresupuestoItemDialog()
         }
     }
@@ -316,12 +323,15 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onUpdateItemLogistics(item: PresupuestoItem, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
             repository.updateItemLogistics(obraId, item.id, isComprado, isInstalado, costoReal)
             
             // Si se marca como comprado y hay un costo real, registrar automáticamente en la Caja como EGRESO
             if (isComprado && costoReal != null) {
                 val mov = Movimiento(
+                    userId = currentState.obra.userId,
+                    organizationId = currentState.obra.organizationId,
                     obraId = obraId,
                     descripcion = "Compra: ${item.descripcion}",
                     monto = costoReal * item.cantidad,
@@ -334,8 +344,16 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onAddMovimiento(movimiento: Movimiento) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            repository.addMovimiento(obraId, movimiento.copy(obraId = obraId))
+            repository.addMovimiento(
+                obraId, 
+                movimiento.copy(
+                    obraId = obraId,
+                    userId = currentState.obra.userId,
+                    organizationId = currentState.obra.organizationId
+                )
+            )
             onDismissAddMovimientoDialog()
         }
     }
@@ -372,10 +390,17 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onConfirmAddAvance(descripcion: String, uris: List<Uri>) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
             onDismissAddAvanceDialog()
             try {
-                saveAvanceUseCase(obraId, descripcion, uris)
+                saveAvanceUseCase(
+                    obraId, 
+                    descripcion, 
+                    uris, 
+                    currentState.obra.userId, 
+                    currentState.obra.organizationId
+                )
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -396,8 +421,13 @@ class ObraDetailViewModel @Inject constructor(
 
     fun onAddTarea(descripcion: String) {
         if (descripcion.isBlank()) return
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            val nuevaTarea = Tarea(descripcionTarea = descripcion)
+            val nuevaTarea = Tarea(
+                descripcionTarea = descripcion,
+                userId = currentState.obra.userId,
+                organizationId = currentState.obra.organizationId
+            )
             repository.addTarea(obraId, nuevaTarea)
         }
     }
