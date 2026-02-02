@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.resources.AppIcons
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.ui.theme.Dimens
 import java.text.SimpleDateFormat
 import java.util.Date

@@ -1,6 +1,6 @@
 package com.adrencina.enchu.data.repository
 
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.domain.model.Organization
 import com.adrencina.enchu.data.model.UserProfile
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow

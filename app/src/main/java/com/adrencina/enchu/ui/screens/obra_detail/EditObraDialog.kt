@@ -12,6 +12,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.domain.model.EstadoObra
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -84,18 +85,23 @@ fun EditObraDialog(
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
                 Text("Estado")
-                // Usamos FlowRow para que los chips se ajusten si no caben en una línea
+                
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall),
                     verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
                 ) {
-                    val estados = listOf("Presupuestado", "En Proceso", "En Pausa", "Finalizado")
+                    val estados = listOf(
+                        EstadoObra.PRESUPUESTADO, 
+                        EstadoObra.EN_PROGRESO, 
+                        EstadoObra.EN_PAUSA, 
+                        EstadoObra.FINALIZADO
+                    )
                     estados.forEach { estado ->
                         FilterChip(
                             selected = uiState.editedObraEstado == estado,
-                            onClick = { onEstadoChanged(estado) },
-                            label = { Text(estado) }
+                            onClick = { onEstadoChanged(estado.value) },
+                            label = { Text(estado.value) }
                         )
                     }
                 }

@@ -16,7 +16,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.EstadoObra
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import java.text.SimpleDateFormat
@@ -96,11 +97,11 @@ fun ObraCard(
 }
 
 @Composable
-private fun EstadoIndicator(estado: String) {
+private fun EstadoIndicator(estado: EstadoObra) {
     val color = when (estado) {
-        "Finalizado" -> Color(0xFF1E8E3E)
-        "En Progreso" -> Color(0xFF1967D2)
-        "En Pausa" -> Color(0xFFF9AB00)
+        EstadoObra.FINALIZADO -> Color(0xFF1E8E3E)
+        EstadoObra.EN_PROGRESO -> Color(0xFF1967D2)
+        EstadoObra.EN_PAUSA -> Color(0xFFF9AB00)
         else -> Color(0xFF5F6368)
     }
 
@@ -122,7 +123,7 @@ fun ObraCardPreview() {
                 nombreObra = "Instalación de Cámaras de Seguridad en el perímetro central del edificio",
                 clienteNombre = "Consorcio Edificio Plaza de la República Central",
                 fechaCreacion = Date(),
-                estado = "Finalizado"
+                estado = EstadoObra.FINALIZADO
             ),
             onClick = {}
         )

@@ -7,7 +7,7 @@ import java.util.Date
 /**
  * Representa un movimiento de dinero dentro de una obra.
  */
-data class Movimiento(
+data class MovimientoDocument(
     @DocumentId val id: String = "",
     val obraId: String = "",
     val descripcion: String = "",

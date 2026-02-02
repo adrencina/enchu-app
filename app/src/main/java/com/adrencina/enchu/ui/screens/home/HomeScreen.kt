@@ -148,7 +148,7 @@ fun HomeDashboardContent(
 
 @Composable
 fun ArchivedWorksRow(
-    obras: List<com.adrencina.enchu.data.model.Obra>,
+    obras: List<com.adrencina.enchu.domain.model.Obra>,
     onClick: () -> Unit
 ) {
     Column(

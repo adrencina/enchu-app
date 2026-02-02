@@ -3,9 +3,10 @@ package com.adrencina.enchu.ui.screens.presupuestos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.local.PresupuestoDao
+import com.adrencina.enchu.data.mapper.toDomain
 import com.adrencina.enchu.data.model.PresupuestoEntity
 import com.adrencina.enchu.data.model.PresupuestoWithItems
-import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,14 +55,17 @@ class PresupuestosViewModel @Inject constructor(
         }
     }
 
-    fun acceptBudget(presupuesto: PresupuestoWithItems) {
-        android.util.Log.d("PresupuestosVM", "acceptBudget called for ${presupuesto.presupuesto.id}")
+    fun acceptBudget(presupuestoWithItems: PresupuestoWithItems) {
+        android.util.Log.d("PresupuestosVM", "acceptBudget called for ${presupuestoWithItems.presupuesto.id}")
         viewModelScope.launch {
-            val result = obraRepository.createObraFromPresupuesto(presupuesto)
+            // Convertir Data (Room) -> Domain
+            val presupuestoDomain = presupuestoWithItems.presupuesto.toDomain(presupuestoWithItems.items)
+            
+            val result = obraRepository.createObraFromPresupuesto(presupuestoDomain)
             result.onSuccess { obraId ->
                 android.util.Log.d("PresupuestosVM", "Obra created successfully: $obraId")
-                // Actualizar estado local a ACEPTADO para que salga de la lista de pendientes/enviados
-                presupuestoDao.updatePresupuesto(presupuesto.presupuesto.copy(estado = "ACEPTADO"))
+                // Actualizar estado local a ACEPTADO
+                presupuestoDao.updatePresupuesto(presupuestoWithItems.presupuesto.copy(estado = "ACEPTADO"))
                 _events.send(PresupuestosEvent.NavigateToObra(obraId))
             }.onFailure { error ->
                 android.util.Log.e("PresupuestosVM", "Failed to create Obra", error)

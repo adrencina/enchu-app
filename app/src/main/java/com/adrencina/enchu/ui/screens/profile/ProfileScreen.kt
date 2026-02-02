@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.domain.model.Organization
 import com.adrencina.enchu.data.repository.ThemeMode
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ProfileViewModel

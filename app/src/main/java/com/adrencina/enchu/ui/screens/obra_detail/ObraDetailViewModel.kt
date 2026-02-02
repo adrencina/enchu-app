@@ -1,18 +1,19 @@
 package com.adrencina.enchu.ui.screens.obra_detail
+import com.adrencina.enchu.domain.model.EstadoObra
 
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.adrencina.enchu.data.model.Avance
+import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.data.model.Movimiento
-import com.adrencina.enchu.data.model.Obra
-import com.adrencina.enchu.data.model.PresupuestoItem
-import com.adrencina.enchu.data.model.Tarea
+import com.adrencina.enchu.domain.model.Movimiento
+import com.adrencina.enchu.domain.model.Obra
+import com.adrencina.enchu.domain.model.PresupuestoItem
+import com.adrencina.enchu.domain.model.Tarea
 import com.adrencina.enchu.data.repository.ClienteRepository
-import com.adrencina.enchu.data.repository.ObraRepository
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
 import com.adrencina.enchu.domain.use_case.SaveAvanceUseCase
 import com.adrencina.enchu.domain.use_case.SaveFileToWorkUseCase
@@ -43,7 +44,7 @@ sealed class ObraDetailUiState {
         val showAddMovimientoDialog: Boolean = false,
         val editedObraName: String = "",
         val editedObraDescription: String = "",
-        val editedObraEstado: String = "",
+        val editedObraEstado: EstadoObra = EstadoObra.PRESUPUESTADO,
         val isEditDialogExpanded: Boolean = false,
         val editedTelefono: String = "",
         val editedDireccion: String = "",
@@ -201,7 +202,7 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onEstadoChanged(newEstado: String) {
-        updateSuccessState { it.copy(editedObraEstado = newEstado) }
+        updateSuccessState { it.copy(editedObraEstado = EstadoObra.fromValue(newEstado)) }
     }
 
     fun onTelefonoChanged(newTelefono: String) {

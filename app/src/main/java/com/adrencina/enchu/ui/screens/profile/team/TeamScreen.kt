@@ -19,7 +19,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.domain.model.Organization
 import com.adrencina.enchu.data.model.UserProfile
 import com.adrencina.enchu.viewmodel.ProfileViewModel
 

@@ -3,7 +3,7 @@ package com.adrencina.enchu.di
 import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.data.repository.ClienteRepositoryImpl
 import com.adrencina.enchu.data.repository.FileRepositoryImpl
-import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
 import com.adrencina.enchu.data.repository.ObraRepositoryImpl
 import com.adrencina.enchu.data.repository.MaterialRepository
 import com.adrencina.enchu.data.repository.MaterialRepositoryImpl

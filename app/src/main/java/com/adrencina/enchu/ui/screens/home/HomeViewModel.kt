@@ -2,11 +2,11 @@ package com.adrencina.enchu.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.adrencina.enchu.data.model.Movimiento
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Movimiento
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.data.repository.AuthRepository
-import com.adrencina.enchu.data.repository.ObraRepository
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*

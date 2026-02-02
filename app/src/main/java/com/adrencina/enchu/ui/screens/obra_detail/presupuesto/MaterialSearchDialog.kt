@@ -26,7 +26,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.model.MaterialEntity
-import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.domain.model.PresupuestoItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

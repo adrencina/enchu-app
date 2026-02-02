@@ -9,9 +9,9 @@ import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.graphics.Typeface
 import android.os.Environment
-import com.adrencina.enchu.data.model.Obra
-import com.adrencina.enchu.data.model.Organization
-import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.domain.model.Obra
+import com.adrencina.enchu.domain.model.Organization
+import com.adrencina.enchu.domain.model.PresupuestoItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -9,7 +9,7 @@ import android.provider.OpenableColumns
 import androidx.exifinterface.media.ExifInterface
 import com.adrencina.enchu.data.model.FileEntity
 import com.adrencina.enchu.data.model.SyncState
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 import com.adrencina.enchu.domain.repository.FileRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore

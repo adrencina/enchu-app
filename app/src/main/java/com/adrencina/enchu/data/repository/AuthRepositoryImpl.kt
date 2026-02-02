@@ -1,6 +1,6 @@
 package com.adrencina.enchu.data.repository
 
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.data.model.OrganizationDocument
 import com.adrencina.enchu.data.model.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -24,10 +24,6 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             val credential = GoogleAuthProvider.getCredential(token, null)
             auth.signInWithCredential(credential).await()
-            
-            // NO creamos el perfil automáticamente aquí.
-            // La UI debe observar getUserProfile(). Si es null, redirigir a WelcomeScreen.
-            
             auth.currentUser != null
         } catch (e: Exception) {
             e.printStackTrace()
@@ -52,7 +48,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (snapshot != null && snapshot.exists()) {
                     trySend(snapshot.toObject(UserProfile::class.java))
                 } else {
-                    trySend(null) // Perfil no existe aún
+                    trySend(null)
                 }
             }
         awaitClose { listener.remove() }
@@ -74,19 +70,17 @@ class AuthRepositoryImpl @Inject constructor(
             val snapshot = userRef.get().await()
 
             if (!snapshot.exists()) {
-                // 1. Crear nueva Organización para este usuario
                 val newOrgRef = firestore.collection("organizations").document()
-                // El ID del documento será el código de invitación (para simplificar MVP)
-                // O podríamos generar un campo 'inviteCode' separado.
-                val newOrg = Organization(
+                
+                // Usamos el Document directamente para la creación inicial (tiene defaults para campos opcionales)
+                val newOrgDoc = OrganizationDocument(
                     id = newOrgRef.id,
                     name = "Organización de ${user.displayName ?: "Usuario"}",
                     ownerId = user.uid,
                     members = listOf(user.uid)
                 )
-                newOrgRef.set(newOrg).await()
+                newOrgRef.set(newOrgDoc).await()
 
-                // 2. Crear Perfil de Usuario vinculado a la Org
                 val newProfile = UserProfile(
                     id = user.uid,
                     email = user.email ?: "",
@@ -104,7 +98,6 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun joinOrganizationProfile(user: FirebaseUser, inviteCode: String): Result<Unit> {
         return try {
-            // 1. Buscar la organización por ID (inviteCode)
             val orgRef = firestore.collection("organizations").document(inviteCode)
             val orgSnapshot = orgRef.get().await()
 
@@ -112,23 +105,18 @@ class AuthRepositoryImpl @Inject constructor(
                 return Result.failure(Exception("Código de organización inválido."))
             }
 
-            val org = orgSnapshot.toObject(Organization::class.java) ?: return Result.failure(Exception("Error al leer organización."))
+            // Mapeamos a Document
+            val orgDoc = orgSnapshot.toObject(OrganizationDocument::class.java) ?: return Result.failure(Exception("Error al leer organización."))
             
-            // Lógica inteligente de roles:
-            // Si soy el dueño original (reinstalé la app), recupero mi rol de OWNER.
-            // Si ya soy miembro, mantengo mi estado (o asumo MEMBER/EMPLOYEE si no tengo perfil).
-            val isOwner = org.ownerId == user.uid
-            val isAlreadyMember = org.members.contains(user.uid)
+            val isOwner = orgDoc.ownerId == user.uid
+            val isAlreadyMember = orgDoc.members.contains(user.uid)
             
             val targetRole = if (isOwner) "OWNER" else "EMPLOYEE"
 
-            // 2. Actualizar la organización agregando al miembro (solo si NO estaba ya)
             if (!isAlreadyMember) {
                 orgRef.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(user.uid)).await()
             }
 
-            // 3. Crear o actualizar el perfil del usuario vinculado
-            // Esto restaura el acceso al usuario si había borrado la app
             val userRef = firestore.collection("users").document(user.uid)
             val newProfile = UserProfile(
                 id = user.uid,

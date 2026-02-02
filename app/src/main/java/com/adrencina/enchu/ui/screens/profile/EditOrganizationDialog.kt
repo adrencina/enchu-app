@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.domain.model.Organization
 
 @Composable
 fun EditOrganizationDialog(

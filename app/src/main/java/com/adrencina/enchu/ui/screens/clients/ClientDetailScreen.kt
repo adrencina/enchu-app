@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.ui.components.FormSection
 import com.adrencina.enchu.ui.components.ObraCard
 import com.adrencina.enchu.ui.theme.Dimens

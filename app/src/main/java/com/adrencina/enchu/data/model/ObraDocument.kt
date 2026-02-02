@@ -6,19 +6,18 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
- * Representa el modelo de datos para una Obra.
- * Incluye datos denormalizados (clienteNombre) para optimizar lecturas.
+ * Representa el modelo de datos para una Obra en Firestore.
  */
-data class Obra(
+data class ObraDocument(
     @DocumentId val id: String = "",
-    val userId: String = "", // Mantener por compatibilidad/auditoría (quién creó)
-    val organizationId: String = "", // Nuevo campo clave para filtrado
+    val userId: String = "",
+    val organizationId: String = "",
 
     // Datos del Cliente
     val clienteId: String = "",
     val clienteNombre: String = "",
     val clienteCuit: String = "",
-    val clientTaxCondition: String = "", // Consumidor Final, RI, etc.
+    val clientTaxCondition: String = "",
 
     // Datos de la Obra
     val nombreObra: String = "",
@@ -26,12 +25,12 @@ data class Obra(
     val telefono: String = "",
     val direccion: String = "",
     val estado: String = "Presupuestado",
-    val budgetNumber: Int = 0, // Número correlativo asignado a esta obra
+    val budgetNumber: Int = 0,
     @get:PropertyName("isArchived")
     val isArchived: Boolean = false,
     
     // Datos del Presupuesto
-    val descuento: Double = 0.0, // Porcentaje de descuento
+    val descuento: Double = 0.0,
     val validez: Int = 15,
     val notas: String = "",
     val presupuestoTotal: Double = 0.0,

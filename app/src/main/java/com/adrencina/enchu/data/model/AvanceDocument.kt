@@ -8,7 +8,7 @@ import java.util.Date
  * Representa un avance o registro fotográfico dentro de una obra.
  * Pertenecerá a la sub-colección "avances" de una Obra.
  */
-data class Avance(
+data class AvanceDocument(
     @DocumentId val id: String = "",
     val descripcion: String = "",
     val fotosUrls: List<String> = emptyList(),

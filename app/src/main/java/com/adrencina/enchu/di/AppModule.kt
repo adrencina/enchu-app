@@ -18,7 +18,7 @@ import dagger.hilt.components.SingletonComponent
 import net.sqlcipher.database.SupportFactory
 import javax.inject.Singleton
 
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 import com.adrencina.enchu.data.repository.OrganizationRepositoryImpl
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings

@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.repository.AuthRepository
 import com.adrencina.enchu.data.repository.ClienteRepository
-import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
 import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,9 +16,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import android.net.Uri
-import com.adrencina.enchu.data.model.Organization
+import com.adrencina.enchu.domain.model.Organization
 import com.adrencina.enchu.data.model.UserProfile
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 
 data class ProfileUiState(
     val user: FirebaseUser? = null,

@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.domain.model.PresupuestoItem
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -29,7 +29,7 @@ fun PresupuestoScreen(
     onDeleteItem: (PresupuestoItem) -> Unit,
     onUpdateLogistics: (PresupuestoItem, Boolean, Boolean, Double?) -> Unit
 ) {
-    val totalMateriales = presupuestoItems.filter { it.tipo == "MATERIAL" }.sumOf { it.totalEstimado }
+    val totalMateriales = presupuestoItems.filter { it.tipo == "MATERIAL" }.sumOf { it.subtotal }
     val totalReal = presupuestoItems.sumOf { it.totalReal }
     val desvioTotal = presupuestoItems.sumOf { it.desvio }
 
@@ -163,7 +163,7 @@ fun PresupuestoItemRow(
                 // Precios a la derecha
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = currencyFormat.format(item.totalEstimado),
+                        text = currencyFormat.format(item.subtotal),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = textColor

@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
-data class Organization(
+data class OrganizationDocument(
     @DocumentId val id: String = "",
     val name: String = "", // Nombre de la empresa (ej. ElectroJuan)
     val ownerId: String = "", 

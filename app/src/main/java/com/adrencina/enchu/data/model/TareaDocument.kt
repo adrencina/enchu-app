@@ -8,7 +8,7 @@ import java.util.Date
  * Representa una tarea en la checklist de una obra.
  * Pertenecerá a la sub-colección "tareas" de una Obra.
  */
-data class Tarea(
+data class TareaDocument(
     @DocumentId val id: String = "",
     val descripcionTarea: String = "",
     val completada: Boolean = false,

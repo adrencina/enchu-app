@@ -1,12 +1,13 @@
 package com.adrencina.enchu.viewmodel
+import com.adrencina.enchu.domain.model.EstadoObra
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.data.repository.ClienteRepository
-import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.repository.ObraRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -108,7 +109,7 @@ class AddObraViewModel @Inject constructor(
                 descripcion = currentState.descripcion,
                 telefono = currentState.telefono,
                 direccion = currentState.direccion,
-                estado = currentState.estado
+                estado = EstadoObra.fromValue(currentState.estado)
             )
 
             val result = obraRepository.saveObra(newObra)

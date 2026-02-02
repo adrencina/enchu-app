@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.adrencina.enchu.core.resources.AppIcons
-import com.adrencina.enchu.data.model.Avance
+import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.ui.theme.Dimens
 import java.text.SimpleDateFormat
 import java.util.Locale

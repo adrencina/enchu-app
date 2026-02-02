@@ -15,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.adrencina.enchu.core.resources.AppIcons
-import com.adrencina.enchu.data.model.Tarea
+import com.adrencina.enchu.domain.model.Tarea
 import com.adrencina.enchu.ui.theme.Dimens
 
 @Composable

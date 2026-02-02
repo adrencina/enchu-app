@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Obra
 import java.text.NumberFormat
 import java.time.LocalTime
 import java.util.Locale

@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.local.PresupuestoDao
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.data.model.Obra
+import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.data.model.PresupuestoEntity
 import com.adrencina.enchu.data.model.PresupuestoItemEntity
-import com.adrencina.enchu.data.model.PresupuestoItem
+import com.adrencina.enchu.domain.model.PresupuestoItem
 import com.adrencina.enchu.domain.use_case.GeneratePresupuestoPdfUseCase
 import com.adrencina.enchu.data.repository.AuthRepository
-import com.adrencina.enchu.data.repository.OrganizationRepository
+import com.adrencina.enchu.domain.repository.OrganizationRepository
 import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.core.utils.BudgetNumberManager
 import dagger.hilt.android.lifecycle.HiltViewModel

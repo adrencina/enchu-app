@@ -1,8 +1,8 @@
 package com.adrencina.enchu.domain.use_case
 
 import android.net.Uri
-import com.adrencina.enchu.data.model.Avance
-import com.adrencina.enchu.data.repository.ObraRepository
+import com.adrencina.enchu.domain.model.Avance
+import com.adrencina.enchu.domain.repository.ObraRepository
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
