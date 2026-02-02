@@ -2,6 +2,7 @@ package com.adrencina.enchu.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.model.Movimiento
 import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.data.repository.AuthRepository
@@ -13,20 +14,18 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed class HomeUiState {
-    object Loading : HomeUiState()
-    data class Success(
-        val userName: String = "",
-        val activeObras: List<Obra>, 
-        val archivedObras: List<Obra>,
-        val plan: String = "FREE",
-        val totalCobrado: Double = 0.0,
-        val totalGastado: Double = 0.0,
-        val saldoTotal: Double = 0.0,
-        val totalPendiente: Double = 0.0
-    ) : HomeUiState()
-    data class Error(val message: String) : HomeUiState()
-}
+data class HomeUiState(
+    val isLoading: Boolean = false,
+    val userName: String = "",
+    val activeObras: List<Obra> = emptyList(),
+    val archivedObras: List<Obra> = emptyList(),
+    val plan: String = "FREE",
+    val totalCobrado: Double = 0.0,
+    val totalGastado: Double = 0.0,
+    val saldoTotal: Double = 0.0,
+    val totalPendiente: Double = 0.0,
+    val userMessage: String? = null
+)
 
 sealed class HomeUiEffect {
     data class ShowObraCreatedSnackbar(val clientName: String) : HomeUiEffect()
@@ -39,7 +38,7 @@ class HomeViewModel @Inject constructor(
     private val organizationRepository: OrganizationRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
+    private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
 
     private val _uiEffect = MutableSharedFlow<HomeUiEffect>()
@@ -76,53 +75,52 @@ class HomeViewModel @Inject constructor(
                 .flatMapLatest { (userName, organization) ->
                     val plan = organization?.plan ?: "FREE"
                     
-                    // Combinamos Obras Activas y Archivadas
                     combine(
                         obraRepository.getObras(),
                         obraRepository.getArchivedObras(),
                         _searchQuery
-                    ) { activeObras, archivedObras, query ->
-                        Triple(activeObras, archivedObras, query)
-                    }.flatMapLatest { (activeObras, archivedObras, query) ->
+                    ) { activeRes, archivedRes, query ->
+                        Triple(activeRes, archivedRes, query)
+                    }.flatMapLatest { (activeRes, archivedRes, query) ->
                         
-                        // Si no hay obras activas, emitimos estado con ceros
+                        val isLoading = activeRes is Resource.Loading || archivedRes is Resource.Loading
+                        val errorMsg = activeRes.message ?: archivedRes.message
+                        
+                        val activeObras = activeRes.data ?: emptyList()
+                        val archivedObras = archivedRes.data ?: emptyList()
+
                         if (activeObras.isEmpty()) {
                             flowOf(
-                                HomeUiState.Success(
+                                HomeUiState(
+                                    isLoading = isLoading,
                                     userName = userName,
                                     activeObras = emptyList(),
                                     archivedObras = archivedObras,
-                                    plan = plan
+                                    plan = plan,
+                                    userMessage = errorMsg
                                 )
                             )
                         } else {
-                            // Si hay obras, obtenemos los movimientos de CADA una para calcular totales
                             val flowsMovimientos = activeObras.map { obra ->
                                 obraRepository.getMovimientos(obra.id).map { movimientos ->
                                     obra.id to movimientos
                                 }
                             }
 
-                            // Combinamos los flujos de movimientos
                             combine(flowsMovimientos) { arrayMovimientos ->
-                                // arrayMovimientos es Array<Pair<String, List<Movimiento>>>
                                 val allMovimientos = arrayMovimientos.flatMap { it.second }
                                 
                                 val totalIngresos = allMovimientos.filter { it.tipo == "INGRESO" }.sumOf { it.monto }
                                 val totalEgresos = allMovimientos.filter { it.tipo == "EGRESO" }.sumOf { it.monto }
                                 val saldo = totalIngresos - totalEgresos
                                 
-                                // Calculamos lo pendiente (Presupuestado - Cobrado)
-                                // Nota: Esto es aproximado. Asume que todo ingreso cuenta como pago del presupuesto.
-                                // Idealmente se filtraría por categoría "PAGO_CLIENTE".
                                 val totalPresupuestado = activeObras.sumOf { it.presupuestoTotal }
                                 val totalCobradoClientes = allMovimientos
-                                    .filter { it.tipo == "INGRESO" && (it.categoria == "PAGO_CLIENTE" || it.categoria == "ADELANTO" || it.categoria == "OTRO") } // Asumimos general por ahora
+                                    .filter { it.tipo == "INGRESO" && (it.categoria == "PAGO_CLIENTE" || it.categoria == "ADELANTO" || it.categoria == "OTRO") }
                                     .sumOf { it.monto }
                                     
                                 val pendiente = (totalPresupuestado - totalCobradoClientes).coerceAtLeast(0.0)
 
-                                // Filtrado por búsqueda (si aplica)
                                 val filteredActive = if (query.isBlank()) activeObras else activeObras.filter { 
                                     it.nombreObra.contains(query, true) || it.clienteNombre.contains(query, true)
                                 }
@@ -130,7 +128,8 @@ class HomeViewModel @Inject constructor(
                                     it.nombreObra.contains(query, true)
                                 }
 
-                                HomeUiState.Success(
+                                HomeUiState(
+                                    isLoading = isLoading,
                                     userName = userName,
                                     activeObras = filteredActive,
                                     archivedObras = filteredArchived,
@@ -138,14 +137,15 @@ class HomeViewModel @Inject constructor(
                                     totalCobrado = totalIngresos,
                                     totalGastado = totalEgresos,
                                     saldoTotal = saldo,
-                                    totalPendiente = pendiente
+                                    totalPendiente = pendiente,
+                                    userMessage = errorMsg
                                 )
                             }
                         }
                     }
                 }
                 .catch { exception ->
-                    _uiState.value = HomeUiState.Error(exception.message ?: "Error desconocido")
+                    _uiState.update { it.copy(isLoading = false, userMessage = exception.message) }
                 }
                 .collect { newState ->
                     _uiState.value = newState

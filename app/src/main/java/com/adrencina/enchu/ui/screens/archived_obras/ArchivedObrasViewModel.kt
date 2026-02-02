@@ -2,6 +2,7 @@ package com.adrencina.enchu.ui.screens.archived_obras
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.domain.repository.ObraRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,8 +33,12 @@ class ArchivedObrasViewModel @Inject constructor(
                 .catch { exception ->
                     _uiState.value = ArchivedObrasUiState.Error(exception.message ?: "Error desconocido")
                 }
-                .collect { obras ->
-                    _uiState.value = ArchivedObrasUiState.Success(obras)
+                .collect { resource ->
+                    when (resource) {
+                        is Resource.Loading -> _uiState.value = ArchivedObrasUiState.Loading
+                        is Resource.Success -> _uiState.value = ArchivedObrasUiState.Success(resource.data ?: emptyList())
+                        is Resource.Error -> _uiState.value = ArchivedObrasUiState.Error(resource.message ?: "Error desconocido")
+                    }
                 }
         }
     }

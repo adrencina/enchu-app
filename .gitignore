@@ -105,3 +105,10 @@ temp/
 *.keystore
 keystore.properties
 signing_fingerprints.txt
+
+# --- Documentación, Guías y Contexto (Locales) ---
+# Ignorar todos los archivos de texto y markdown en la raíz
+/*.md
+/*.txt
+/*.png
+# Excepciones (si las hubiera en el futuro, se agregan aquí con !)

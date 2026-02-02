@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.repository.AuthRepository
 import com.adrencina.enchu.data.repository.ClienteRepository
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.repository.ObraRepository
 import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -90,8 +91,9 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             launch {
                 try {
-                    obraRepository.getObras().collectLatest { obras ->
-                        _uiState.update { it.copy(obrasCount = obras.size) }
+                    obraRepository.getObras().collectLatest { resource ->
+                        val count = resource.data?.size ?: 0
+                        _uiState.update { it.copy(obrasCount = count) }
                     }
                 } catch (e: Exception) {
                     // Error silencioso

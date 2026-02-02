@@ -7,6 +7,7 @@ import com.adrencina.enchu.data.model.MovimientoDocument
 import com.adrencina.enchu.data.model.ObraDocument
 import com.adrencina.enchu.data.model.PresupuestoItemDocument
 import com.adrencina.enchu.data.model.TareaDocument
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.domain.model.EstadoObra
 import com.adrencina.enchu.domain.model.Movimiento
@@ -80,47 +81,96 @@ class ObraRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getObras(): Flow<List<Obra>> {
-        val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+    override fun getObras(): Flow<Resource<List<Obra>>> {
+        val userId = auth.currentUser?.uid ?: return flowOf(Resource.Error("Usuario no autenticado"))
         return callbackFlow {
+            trySend(Resource.Loading())
             val userProfileRef = firestore.collection("users").document(userId)
-            val registration = userProfileRef.addSnapshotListener { profileSnap, _ ->
+            var obrasRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+            
+            val registration = userProfileRef.addSnapshotListener { profileSnap, error ->
+                if (error != null) {
+                    trySend(Resource.Error(error.message ?: "Error al obtener perfil"))
+                    return@addSnapshotListener
+                }
+
                 val organizationId = profileSnap?.getString("organizationId")
                 val obrasQuery = if (!organizationId.isNullOrEmpty()) {
                     firestore.collection("obras").whereEqualTo("organizationId", organizationId)
                 } else {
                     firestore.collection("obras").whereEqualTo("userId", userId)
                 }
-                obrasQuery.addSnapshotListener { obrasSnap, _ ->
+                
+                // Remove previous listener if exists to avoid duplicates/leaks when profile updates
+                obrasRegistration?.remove()
+                
+                obrasRegistration = obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
+                    if (obrasError != null) {
+                        trySend(Resource.Error(obrasError.message ?: "Error al cargar obras"))
+                        return@addSnapshotListener
+                    }
+                    
                     if (obrasSnap != null) {
-                        val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
-                        trySend(obrasDocs.filter { it.id.isNotEmpty() && !it.isArchived }.map { it.toDomain() }).isSuccess
+                        try {
+                            val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
+                            val obrasList = obrasDocs.filter { it.id.isNotEmpty() && !it.isArchived }.map { it.toDomain() }
+                            trySend(Resource.Success(obrasList))
+                        } catch (e: Exception) {
+                            trySend(Resource.Error("Error de datos: ${e.message}"))
+                        }
                     }
                 }
             }
-            awaitClose { registration.remove() }
+            awaitClose { 
+                registration.remove()
+                obrasRegistration?.remove()
+            }
         }
     }
 
-    override fun getArchivedObras(): Flow<List<Obra>> {
-        val userId = auth.currentUser?.uid ?: return flowOf(emptyList())
+    override fun getArchivedObras(): Flow<Resource<List<Obra>>> {
+        val userId = auth.currentUser?.uid ?: return flowOf(Resource.Error("Usuario no autenticado"))
         return callbackFlow {
+            trySend(Resource.Loading())
             val userProfileRef = firestore.collection("users").document(userId)
-            val registration = userProfileRef.addSnapshotListener { profileSnap, _ ->
+            var obrasRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+            
+            val registration = userProfileRef.addSnapshotListener { profileSnap, error ->
+                if (error != null) {
+                    trySend(Resource.Error(error.message ?: "Error al obtener perfil"))
+                    return@addSnapshotListener
+                }
+
                 val organizationId = profileSnap?.getString("organizationId")
                 val obrasQuery = if (!organizationId.isNullOrEmpty()) {
                     firestore.collection("obras").whereEqualTo("organizationId", organizationId)
                 } else {
                     firestore.collection("obras").whereEqualTo("userId", userId)
                 }
-                obrasQuery.addSnapshotListener { obrasSnap, _ ->
+                
+                obrasRegistration?.remove()
+                
+                obrasRegistration = obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
+                    if (obrasError != null) {
+                        trySend(Resource.Error(obrasError.message ?: "Error al cargar obras archivadas"))
+                        return@addSnapshotListener
+                    }
+
                     if (obrasSnap != null) {
-                        val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
-                        trySend(obrasDocs.filter { it.isArchived }.map { it.toDomain() }).isSuccess
+                        try {
+                            val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
+                            val obrasList = obrasDocs.filter { it.isArchived }.map { it.toDomain() }
+                            trySend(Resource.Success(obrasList))
+                        } catch (e: Exception) {
+                            trySend(Resource.Error("Error de datos: ${e.message}"))
+                        }
                     }
                 }
             }
-            awaitClose { registration.remove() }
+            awaitClose { 
+                registration.remove()
+                obrasRegistration?.remove()
+            }
         }
     }    
         

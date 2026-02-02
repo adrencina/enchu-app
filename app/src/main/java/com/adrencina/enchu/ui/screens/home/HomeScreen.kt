@@ -58,29 +58,29 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        when (val state = uiState) {
-            is HomeUiState.Loading -> {
-                // Estado de carga silencioso: Mantenemos el fondo limpio mientras cargan los datos.
-                // Esto evita el 'flickeo' de un spinner durante la transición rápida desde Login.
-                Box(modifier = Modifier.fillMaxSize())
+        HomeDashboardContent(
+            state = uiState,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { 
+                searchQuery = it 
+                viewModel.onSearchQueryChanged(it)
+            },
+            onObraClick = onObraClick,
+            onArchivedClick = onArchivedObrasClick,
+            onMenuClick = { /* TODO */ }
+        )
+
+        if (uiState.isLoading && uiState.activeObras.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-            is HomeUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = state.message, color = MaterialTheme.colorScheme.error)
+        }
+
+        uiState.userMessage?.let { message ->
+            LaunchedEffect(message) {
+                scope.launch {
+                    snackbarHostState.showSnackbar(message)
                 }
-            }
-            is HomeUiState.Success -> {
-                HomeDashboardContent(
-                    state = state,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { 
-                        searchQuery = it 
-                        viewModel.onSearchQueryChanged(it)
-                    },
-                    onObraClick = onObraClick,
-                    onArchivedClick = onArchivedObrasClick,
-                    onMenuClick = { /* TODO */ }
-                )
             }
         }
 
@@ -93,7 +93,7 @@ fun HomeScreen(
 
 @Composable
 fun HomeDashboardContent(
-    state: HomeUiState.Success,
+    state: HomeUiState,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onObraClick: (String) -> Unit,

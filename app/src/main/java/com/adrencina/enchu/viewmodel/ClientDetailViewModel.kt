@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.data.repository.ClienteRepository
 import com.adrencina.enchu.domain.repository.ObraRepository
@@ -93,7 +94,10 @@ class ClientDetailViewModel @Inject constructor(
                 val safeClientFlow = clienteRepository.getClientes()
                 val obrasFlow = obraRepository.getObras()
                 
-                combine(safeClientFlow, obrasFlow) { clientes, obras ->
+                combine(safeClientFlow, obrasFlow) { clientes, resourceObras ->
+                    val obras = resourceObras.data ?: emptyList()
+                    val isLoadingObras = resourceObras is Resource.Loading
+                    
                     val cliente = clientes.find { it.id == clientId }
                     val obrasDelCliente = obras.filter { it.clienteId == clientId }
                     
@@ -101,7 +105,8 @@ class ClientDetailViewModel @Inject constructor(
                         ClientDetailUiState(
                             cliente = cliente,
                             obras = obrasDelCliente,
-                            isLoading = false
+                            isLoading = isLoadingObras,
+                            error = resourceObras.message
                         )
                     } else {
                         if (!isDeleting) {

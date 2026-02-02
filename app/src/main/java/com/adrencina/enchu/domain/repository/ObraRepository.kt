@@ -1,5 +1,6 @@
 package com.adrencina.enchu.domain.repository
 
+import com.adrencina.enchu.domain.common.Resource
 import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.domain.model.Movimiento
 import com.adrencina.enchu.domain.model.Obra
@@ -26,9 +27,9 @@ interface ObraRepository {
      * Obtiene una lista de todas las obras de un usuario en tiempo real.
      * Usamos Flow para que la UI se actualice automáticamente si hay cambios en la base de datos.
      */
-    fun getObras(): Flow<List<Obra>>
+    fun getObras(): Flow<Resource<List<Obra>>>
 
-    fun getArchivedObras(): Flow<List<Obra>>
+    fun getArchivedObras(): Flow<Resource<List<Obra>>>
 
     suspend fun saveObra(obra: Obra): Result<Unit>
 
