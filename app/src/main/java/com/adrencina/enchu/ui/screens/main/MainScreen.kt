@@ -50,6 +50,7 @@ fun MainScreen(
     onArchivedObrasClick: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToTeamScreen: () -> Unit,
+    onNavigateToSubscription: () -> Unit,
     budgetTabToOpen: Int? = null,
     onBudgetTabConsumed: () -> Unit = {},
     shouldResetToHome: Boolean = false,
@@ -150,7 +151,8 @@ fun MainScreen(
             composable(Routes.PROFILE_SCREEN) {
                 ProfileScreen(
                     onLogout = onLogout,
-                    onNavigateToTeamScreen = onNavigateToTeamScreen
+                    onNavigateToTeamScreen = onNavigateToTeamScreen,
+                    onNavigateToSubscription = onNavigateToSubscription
                 )
             }
         }

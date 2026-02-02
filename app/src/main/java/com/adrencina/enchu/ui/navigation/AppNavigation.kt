@@ -31,6 +31,7 @@ import com.adrencina.enchu.ui.screens.splash.SplashViewModel
 import com.adrencina.enchu.ui.screens.splash.SplashUiEvent
 import com.adrencina.enchu.ui.screens.profile.team.TeamScreen
 import com.adrencina.enchu.ui.screens.new_budget.NewBudgetScreen
+import com.adrencina.enchu.ui.screens.subscription.SubscriptionScreen
 
 @Composable
 fun AppNavigation() {
@@ -159,6 +160,9 @@ fun AppNavigation() {
                 onNavigateToTeamScreen = {
                     navController.navigate(Routes.TEAM_SCREEN)
                 },
+                onNavigateToSubscription = {
+                    navController.navigate(Routes.SUBSCRIPTION_SCREEN)
+                },
                 budgetTabToOpen = targetTab,
                 onBudgetTabConsumed = {
                     backStackEntry.savedStateHandle["target_tab"] = null
@@ -200,6 +204,12 @@ fun AppNavigation() {
         composable(Routes.TEAM_SCREEN) {
             TeamScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SUBSCRIPTION_SCREEN) {
+            SubscriptionScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 

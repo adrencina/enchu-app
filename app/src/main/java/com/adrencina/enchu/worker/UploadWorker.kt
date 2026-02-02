@@ -43,7 +43,13 @@ class UploadWorker @AssistedInject constructor(
             }
 
             val storageRef = storage.reference.child("obras/${fileEntity.workId}/${fileEntity.fileName}")
-            storageRef.putFile(Uri.fromFile(localFile)).await()
+
+            // Add metadata for security rules
+            val metadata = com.google.firebase.storage.StorageMetadata.Builder()
+                .setCustomMetadata("ownerId", fileEntity.userId)
+                .build()
+
+            storageRef.putFile(Uri.fromFile(localFile), metadata).await()
             val downloadUrl = storageRef.downloadUrl.await().toString()
 
             // 4. Actualizar estado en Room (ÉXITO)

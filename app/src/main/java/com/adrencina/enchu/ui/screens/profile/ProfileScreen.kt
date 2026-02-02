@@ -51,7 +51,8 @@ fun ProfileScreen(
     profileViewModel: ProfileViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     onLogout: () -> Unit,
-    onNavigateToTeamScreen: () -> Unit
+    onNavigateToTeamScreen: () -> Unit,
+    onNavigateToSubscription: () -> Unit
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
@@ -128,7 +129,7 @@ fun ProfileScreen(
                 MenuItem(
                     icon = if (uiState.organization?.plan == "PRO") Icons.Outlined.Build else Icons.Outlined.Build,
                     text = "Suscripción: ${uiState.organization?.plan ?: "FREE"}",
-                    onClick = { /* TODO: Abrir pantalla de suscripción */ },
+                    onClick = onNavigateToSubscription,
                     trailing = {
                         Surface(
                             color = if (uiState.organization?.plan == "PRO") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,

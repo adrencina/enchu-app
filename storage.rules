@@ -3,18 +3,29 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Regla genérica para todo lo que esté bajo 'obras/{workId}'
-    // Usada para fotos de avances y archivos de obra.
+    // Regla para Obras
+    // Ruta: obras/{workId}/{fileName}
     match /obras/{workId}/{allPaths=**} {
-       allow read, write: if request.auth != null;
+       // Lectura: Permitida a usuarios autenticados.
+       // (Mejora futura: restringir a miembros de la obra consultando Firestore)
+       allow read: if request.auth != null;
+       
+       // Escritura (Crear, Actualizar, Borrar):
+       // 1. Usuario autenticado.
+       // 2. Integridad de subida: Si se sube archivo (request.resource), el metadata 'ownerId' debe coincidir con el UID.
+       // 3. Protección de sobreescritura: Si el archivo ya existe (resource), solo el dueño (metadata.ownerId) puede tocarlo.
+       //    (Se permite modificar archivos legacy que no tengan metadata para evitar bloqueos).
+       allow write: if request.auth != null
+                    && (request.resource == null || request.resource.metadata.ownerId == request.auth.uid)
+                    && (resource == null || resource.metadata == null || resource.metadata.ownerId == request.auth.uid);
     }
 
-    // --- NUEVO: Regla para logos de Organizaciones ---
+    // Regla para Organizaciones
     // Ruta: organizations/{orgId}/logo.jpg
     match /organizations/{orgId}/{allPaths=**} {
-       // Permitir subir/borrar si estás autenticado (idealmente validar propiedad con Firestore)
+       // Permitir subir/borrar solo si estás autenticado.
+       // Nota: No podemos validar fácilmente membresía sin Custom Claims o llamadas costosas a Firestore.
        allow write: if request.auth != null; 
-       // Permitir lectura pública o autenticada para que se vea en los PDFs y Perfiles
        allow read: if request.auth != null;
     }
   }

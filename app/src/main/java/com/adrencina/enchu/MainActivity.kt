@@ -51,6 +51,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Blindaje Visual: Prevenir capturas de pantalla y ocultar en aplicaciones recientes
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        
         // Inicializar App Update Manager
         appUpdateManager = AppUpdateManagerFactory.create(this)
         appUpdateManager.registerListener(installStateUpdatedListener)

@@ -59,3 +59,13 @@
 # Evitar advertencias que pueden romper el build
 -dontwarn net.sqlcipher.**
 -dontwarn androidx.room.**
+
+# --- ELIMINACIÓN DE LOGS EN PRODUCCIÓN (BLINDAJE DE INFORMACIÓN) ---
+# Esta regla elimina físicamente las llamadas a Log del código compilado en Release.
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
