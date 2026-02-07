@@ -143,6 +143,12 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun onUpdateUserRole(role: String) {
+        viewModelScope.launch {
+            authRepository.updateUserRole(role)
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             authRepository.signOut()

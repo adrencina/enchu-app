@@ -38,20 +38,28 @@ object Routes {
     const val CLIENT_DETAIL_SCREEN = "client_detail_screen/{clientId}"
     const val ARCHIVED_OBRAS_SCREEN = "archived_obras_screen"
 
-    // Ruta con un argumento para el ID de la obra
-    const val OBRA_DETAIL_SCREEN = "obra_detail_screen/{obraId}"
+    // Ruta con un argumento para el ID de la obra y un tab inicial opcional
+    const val OBRA_DETAIL_SCREEN = "obra_detail_screen/{obraId}?initialTab={initialTab}"
 
     /**
      * Función helper para construir la ruta al detalle de una obra.
      * Esto asegura que la ruta se construya siempre de la misma manera.
      * Uso: Routes.createObraDetailRoute(obra.id)
      */
-    fun createObraDetailRoute(obraId: String): String {
+    fun createObraDetailRoute(obraId: String, initialTab: Int? = null): String {
         return try {
             val encodedId = java.net.URLEncoder.encode(obraId, "UTF-8")
-            "obra_detail_screen/$encodedId"
+            var route = "obra_detail_screen/$encodedId"
+            if (initialTab != null) {
+                route += "?initialTab=$initialTab"
+            }
+            route
         } catch (e: Exception) {
-            "obra_detail_screen/$obraId" // Fallback
+            var route = "obra_detail_screen/$obraId"
+            if (initialTab != null) {
+                route += "?initialTab=$initialTab"
+            }
+            route
         }
     }
 

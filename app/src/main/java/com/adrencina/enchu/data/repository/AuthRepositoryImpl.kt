@@ -133,6 +133,16 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateUserRole(role: String): Result<Unit> {
+        return try {
+            val userId = auth.currentUser?.uid ?: return Result.failure(Exception("Usuario no autenticado"))
+            firestore.collection("users").document(userId).update("role", role).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }

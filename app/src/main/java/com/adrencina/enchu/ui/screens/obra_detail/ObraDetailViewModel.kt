@@ -71,6 +71,7 @@ class ObraDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val obraId: String = savedStateHandle.get<String>("obraId") ?: ""
+    private val initialTab: Int = savedStateHandle.get<Int>("initialTab") ?: -1
 
     private val _uiState = MutableStateFlow<ObraDetailUiState>(ObraDetailUiState.Loading)
     val uiState = _uiState.asStateFlow()
@@ -100,10 +101,12 @@ class ObraDetailViewModel @Inject constructor(
                     .collect { obra ->
                         if (obra != null) {
                             _uiState.update { current ->
-                                if (current is ObraDetailUiState.Success) {
-                                    current.copy(obra = obra)
-                                } else {
-                                    ObraDetailUiState.Success(obra = obra)
+                                when (current) {
+                                    is ObraDetailUiState.Success -> current.copy(obra = obra)
+                                    else -> ObraDetailUiState.Success(
+                                        obra = obra,
+                                        selectedTabIndex = if (initialTab != -1) initialTab else 0
+                                    )
                                 }
                             }
                         } else {

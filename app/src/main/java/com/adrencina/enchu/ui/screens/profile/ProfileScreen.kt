@@ -45,6 +45,8 @@ import com.adrencina.enchu.viewmodel.ProfileViewModel
 import com.adrencina.enchu.viewmodel.SettingsViewModel
 import com.google.firebase.auth.FirebaseUser
 
+import com.adrencina.enchu.domain.model.UserRole
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -167,7 +169,31 @@ fun ProfileScreen(
                 )
             }
 
-            // 5. Legal y Soporte (IMPORTANTE para Play Store)
+            // 5. DEBUG: Cambiar Rol (Temporal para Pruebas)
+            SettingsSection(title = "DEBUG: TESTEO DE ROLES") {
+                val currentRole = UserRole.fromValue(uiState.userProfile?.role ?: "OWNER")
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    UserRole.entries.forEach { role ->
+                        FilterChip(
+                            selected = currentRole == role,
+                            onClick = { profileViewModel.onUpdateUserRole(role.value) },
+                            label = { Text(role.value) }
+                        )
+                    }
+                }
+                Text(
+                    "Esta sección es temporal para que puedas probar cómo cambia la Home según el rol.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            // 6. Legal y Soporte (IMPORTANTE para Play Store)
             SettingsSection(title = "LEGAL") {
                 MenuItem(
                     icon = Icons.Default.PrivacyTip,

@@ -21,5 +21,10 @@ data class Obra(
     val validez: Int = 15,
     val notas: String = "",
     val presupuestoTotal: Double = 0.0,
-    val fechaCreacion: Date? = null
+    val fechaCreacion: Date? = null,
+    val tareasTotales: Int = 0,
+    val tareasCompletadas: Int = 0,
+    // Future-proofing fields
+    val assignedMemberIds: List<String> = emptyList(), // Para asignar empleados específicos
+    val lastActivity: Date? = null // Para ordenar por "Último Toque"
 )

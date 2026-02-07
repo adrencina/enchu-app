@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.model.PresupuestoWithItems
+import androidx.core.content.FileProvider
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import androidx.compose.material.icons.filled.Share
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,6 +43,7 @@ fun PresupuestosScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(initialTab ?: 0) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     
     // Manejo de eventos (Navegación y Errores)
     LaunchedEffect(Unit) {
@@ -51,6 +56,19 @@ fun PresupuestosScreen(
                 is PresupuestosEvent.ShowError -> {
                     android.util.Log.e("PresupuestosScreen", "Error: ${event.message}")
                     snackbarHostState.showSnackbar(event.message)
+                }
+                is PresupuestosEvent.SharePdf -> {
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.provider",
+                        event.file
+                    )
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Enviar Presupuesto"))
                 }
             }
         }
@@ -147,7 +165,8 @@ fun PresupuestosScreen(
                                     presupuesto = item,
                                     isSent = selectedTabIndex == 1,
                                     onClick = { onEditBudgetClick(item.presupuesto.id) },
-                                    onCreateObra = { viewModel.acceptBudget(item) }
+                                    onCreateObra = { viewModel.acceptBudget(item) },
+                                    onExportPdf = { viewModel.onExportPdf(item) }
                                 )
                             }
                         )
@@ -185,7 +204,8 @@ fun CompactBudgetCard(
     presupuesto: PresupuestoWithItems,
     isSent: Boolean,
     onClick: () -> Unit,
-    onCreateObra: () -> Unit
+    onCreateObra: () -> Unit,
+    onExportPdf: () -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.getDefault()) }
     val currencyFormatter = remember {
@@ -255,17 +275,29 @@ fun CompactBudgetCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(Modifier.width(8.dp))
+            VerticalDivider(Modifier.height(32.dp))
+            Spacer(Modifier.width(4.dp))
+
+            // Botón Compartir/PDF
+            IconButton(onClick = onExportPdf) {
+                Icon(
+                    Icons.Default.Share, 
+                    contentDescription = "Enviar PDF",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
             
             // Botón Crear Obra (Solo en Enviados)
             if (isSent) {
-                Spacer(Modifier.width(8.dp))
-                VerticalDivider(Modifier.height(32.dp))
-                Spacer(Modifier.width(4.dp))
                 IconButton(onClick = onCreateObra) {
                     Icon(
                         Icons.Default.Build, 
                         contentDescription = "Crear Obra",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

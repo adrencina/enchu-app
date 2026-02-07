@@ -234,17 +234,46 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addTarea(obraId: String, tarea: Tarea): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("tareas").add(tarea.toDocument()).await()
+        val batch = firestore.batch()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document()
+        
+        batch.set(tareaRef, tarea.toDocument().copy(id = tareaRef.id))
+        batch.update(obraRef, "tareasTotales", com.google.firebase.firestore.FieldValue.increment(1))
+        
+        batch.commit().await()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("tareas").document(tareaId).update("completada", completada).await()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document(tareaId)
+        
+        firestore.runTransaction { transaction ->
+            transaction.update(tareaRef, "completada", completada)
+            val increment = if (completada) 1L else -1L
+            transaction.update(obraRef, "tareasCompletadas", com.google.firebase.firestore.FieldValue.increment(increment))
+        }.await()
+        
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("tareas").document(tareaId).delete().await()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document(tareaId)
+        
+        // Necesitamos saber si la tarea estaba completada para decrementar el contador correcto
+        val tareaSnapshot = tareaRef.get().await()
+        val estabaCompletada = tareaSnapshot.getBoolean("completada") ?: false
+        
+        val batch = firestore.batch()
+        batch.delete(tareaRef)
+        batch.update(obraRef, "tareasTotales", com.google.firebase.firestore.FieldValue.increment(-1))
+        if (estabaCompletada) {
+            batch.update(obraRef, "tareasCompletadas", com.google.firebase.firestore.FieldValue.increment(-1))
+        }
+        
+        batch.commit().await()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 

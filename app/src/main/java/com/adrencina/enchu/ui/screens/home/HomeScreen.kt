@@ -1,176 +1,215 @@
 package com.adrencina.enchu.ui.screens.home
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.adrencina.enchu.R
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import android.content.Intent
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel(),
-    newObraResult: String?,
-    onClearNewObraResult: () -> Unit,
-    onAddObraClick: () -> Unit,
     onObraClick: (String) -> Unit,
-    onArchivedObrasClick: () -> Unit
+    onObraActionClick: (String, Int) -> Unit = { _, _ -> },
+    onAddObraClick: () -> Unit,
+    onArchivedObrasClick: () -> Unit = {},
+    newObraResult: String? = null,
+    onClearNewObraResult: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-
     LaunchedEffect(newObraResult) {
-        if (newObraResult != null) {
-            viewModel.onNewObraCreated(newObraResult)
+        newObraResult?.let {
+            viewModel.onNewObraCreated(it)
             onClearNewObraResult()
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.uiEffect.collect { effect ->
-            when (effect) {
-                is HomeUiEffect.ShowObraCreatedSnackbar -> {
-                    val message = context.getString(R.string.obra_created_success_format, effect.clientName)
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message)
+    LaunchedEffect(uiState.userMessage) {
+        uiState.userMessage?.let {
+            snackbarHostState.showSnackbar(it)
+        }
+    }
+
+    val cloudIcon = if (uiState.isError) Icons.Outlined.CloudOff else Icons.Default.Cloud
+    val cloudColor = if (uiState.isError) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+
+    Scaffold(
+        topBar = {
+            val totalObras = uiState.recientes.size + (if (uiState.obraActiva != null) 1 else 0)
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Spacer(Modifier.statusBarsPadding())
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(66.dp)
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Hola, Adrián",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                if (uiState.plan == "PRO") {
+                                    Spacer(Modifier.width(8.dp))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(4.dp),
+                                    ) {
+                                        Text(
+                                            text = "PRO",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "Tenemos $totalObras obras en curso hoy",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = cloudIcon,
+                                contentDescription = "Estado de conexión",
+                                tint = cloudColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        
+        if (uiState.isLoading) {
+             Box(modifier = Modifier.padding(paddingValues)) {
+                 HomeSkeletonLoader()
+             }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding() + 24.dp 
+                )
+            ) {
+                if (uiState.userRole.canViewMoney()) {
+                    item {
+                        SummaryCard(
+                            totalCobrado = uiState.totalCobrado,
+                            totalPendiente = uiState.totalPendiente,
+                            saldoTotal = uiState.saldoTotal
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+
+                item {
+                    uiState.obraActiva?.let { obra ->
+                        HeroObraCard(
+                            obra = obra,
+                            onObraClick = onObraClick,
+                            onCameraClick = { onObraActionClick(it, 0) },
+                            onTasksClick = { onObraActionClick(it, 2) },
+                            onFilesClick = { onObraActionClick(it, 1) },
+                            onWhatsAppClick = {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    val phone = obra.telefono.filter { it.isDigit() }
+                                    data = android.net.Uri.parse("https://wa.me/$phone")
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("No se pudo abrir WhatsApp")
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if (uiState.recientes.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Recientes",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        )
+                    }
+                    items(uiState.recientes) { obra ->
+                        RecentObraCard(
+                            obra = obra,
+                            onClick = onObraClick
+                        )
+                    }
+                } else if (uiState.obraActiva == null) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay obras activas.\n¡Crea una con el botón +!",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        HomeDashboardContent(
-            state = uiState,
-            searchQuery = searchQuery,
-            onSearchQueryChange = { 
-                searchQuery = it 
-                viewModel.onSearchQueryChanged(it)
-            },
-            onObraClick = onObraClick,
-            onArchivedClick = onArchivedObrasClick,
-            onMenuClick = { /* TODO */ }
-        )
-
-        if (uiState.isLoading && uiState.activeObras.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-
-        uiState.userMessage?.let { message ->
-            LaunchedEffect(message) {
-                scope.launch {
-                    snackbarHostState.showSnackbar(message)
-                }
-            }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)
-        )
-    }
-}
-
-@Composable
-fun HomeDashboardContent(
-    state: HomeUiState,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onObraClick: (String) -> Unit,
-    onArchivedClick: () -> Unit,
-    onMenuClick: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 1. Header Fijo
-        DashboardHeader(
-            userName = state.userName,
-            onNotificationClick = { },
-            onMenuClick = onMenuClick
-        )
-
-        // 2. Contenido Scrollable
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            DashboardSearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange
-            )
-            
-            Spacer(Modifier.height(12.dp))
-
-            ActiveWorksRow(
-                obras = state.activeObras,
-                onClick = onObraClick
-            )
-
-            // Grid de Informes Financieros REALES
-            ReportsGrid(
-                saldoTotal = state.saldoTotal,
-                totalPendiente = state.totalPendiente,
-                totalGastado = state.totalGastado
-            )
-            
-            // ... resto del contenido (Archivados, etc)
-            if (state.archivedObras.isNotEmpty()) {
-                ArchivedWorksRow(
-                    obras = state.archivedObras,
-                    onClick = onArchivedClick // O navegar a detalle
-                )
-            }
-            
-            Spacer(Modifier.height(80.dp)) // Espacio para BottomBar
-        }
-    }
-}
-
-@Composable
-fun ArchivedWorksRow(
-    obras: List<com.adrencina.enchu.domain.model.Obra>,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Archivados recientes",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            TextButton(onClick = onClick) {
-                Text("Ver todo")
-            }
-        }
-        
-        // ... (Simpler list or row for archived)
     }
 }

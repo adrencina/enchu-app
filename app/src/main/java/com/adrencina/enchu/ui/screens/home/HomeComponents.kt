@@ -1,408 +1,427 @@
 package com.adrencina.enchu.ui.screens.home
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AssignmentLate
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrencina.enchu.domain.model.Obra
-import java.text.NumberFormat
-import java.time.LocalTime
-import java.util.Locale
+
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 
 @Composable
-fun DashboardHeader(
-    userName: String,
-    onNotificationClick: () -> Unit,
-    onMenuClick: () -> Unit
+fun HeroObraCard(
+    obra: Obra,
+    onObraClick: (String) -> Unit,
+    onCameraClick: (String) -> Unit,
+    onTasksClick: (String) -> Unit,
+    onFilesClick: (String) -> Unit,
+    onWhatsAppClick: (String) -> Unit
 ) {
-    val currentHour = LocalTime.now().hour
-    val (greeting, emoji) = when (currentHour) {
-        in 5..11 -> "¡Buen día" to "☀️"
-        in 12..19 -> "¡Buenas tardes" to "👋"
-        else -> "¡Buenas noches" to "🌙"
-    }
-
-    Row(
+    ElevatedCard(
+        onClick = { onObraClick(obra.id) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "$greeting, $userName! $emoji",
-            style = MaterialTheme.typography.titleSmall, // Reducido
-            fontWeight = FontWeight.Bold
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
-        
-        Row {
-            IconButton(onClick = onNotificationClick) {
-                Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", modifier = Modifier.size(24.dp))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // --- PARTE SUPERIOR: INFORMACIÓN ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp, start = 24.dp, end = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "OBRA EN CURSO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = obra.clienteNombre,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = obra.nombreObra,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                // Icono de Ubicación (GPS)
+                IconButton(
+                    onClick = { /* TODO: Abrir Mapas */ },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn, 
+                        contentDescription = "Ver ubicación",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
-            IconButton(onClick = onMenuClick) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Menú", modifier = Modifier.size(24.dp))
+
+            // --- LÍNEA DE PROGRESO MINIMALISTA ---
+            if (obra.tareasTotales > 0) {
+                val progreso = obra.tareasCompletadas.toFloat() / obra.tareasTotales.toFloat()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Progreso de tareas",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = "${(progreso * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { progreso },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+            } else {
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // --- PARTE INFERIOR: CINTURÓN DE HERRAMIENTAS ---
+            // Los botones "apoyados" sobre una base con un sutil cambio de tono
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    QuickActionButton(
+                        icon = Icons.Outlined.PhotoCamera,
+                        label = "Cámara",
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onClick = { onCameraClick(obra.id) }
+                    )
+                    
+                    val pendientes = obra.tareasTotales - obra.tareasCompletadas
+                    QuickActionButton(
+                        icon = Icons.Outlined.Assignment,
+                        label = "Tareas",
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        badgeCount = if (pendientes > 0) pendientes else null,
+                        onClick = { onTasksClick(obra.id) }
+                    )
+
+                    QuickActionButton(
+                        icon = Icons.Outlined.FolderOpen,
+                        label = "Planos",
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        onClick = { onFilesClick(obra.id) }
+                    )
+                    QuickActionButton(
+                        icon = Icons.Outlined.Chat,
+                        label = "WhatsApp",
+                        containerColor = Color(0xFFE7FFDB),
+                        contentColor = Color(0xFF075E54),
+                        onClick = { onWhatsAppClick(obra.id) }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun DashboardSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit
+fun QuickActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    containerColor: Color,
+    contentColor: Color,
+    badgeCount: Int? = null,
+    onClick: () -> Unit
 ) {
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .padding(top = 2.dp)
-            .height(48.dp)
-            .clip(CircleShape),
-        placeholder = { Text("Buscar...", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal)) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp)) },
-        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal),
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = if (isPressed) Spring.StiffnessHigh else Spring.StiffnessMedium
         ),
-        singleLine = true
+        label = "scale"
     )
-}
 
-@Composable
-fun ActiveWorksRow(
-    obras: List<Obra>,
-    onClick: (String) -> Unit
-) {
+    val containerAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.7f else 1f,
+        label = "alpha"
+    )
+
     Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .background(MaterialTheme.colorScheme.background)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        Text(
-            text = "Mis Obras",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp)
-        )
-
-        if (obras.isEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp) // Altura idéntica a DashboardObraCard
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Engineering,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Sin obras activas",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Crea tu primera obra para empezar.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+        BadgedBox(
+            badge = {
+                if (badgeCount != null) {
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.offset(x = (-4).dp, y = 4.dp)
+                    ) {
+                        Text(text = badgeCount.toString())
                     }
                 }
             }
-        } else {
-            LazyRow(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = containerColor.copy(alpha = containerAlpha),
+                tonalElevation = if (isPressed) 0.dp else 2.dp
             ) {
-                items(obras) { obra ->
-                    DashboardObraCard(obra = obra, onClick = { onClick(obra.id) })
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = label, tint = contentColor, modifier = Modifier.size(24.dp))
                 }
             }
         }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
-fun DashboardObraCard(obra: Obra, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.size(140.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // Blanco sobre gris
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = obra.nombreObra,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = obra.clienteNombre,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = "En curso",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ArchivedWorksPreview(
-    obras: List<Obra>,
-    onViewAll: () -> Unit,
+fun RecentObraCard(
+    obra: Obra,
     onClick: (String) -> Unit
 ) {
-    Column(modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Historial", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            TextButton(
-                onClick = onViewAll,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.heightIn(max = 32.dp)
-            ) {
-                Text("Ver todo", style = MaterialTheme.typography.labelSmall)
-            }
-        }
-        
-        if (obras.isEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp) // Altura idéntica a DashboardArchivedCard
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "Aquí verás tus trabajos terminados",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        } else {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(obras.take(5)) { obra ->
-                    DashboardArchivedCard(obra = obra, onClick = { onClick(obra.id) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DashboardArchivedCard(obra: Obra, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.size(120.dp),
-        // Color más oscuro/saturado para contrastar con el fondo blanco general, pero diferente a las activas
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), 
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(10.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = obra.nombreObra,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Terminada",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun ReportsGrid(
-    saldoTotal: Double = 0.0,
-    totalPendiente: Double = 0.0,
-    totalGastado: Double = 0.0
-) {
-    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply { maximumFractionDigits = 0 } }
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text("Tu Negocio (Global)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ReportCard(
-                icon = Icons.Default.TrendingUp,
-                color = Color(0xFF4CAF50),
-                label = "Saldo Actual",
-                value = currencyFormat.format(saldoTotal),
-                modifier = Modifier.weight(1f)
-            )
-            ReportCard(
-                icon = Icons.Default.Payments,
-                color = Color(0xFFFF9800),
-                label = "Por Cobrar",
-                value = currencyFormat.format(totalPendiente),
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ReportCard(
-                icon = Icons.Default.AssignmentLate,
-                color = Color(0xFFE91E63), // Pink/Redish for expenses
-                label = "Gastos Totales",
-                value = currencyFormat.format(totalGastado),
-                modifier = Modifier.weight(1f)
-            )
-            ReportCard(
-                icon = Icons.Default.EmojiEvents,
-                color = Color(0xFFFFC107),
-                label = "Ranking",
-                value = "Ver más", // Placeholder logic
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-fun ReportCard(icon: ImageVector, color: Color, label: String, value: String? = null, modifier: Modifier = Modifier) {
-    ElevatedCard(
-        modifier = modifier.height(80.dp), // A bit taller for value
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    Surface(
+        onClick = { onClick(obra.id) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp),
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = CircleShape,
-                color = color.copy(alpha = 0.1f),
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (value != null) {
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
+            
+            Spacer(Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = obra.nombreObra,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = obra.clienteNombre,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SummaryCard(
+    totalCobrado: Double,
+    totalPendiente: Double,
+    saldoTotal: Double
+) {
+    val currencyFormat = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("es", "AR"))
+    
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = "SALDO TOTAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = currencyFormat.format(saldoTotal),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Black
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SummaryItem(
+                    label = "Cobrado",
+                    value = currencyFormat.format(totalCobrado),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                SummaryItem(
+                    label = "Pendiente",
+                    value = currencyFormat.format(totalPendiente),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryItem(label: String, value: String, color: Color) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+fun HomeSkeletonLoader() {
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Hero Skeleton
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        // List Skeletons
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

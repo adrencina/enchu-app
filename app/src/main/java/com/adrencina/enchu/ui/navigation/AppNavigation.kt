@@ -124,6 +124,9 @@ fun AppNavigation() {
                 onObraClick = { obraId ->
                     navController.navigate(Routes.createObraDetailRoute(obraId))
                 },
+                onObraActionClick = { obraId, tabIndex ->
+                    navController.navigate(Routes.createObraDetailRoute(obraId, tabIndex))
+                },
                 onObraAccepted = { obraId ->
                     // Marcamos flag para que al volver (o en background), MainScreen vaya a Home
                     backStackEntry.savedStateHandle["reset_to_home"] = true
@@ -254,7 +257,13 @@ fun AppNavigation() {
 
         composable(
             route = Routes.OBRA_DETAIL_SCREEN,
-            arguments = listOf(navArgument("obraId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("obraId") { type = NavType.StringType },
+                navArgument("initialTab") { 
+                    type = NavType.IntType
+                    defaultValue = -1 // -1 means no initial tab specified
+                }
+            )
         ) {
             ObraDetailScreen(
                 onNavigateBack = { navController.popBackStack() }

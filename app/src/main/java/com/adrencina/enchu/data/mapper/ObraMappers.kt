@@ -34,7 +34,9 @@ fun ObraDocument.toDomain(): Obra {
         validez = this.validez,
         notas = this.notas,
         presupuestoTotal = this.presupuestoTotal,
-        fechaCreacion = this.fechaCreacion
+        fechaCreacion = this.fechaCreacion,
+        tareasTotales = this.tareasTotales,
+        tareasCompletadas = this.tareasCompletadas
     )
 }
 
@@ -58,7 +60,9 @@ fun Obra.toDocument(): ObraDocument {
         validez = this.validez,
         notas = this.notas,
         presupuestoTotal = this.presupuestoTotal,
-        fechaCreacion = this.fechaCreacion
+        fechaCreacion = this.fechaCreacion,
+        tareasTotales = this.tareasTotales,
+        tareasCompletadas = this.tareasCompletadas
     )
 }
 

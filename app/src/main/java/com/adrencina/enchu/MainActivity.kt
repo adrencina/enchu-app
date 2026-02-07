@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.repository.ThemeMode
+import com.adrencina.enchu.domain.repository.BillingRepository
 import com.adrencina.enchu.ui.navigation.AppNavigation
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.viewmodel.SettingsViewModel
@@ -25,9 +26,16 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var billingRepository: BillingRepository
 
     private lateinit var appUpdateManager: AppUpdateManager
     private val updateType = AppUpdateType.FLEXIBLE
@@ -50,6 +58,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Inicializar Billing
+        CoroutineScope(Dispatchers.IO).launch {
+            billingRepository.startConnection()
+        }
         
         // Blindaje Visual: Prevenir capturas de pantalla y ocultar en aplicaciones recientes
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -82,6 +95,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        billingRepository.terminateConnection()
         appUpdateManager.unregisterListener(installStateUpdatedListener)
     }
 

@@ -36,4 +36,9 @@ abstract class RepositoryModule {
     abstract fun bindFileRepository(
         impl: FileRepositoryImpl
     ): FileRepository
+
+    @Binds
+    abstract fun bindBillingRepository(
+        impl: com.adrencina.enchu.data.repository.BillingRepositoryImpl
+    ): com.adrencina.enchu.domain.repository.BillingRepository
 }

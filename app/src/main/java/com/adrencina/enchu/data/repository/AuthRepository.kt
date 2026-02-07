@@ -12,5 +12,6 @@ interface AuthRepository {
     suspend fun getUserProfileById(userId: String): UserProfile?
     suspend fun createIndependentProfile(user: FirebaseUser): Result<Unit>
     suspend fun joinOrganizationProfile(user: FirebaseUser, inviteCode: String): Result<Unit>
+    suspend fun updateUserRole(role: String): Result<Unit>
     suspend fun signOut()
 }

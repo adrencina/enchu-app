@@ -222,6 +222,15 @@ fun ObraDetailScreenContent(
                 obra = obra,
                 onBackPressed = onBackPressed,
                 actions = {
+                    if (selectedTabIndex == 3) {
+                        IconButton(onClick = onExportPdf) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = "Exportar PDF",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Box {
                         IconButton(onClick = onMenuPressed) {
                             Icon(
@@ -241,12 +250,6 @@ fun ObraDetailScreenContent(
                                 text = { Text("Archivar Obra") },
                                 onClick = onArchiveObra
                             )
-                            if (selectedTabIndex == 3) { // Presupuesto Tab
-                                DropdownMenuItem(
-                                    text = { Text("Exportar PDF") },
-                                    onClick = onExportPdf
-                                )
-                            }
                             // Opción Eliminar (Separada visualmente si es posible, o al final)
                             DropdownMenuItem(
                                 text = { Text("Eliminar Obra", color = MaterialTheme.colorScheme.error) },

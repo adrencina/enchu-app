@@ -35,5 +35,8 @@ data class ObraDocument(
     val notas: String = "",
     val presupuestoTotal: Double = 0.0,
 
-    @ServerTimestamp val fechaCreacion: Date? = null
+    @ServerTimestamp val fechaCreacion: Date? = null,
+    
+    val tareasTotales: Int = 0,
+    val tareasCompletadas: Int = 0
 )
