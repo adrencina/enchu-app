@@ -36,6 +36,27 @@ import com.adrencina.enchu.ui.components.SearchBar
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientsViewModel
 
+import com.adrencina.enchu.ui.components.SkeletonBox
+
+@Composable
+fun ClientsSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(8) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                shape = RoundedCornerShape(24.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientsScreen(
@@ -110,10 +131,12 @@ fun ClientsScreen(
                 }
             }
 
-            if (filteredClientes.isEmpty()) {
+            if (filteredClientes.isEmpty() && searchQuery.isEmpty()) {
+                ClientsSkeleton()
+            } else if (filteredClientes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = if (searchQuery.isNotEmpty()) "No se encontraron clientes" else "No hay clientes registrados",
+                        text = "No se encontraron clientes",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )

@@ -43,6 +43,8 @@ import com.adrencina.enchu.viewmodel.AddObraSideEffect
 import com.adrencina.enchu.viewmodel.AddObraUiState
 import com.adrencina.enchu.viewmodel.AddObraViewModel
 
+import com.adrencina.enchu.ui.components.SuccessDialog
+
 @Composable
 fun AddObraScreen(
     viewModel: AddObraViewModel = hiltViewModel(),
@@ -50,6 +52,8 @@ fun AddObraScreen(
     onNavigateBackWithResult: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSuccess by remember { mutableStateOf(false) }
+    var pendingResult by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -63,7 +67,6 @@ fun AddObraScreen(
                 launch(Dispatchers.Main) {
                     if (contactData.name.isNotBlank()) viewModel.onNewClientNameChange(contactData.name)
                     if (contactData.phone.isNotBlank()) viewModel.onNewClientPhoneChange(contactData.phone)
-                    // Email not available with PickPhoneContact
                 }
             }
         }
@@ -73,9 +76,22 @@ fun AddObraScreen(
         viewModel.sideEffect.collect { effect ->
             when (effect) {
                 is AddObraSideEffect.NavigateBack -> onNavigateBack()
-                is AddObraSideEffect.NavigateBackWithResult -> onNavigateBackWithResult(effect.clientName)
+                is AddObraSideEffect.NavigateBackWithResult -> {
+                    pendingResult = effect.clientName
+                    showSuccess = true
+                }
             }
         }
+    }
+
+    if (showSuccess) {
+        SuccessDialog(
+            onDismiss = {
+                showSuccess = false
+                pendingResult?.let { onNavigateBackWithResult(it) }
+            },
+            message = "Obra creada"
+        )
     }
 
     BackHandler {

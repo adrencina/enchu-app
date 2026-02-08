@@ -42,6 +42,27 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.scale
 import com.adrencina.enchu.ui.components.EnchuButton
 
+import com.adrencina.enchu.ui.components.SkeletonBox
+
+@Composable
+fun PresupuestosSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(6) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp),
+                shape = RoundedCornerShape(24.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PresupuestosScreen(
@@ -153,7 +174,9 @@ fun PresupuestosScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (items.isEmpty()) {
+            if (items.isEmpty() && uiState.drafts.isEmpty() && uiState.sent.isEmpty()) {
+                PresupuestosSkeleton()
+            } else if (items.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.align(Alignment.Center),
                     message = if (selectedTabIndex == 0) "No tienes borradores pendientes" else "No has enviado presupuestos aún"

@@ -68,6 +68,8 @@ fun ProfileScreen(
     val uiState by profileViewModel.uiState.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val context = LocalContext.current
+    
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     // Función auxiliar para abrir enlaces
     fun openUrl(url: String) {
@@ -86,6 +88,10 @@ fun ProfileScreen(
             onConfirm = profileViewModel::onUpdateOrganization,
             onLogoSelected = profileViewModel::onLogoSelected
         )
+    }
+    
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
     }
 
     Column(
@@ -152,7 +158,6 @@ fun ProfileScreen(
                                 text = if (uiState.organization?.plan == "PRO") "PRO" else "FREE",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
                                 color = if (uiState.organization?.plan == "PRO") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
@@ -217,8 +222,8 @@ fun ProfileScreen(
                 )
                 MenuItem(
                     icon = Icons.Default.Info,
-                    text = "Acerca de Enchu v2.1",
-                    onClick = { /* TODO: Mostrar dialogo de versión */ }
+                    text = "Acerca de Enchu v4.2",
+                    onClick = { showAboutDialog = true }
                 )
             }
 
@@ -304,9 +309,7 @@ fun ProfileCompactCard(user: FirebaseUser?, organization: Organization?) {
                         text = organization?.name?.uppercase() ?: "SIN ORGANIZACIÓN",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -362,9 +365,7 @@ private fun StatItemPremium(count: Int, label: String, icon: ImageVector, modifi
             Text(
                 text = label.uppercase(), 
                 style = MaterialTheme.typography.labelSmall, 
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -376,9 +377,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-            letterSpacing = 1.sp,
             modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
         )
         ElevatedCard(

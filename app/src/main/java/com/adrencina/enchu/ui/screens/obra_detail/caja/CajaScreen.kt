@@ -60,9 +60,7 @@ fun CajaScreen(
                 Text(
                     text = "ESTADO DE CAJA",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -117,7 +115,7 @@ private fun CajaSummaryItem(label: String, value: String, color: Color, icon: Im
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = color.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
-            Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+            Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f))
         }
         Text(value, style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.ExtraBold)
     }
@@ -246,9 +244,7 @@ fun AddMovimientoDialog(
                 Text(
                     text = "CATEGORÍA", 
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(8.dp))
                 val categorias = if (tipo == "INGRESO") listOf("PAGO_CLIENTE", "ADELANTO", "OTROS") 

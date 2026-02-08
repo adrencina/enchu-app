@@ -77,6 +77,8 @@ import com.adrencina.enchu.ui.components.EnchuButton
 import com.adrencina.enchu.ui.components.EnchuDialog
 import com.adrencina.enchu.ui.components.AppTextField
 
+import com.adrencina.enchu.ui.components.SuccessDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewBudgetScreen(
@@ -87,13 +89,28 @@ fun NewBudgetScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showMaterialSearch by remember { mutableStateOf(false) }
     var showManualClientDialog by remember { mutableStateOf(false) }
+    var showSuccess by remember { mutableStateOf(false) }
+    var pendingBudgetSavedResult by remember { mutableStateOf<Boolean?>(null) }
     
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is NewBudgetUiEvent.BudgetSaved -> onBudgetSaved(event.isSent)
+                is NewBudgetUiEvent.BudgetSaved -> {
+                    pendingBudgetSavedResult = event.isSent
+                    showSuccess = true
+                }
             }
         }
+    }
+
+    if (showSuccess) {
+        SuccessDialog(
+            onDismiss = {
+                showSuccess = false
+                pendingBudgetSavedResult?.let { onBudgetSaved(it) }
+            },
+            message = if (pendingBudgetSavedResult == true) "Presupuesto enviado" else "Borrador guardado"
+        )
     }
     
     val context = LocalContext.current

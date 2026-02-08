@@ -45,5 +45,12 @@ val Typography = Typography(
         fontFamily = Inter,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp
+    ),
+    // Etiqueta Profesional (Uso en Secciones, Headers de tarjetas)
+    labelSmall = TextStyle(
+        fontFamily = Inter,
+        fontWeight = FontWeight.Bold,
+        fontSize = 11.sp,
+        letterSpacing = 1.sp
     )
 )

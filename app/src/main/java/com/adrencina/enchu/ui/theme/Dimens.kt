@@ -15,6 +15,11 @@ object Dimens {
 
     val PaddingExtraLarge = 32.dp
 
+    // Corner Radii
+    val RadiusPremium = 32.dp
+    val RadiusStandard = 24.dp
+    val RadiusSmall = 12.dp
+
     // Component-specific
     val SplashLogoSize = 150.dp
     val LoginLogoSize = 130.dp

@@ -65,9 +65,7 @@ fun HeroObraCard(
                     Text(
                         text = "OBRA EN CURSO",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -369,9 +367,7 @@ fun SummaryCard(
                     Text(
                         text = "ESTADO FINANCIERO",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -454,8 +450,7 @@ private fun SummaryItem(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.Bold
+                    color = contentColor.copy(alpha = 0.7f)
                 )
                 Text(
                     text = value,

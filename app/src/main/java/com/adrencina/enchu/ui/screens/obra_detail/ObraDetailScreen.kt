@@ -100,6 +100,55 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 
+import com.adrencina.enchu.ui.components.SkeletonBox
+
+@Composable
+fun ObraDetailSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Hero Card Skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp),
+            shape = RoundedCornerShape(32.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Tabs Skeleton
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(4) {
+                SkeletonBox(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // List items Skeletons
+        repeat(5) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+    }
+}
+
 // Main entry point
 @Composable
 fun ObraDetailScreen(
@@ -301,9 +350,7 @@ fun ObraDetailScreenContent(
         ) {
             when (uiState) {
                 is ObraDetailUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                    ObraDetailSkeleton()
                 }
                 is ObraDetailUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -472,9 +519,7 @@ private fun ObraInfoSection(obra: Obra) {
                     Text(
                         text = "DETALLES DE OBRA",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -506,7 +551,6 @@ private fun ObraInfoSection(obra: Obra) {
                     Text(
                         text = obra.estado.value.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         color = statusContentColor
                     )

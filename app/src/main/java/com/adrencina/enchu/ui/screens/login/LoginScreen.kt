@@ -112,49 +112,57 @@ fun LoginScreenContent(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.surfaceContainerHigh // Fondo con más cuerpo
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = Dimens.PaddingLarge)
+                    .padding(horizontal = 24.dp) // Más padding lateral
                     .testTag("login_screen_content"),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 val isDark = isSystemInDarkTheme()
                 
-                Image(
-                    painter = painterResource(id = AppImages.Logo),
-                    contentDescription = AppStrings.splashLogoDescription,
-                    modifier = Modifier
-                        .size(Dimens.LoginLogoSize)
-                        .semantics { contentDescription = AppStrings.splashLogoDescription },
-                    colorFilter = if (isDark) ColorFilter.tint(Color.White) else null
-                )
+                // Logo con sombra sutil
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    shadowElevation = 12.dp,
+                    color = Color.Transparent
+                ) {
+                    Image(
+                        painter = painterResource(id = AppImages.Logo),
+                        contentDescription = AppStrings.splashLogoDescription,
+                        modifier = Modifier
+                            .size(120.dp) // Logo más grande
+                            .semantics { contentDescription = AppStrings.splashLogoDescription },
+                        colorFilter = if (isDark) ColorFilter.tint(Color.White) else null
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Text(
-                    text = AppStrings.appName,
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        letterSpacing = (-0.5).sp // Un toque moderno de kerning negativo
+                    text = AppStrings.appName.uppercase(),
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                        letterSpacing = 2.sp
                     ),
                     color = MaterialTheme.colorScheme.primary
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Tu negocio eléctrico, bajo control",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Color secundario para el tagline
-                    textAlign = TextAlign.Center
+                    text = "Tu negocio eléctrico,\nbajo control.",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                 )
 
-                Spacer(modifier = Modifier.height(48.dp)) // Espacio generoso antes del botón
+                Spacer(modifier = Modifier.height(64.dp))
 
                 AppGoogleSignInButton(
                     onClick = onSignInClick,
@@ -162,26 +170,32 @@ fun LoginScreenContent(
                     isLoading = isLoading
                 )
 
-                Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-
                 if (error != null) {
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
                 }
             }
             
             // Footer discreto
             Text(
-                text = "v2.0 - Dashboard Edition",
+                text = "v2.1 - Dashboard Edition",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = Dimens.PaddingLarge)
+                    .padding(bottom = 32.dp)
             )
         }
     }

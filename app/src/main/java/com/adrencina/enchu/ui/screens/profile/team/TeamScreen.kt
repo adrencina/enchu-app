@@ -80,9 +80,7 @@ fun TeamScreen(
                         Text(
                             text = "INVITACIÓN AL EQUIPO",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                         )
                         Spacer(Modifier.height(12.dp))
                         
@@ -128,8 +126,6 @@ fun TeamScreen(
                 text = "MIEMBROS",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
                 modifier = Modifier.padding(start = 8.dp)
             )
 
@@ -211,7 +207,6 @@ fun MemberItem(name: String, role: String, email: String) {
                     text = role.uppercase(),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }

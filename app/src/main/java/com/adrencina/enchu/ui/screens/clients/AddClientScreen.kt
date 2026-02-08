@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.adrencina.enchu.ui.components.ClientForm
 import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.SuccessDialog
 import com.adrencina.enchu.viewmodel.AddClientSideEffect
 import com.adrencina.enchu.viewmodel.AddClientViewModel
 
@@ -30,6 +31,7 @@ fun AddClientScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showSuccess by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -51,12 +53,24 @@ fun AddClientScreen(
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
             when (effect) {
-                is AddClientSideEffect.ClientSaved -> onNavigateBack()
+                is AddClientSideEffect.ClientSaved -> {
+                    showSuccess = true
+                }
                 is AddClientSideEffect.ShowError -> {
                     snackbarHostState.showSnackbar(effect.message)
                 }
             }
         }
+    }
+
+    if (showSuccess) {
+        SuccessDialog(
+            onDismiss = {
+                showSuccess = false
+                onNavigateBack()
+            },
+            message = "Cliente guardado"
+        )
     }
 
     Scaffold(
