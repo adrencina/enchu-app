@@ -8,12 +8,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.adrencina.enchu.data.model.FileEntity
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.ui.theme.Dimens
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -123,20 +127,11 @@ private fun RenameDialog(
 
     var nameWithoutExtension by remember(file) { mutableStateOf(originalName) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnClickOutside = false),
-        title = { Text("Renombrar archivo") },
-        text = {
-            OutlinedTextField(
-                value = nameWithoutExtension,
-                onValueChange = { nameWithoutExtension = it },
-                label = { Text("Nuevo nombre") },
-                singleLine = true
-            )
-        },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Renombrar archivo",
         confirmButton = {
-            Button(
+            EnchuButton(
                 onClick = {
                     val finalName = if (originalExtension.isNotEmpty()) {
                         "$nameWithoutExtension.$originalExtension"
@@ -145,17 +140,31 @@ private fun RenameDialog(
                     }
                     onConfirm(finalName)
                 },
+                text = "Guardar",
                 enabled = nameWithoutExtension.isNotBlank() && nameWithoutExtension != originalName
-            ) {
-                Text("Guardar")
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        Column {
+            Text(
+                text = "Ingresa el nuevo nombre para el archivo:",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+            AppTextField(
+                value = nameWithoutExtension,
+                onValueChange = { nameWithoutExtension = it },
+                placeholder = "Nuevo nombre",
+                singleLine = true
+            )
+        }
+    }
 }
 
 @Composable
@@ -165,23 +174,29 @@ private fun DeleteConfirmDialog(
     onDismiss: () -> Unit
 ) {
     if (file == null) return
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Confirmar eliminación") },
-        text = { Text("¿Estás seguro de que quieres eliminar \"${file.fileName}\"? Esta acción no se puede deshacer.") },
+    
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Eliminar archivo",
         confirmButton = {
-            Button(
+            EnchuButton(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Eliminar")
-            }
+                text = "Eliminar",
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        Text(
+            text = "¿Estás seguro de que quieres eliminar \"${file.fileName}\"? Esta acción no se puede deshacer.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 

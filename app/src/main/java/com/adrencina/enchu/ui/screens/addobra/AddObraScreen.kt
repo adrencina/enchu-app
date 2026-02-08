@@ -2,8 +2,11 @@ package com.adrencina.enchu.ui.screens.addobra
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -34,6 +37,8 @@ import com.adrencina.enchu.ui.components.EstadoObraChips
 import com.adrencina.enchu.ui.components.FormSection
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
 import com.adrencina.enchu.viewmodel.AddObraSideEffect
 import com.adrencina.enchu.viewmodel.AddObraUiState
 import com.adrencina.enchu.viewmodel.AddObraViewModel
@@ -143,15 +148,33 @@ fun AddObraScreenContent(
                     }
                 },
                 actions = {
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+                    val scale by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (isPressed) 0.90f else 1f,
+                        animationSpec = androidx.compose.animation.core.spring(
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                        ),
+                        label = "scale"
+                    )
+
                     TextButton(
                         onClick = onSaveClick,
                         enabled = uiState.isSaveEnabled,
-                        modifier = Modifier.testTag("save_button")
+                        interactionSource = interactionSource,
+                        modifier = Modifier
+                            .testTag("save_button")
+                            .scale(scale)
                     ) {
                         if (uiState.isSaving) {
                             CircularProgressIndicator(modifier = Modifier.size(Dimens.ProgressIndicatorSize / 2))
                         } else {
-                            Text("GUARDAR", fontWeight = FontWeight.Bold)
+                            Text(
+                                "GUARDAR", 
+                                fontWeight = FontWeight.Black,
+                                color = if (uiState.isSaveEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
                         }
                     }
                 },
@@ -195,7 +218,20 @@ fun AddObraScreenContent(
                             )
                         }
                         Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
-                        IconButton(onClick = onAddClientClick) {
+                        
+                        val clientInteractionSource = remember { MutableInteractionSource() }
+                        val clientIsPressed by clientInteractionSource.collectIsPressedAsState()
+                        val clientScale by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (clientIsPressed) 0.9f else 1f,
+                            animationSpec = androidx.compose.animation.core.spring(),
+                            label = "scale"
+                        )
+
+                        IconButton(
+                            onClick = onAddClientClick,
+                            interactionSource = clientInteractionSource,
+                            modifier = Modifier.scale(clientScale)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Añadir nuevo cliente",
@@ -251,78 +287,85 @@ fun AddObraScreenContent(
     }
 
     if (uiState.showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDialog,
-            title = { Text(text = "¿Descartar cambios?") },
-            text = { Text("Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?") },
+        EnchuDialog(
+            onDismiss = onDismissDialog,
+            title = "¿Descartar cambios?",
             confirmButton = {
-                TextButton(onClick = onConfirmDiscard) {
-                    Text("Descartar")
-                }
+                EnchuButton(
+                    onClick = onConfirmDiscard,
+                    text = "Descartar",
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             },
             dismissButton = {
-                TextButton(onClick = onDismissDialog) {
-                    Text("Cancelar")
+                TextButton(onClick = onDismissDialog, modifier = Modifier.height(56.dp)) {
+                    Text("Cancelar", fontWeight = FontWeight.Bold)
                 }
             }
-        )
+        ) {
+            Text(
+                text = "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 
     if (uiState.showAddClientDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissAddClientDialog,
-            title = { Text(text = "Nuevo Cliente") },
-            text = {
-                Column {
-                    ClientForm(
-                        name = uiState.newClientNameInput,
-                        onNameChange = onNewClientNameChange,
-                        dni = uiState.newClientDniInput,
-                        onDniChange = onNewClientDniChange,
-                        isAutoDni = uiState.isAutoDniChecked,
-                        onAutoDniChange = onAutoDniCheckedChange,
-                        phone = uiState.newClientPhoneInput,
-                        onPhoneChange = onNewClientPhoneChange,
-                        email = uiState.newClientEmailInput,
-                        onEmailChange = onNewClientEmailChange,
-                        address = uiState.newClientAddressInput,
-                        onAddressChange = onNewClientAddressChange,
-                        isExpanded = uiState.isClientFormExpanded,
-                        onToggleExpand = onToggleClientFormExpand,
-                        showExpandButton = true,
-                        onPickContact = onPickContact
-                    )
-
-                    if (uiState.saveClientError != null) {
-                        Text(
-                            text = uiState.saveClientError,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = Dimens.PaddingExtraSmall)
-                        )
-                    }
-                }
-            },
+        EnchuDialog(
+            onDismiss = onDismissAddClientDialog,
+            title = "Nuevo Cliente",
             confirmButton = {
-                Button(
+                EnchuButton(
                     onClick = onSaveNewClient,
+                    text = "Guardar",
                     enabled = uiState.newClientNameInput.isNotBlank() &&
                             (uiState.newClientDniInput.isNotBlank() || uiState.isAutoDniChecked) &&
                             !uiState.isSavingClient
-                ) {
-                    if (uiState.isSavingClient) {
-                        CircularProgressIndicator(Modifier.size(Dimens.ProgressIndicatorSize / 2))
-                    } else {
-                        Text("Guardar")
-                    }
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = onDismissAddClientDialog) {
-                    Text("Cancelar")
+                TextButton(onClick = onDismissAddClientDialog, modifier = Modifier.height(56.dp)) {
+                    Text("Cancelar", fontWeight = FontWeight.Bold)
                 }
             }
-        )
+        ) {
+            Column {
+                ClientForm(
+                    name = uiState.newClientNameInput,
+                    onNameChange = onNewClientNameChange,
+                    dni = uiState.newClientDniInput,
+                    onDniChange = onNewClientDniChange,
+                    isAutoDni = uiState.isAutoDniChecked,
+                    onAutoDniChange = onAutoDniCheckedChange,
+                    phone = uiState.newClientPhoneInput,
+                    onPhoneChange = onNewClientPhoneChange,
+                    email = uiState.newClientEmailInput,
+                    onEmailChange = onNewClientEmailChange,
+                    address = uiState.newClientAddressInput,
+                    onAddressChange = onNewClientAddressChange,
+                    isExpanded = uiState.isClientFormExpanded,
+                    onToggleExpand = onToggleClientFormExpand,
+                    showExpandButton = true,
+                    onPickContact = onPickContact
+                )
+
+                if (uiState.saveClientError != null) {
+                    Text(
+                        text = uiState.saveClientError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = Dimens.PaddingExtraSmall)
+                    )
+                }
+
+                if (uiState.isSavingClient) {
+                    Spacer(Modifier.height(16.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
     }
 }
 

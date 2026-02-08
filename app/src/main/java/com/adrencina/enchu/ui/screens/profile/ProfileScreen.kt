@@ -47,6 +47,15 @@ import com.google.firebase.auth.FirebaseUser
 
 import com.adrencina.enchu.domain.model.UserRole
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.scale
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -84,16 +93,16 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // TopAppBar minimalista
-        TopAppBar(
+        CenterAlignedTopAppBar(
             title = { 
                 Text(
-                    "Menú", 
+                    "MENÚ", 
                     style = MaterialTheme.typography.titleLarge, 
-                    fontWeight = FontWeight.Bold 
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
                 ) 
             },
-            colors = TopAppBarDefaults.topAppBarColors(
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background,
                 titleContentColor = MaterialTheme.colorScheme.onBackground
             )
@@ -104,8 +113,9 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            Spacer(Modifier.height(4.dp))
             // 1. Tarjeta de Perfil Compacta
             ProfileCompactCard(user = uiState.user, organization = uiState.organization)
 
@@ -214,93 +224,91 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 6. Cerrar Sesión (Estilo Botón Peligroso pero elegante)
-            OutlinedButton(
+            // 6. Cerrar Sesión Premium
+            EnchuButton(
                 onClick = {
                     profileViewModel.logout()
                     onLogout()
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                    containerColor = Color.Transparent
-                )
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Cerrar Sesión", fontWeight = FontWeight.SemiBold)
-            }
+                text = "Cerrar Sesión",
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                contentColor = MaterialTheme.colorScheme.error,
+                icon = Icons.AutoMirrored.Outlined.ExitToApp
+            )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
 fun ProfileCompactCard(user: FirebaseUser?, organization: Organization?) {
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(32.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar
+            // Avatar Premium
             val photoUrl = user?.photoUrl
-            if (photoUrl != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(photoUrl),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(60.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (photoUrl != null) {
+                        Image(
+                            painter = rememberAsyncImagePainter(photoUrl),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
                         Text(
                             text = user?.displayName?.take(1)?.uppercase() ?: "U",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Black
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(20.dp))
 
             // Info Texto
             Column {
                 Text(
                     text = user?.displayName ?: "Usuario",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = user?.email ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = organization?.name ?: "Sin Organización",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = organization?.name?.uppercase() ?: "SIN ORGANIZACIÓN",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
         }
     }
@@ -310,60 +318,75 @@ fun ProfileCompactCard(user: FirebaseUser?, organization: Organization?) {
 fun StatsRowCompact(obrasCount: Int, clientesCount: Int) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Obras
-        Card(
-            modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(12.dp)
+        StatItemPremium(
+            count = obrasCount, 
+            label = "Obras", 
+            icon = Icons.Outlined.Build,
+            modifier = Modifier.weight(1f)
+        )
+        StatItemPremium(
+            count = clientesCount, 
+            label = "Clientes", 
+            icon = Icons.Outlined.People,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatItemPremium(count: Int, label: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    ElevatedCard(
+        modifier = modifier,
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(Icons.Outlined.Build, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text(obrasCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Obras", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        
-        // Clientes
-        Card(
-            modifier = Modifier.weight(1f),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(Icons.Outlined.People, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Text(clientesCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Clientes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Icon(
+                imageVector = icon, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), 
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = count.toString(), 
+                style = MaterialTheme.typography.headlineSmall, 
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = label.uppercase(), 
+                style = MaterialTheme.typography.labelSmall, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
         }
     }
 }
 
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(
-            text = title,
+            text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
         )
-        Card(
+        ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            shape = RoundedCornerShape(24.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 content()
             }
         }
@@ -377,23 +400,43 @@ fun MenuItem(
     onClick: () -> Unit,
     trailing: @Composable (() -> Unit)? = null
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp), // Padding ajustado para ser compacto pero tocable
+            .scale(scale)
+            .clickable(
+                onClick = onClick,
+                interactionSource = interactionSource,
+                indication = null
+            )
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp)
-        )
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        
         Spacer(modifier = Modifier.width(16.dp))
+        
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -404,8 +447,8 @@ fun MenuItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                modifier = Modifier.size(14.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.size(12.dp)
             )
         }
     }

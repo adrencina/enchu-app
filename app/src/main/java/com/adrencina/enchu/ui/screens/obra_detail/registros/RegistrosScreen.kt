@@ -20,8 +20,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.ui.theme.Dimens
@@ -62,27 +64,44 @@ fun AvanceItem(avance: Avance, onDelete: () -> Unit) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar registro") },
-            text = { Text("¿Estás seguro de que deseas eliminar este avance?") },
+        EnchuDialog(
+            onDismiss = { showDeleteDialog = false },
+            title = "Eliminar registro",
             confirmButton = {
-                Button(onClick = onDelete) { Text("Eliminar") }
+                EnchuButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    },
+                    text = "Eliminar",
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDeleteDialog = false }, modifier = Modifier.height(56.dp)) {
+                    Text("Cancelar", fontWeight = FontWeight.Bold)
+                }
             }
-        )
+        ) {
+            Text(
+                text = "¿Estás seguro de que deseas eliminar este avance? Esta acción no se puede deshacer.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimens.PaddingMedium, vertical = Dimens.PaddingSmall),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     ) {
-        Column(modifier = Modifier.padding(Dimens.PaddingMedium)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             // Header: Fecha y Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,9 +112,11 @@ fun AvanceItem(avance: Avance, onDelete: () -> Unit) {
                 val fechaStr = avance.fecha?.let { dateFormat.format(it) } ?: "Sin fecha"
                 
                 Text(
-                    text = fechaStr,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    text = fechaStr.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
                 )
                 
                 IconButton(
@@ -111,16 +132,16 @@ fun AvanceItem(avance: Avance, onDelete: () -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Descripción
             if (avance.descripcion.isNotBlank()) {
                 Text(
                     text = avance.descripcion,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Fotos
@@ -133,14 +154,14 @@ fun AvanceItem(avance: Avance, onDelete: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     // Gallery Row
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(avance.fotosUrls) { url ->
                             AsyncImage(
@@ -148,7 +169,7 @@ fun AvanceItem(avance: Avance, onDelete: () -> Unit) {
                                 contentDescription = "Foto del avance",
                                 modifier = Modifier
                                     .size(120.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentScale = ContentScale.Crop
                             )
@@ -173,84 +194,76 @@ fun AddAvanceDialog(
         onResult = { uris -> selectedUris = uris }
     )
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth()
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Nuevo Registro",
+        confirmButton = {
+            EnchuButton(
+                onClick = { onConfirm(descripcion, selectedUris) },
+                text = "Guardar",
+                enabled = (descripcion.isNotBlank() || selectedUris.isNotEmpty())
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
+            }
+        }
+    ) {
+        Column {
+            AppTextField(
+                value = descripcion,
+                onValueChange = { descripcion = it },
+                placeholder = "Descripción de novedades",
+                singleLine = false,
+                minLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                onClick = { 
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Nuevo Registro",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción de novedades") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 100.dp),
-                    maxLines = 5
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Photo Selector
-                OutlinedButton(
-                    onClick = { 
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         painter = androidx.compose.ui.res.painterResource(id = AppIcons.Gallery),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedUris.isEmpty()) "Adjuntar Fotos" else "${selectedUris.size} fotos seleccionadas")
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (selectedUris.isEmpty()) "Adjuntar Fotos" else "${selectedUris.size} fotos seleccionadas",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
+            }
 
-                // Photo Preview (Mini)
-                if (selectedUris.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(selectedUris) { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { onConfirm(descripcion, selectedUris) },
-                        enabled = descripcion.isNotBlank() || selectedUris.isNotEmpty()
-                    ) {
-                        Text("Publicar")
+            if (selectedUris.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(selectedUris) { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
             }

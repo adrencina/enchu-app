@@ -2,58 +2,36 @@ package com.adrencina.enchu.ui.screens.clients
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.model.Cliente
-import com.adrencina.enchu.domain.model.Obra
-import com.adrencina.enchu.ui.components.FormSection
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
 import com.adrencina.enchu.ui.components.ObraCard
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientDetailViewModel
-import androidx.compose.material.icons.filled.Edit
-
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,30 +52,42 @@ fun ClientDetailScreen(
     }
 
     if (uiState.showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = viewModel::onDismissDeleteDialog,
-            title = { Text("Eliminar Cliente") },
-            text = { Text("¿Estás seguro de que quieres eliminar a este cliente? Esta acción no se puede deshacer.") },
+        EnchuDialog(
+            onDismiss = viewModel::onDismissDeleteDialog,
+            title = "Eliminar Cliente",
             confirmButton = {
-                TextButton(
+                EnchuButton(
                     onClick = { viewModel.onConfirmDelete(onSuccess = onNavigateBack) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Eliminar")
-                }
+                    text = "Eliminar",
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::onDismissDeleteDialog) {
-                    Text("Cancelar")
+                TextButton(onClick = viewModel::onDismissDeleteDialog, modifier = Modifier.height(56.dp)) {
+                    Text("Cancelar", fontWeight = FontWeight.Bold)
                 }
             }
-        )
+        ) {
+            Text(
+                text = "¿Estás seguro de que quieres eliminar a este cliente? Esta acción no se puede deshacer.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Detalle del Cliente") },
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "DETALLE DE CLIENTE",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -111,7 +101,7 @@ fun ClientDetailScreen(
                         Icon(Icons.Default.Delete, contentDescription = "Eliminar Cliente", tint = MaterialTheme.colorScheme.error)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
@@ -143,7 +133,6 @@ fun ClientDetailScreen(
                     .padding(horizontal = Dimens.PaddingMedium),
                 verticalArrangement = Arrangement.spacedBy(Dimens.PaddingMedium)
             ) {
-                // Header Info
                 item {
                     ClientHeader(
                         cliente = uiState.cliente!!,
@@ -166,24 +155,32 @@ fun ClientDetailScreen(
                     )
                 }
 
-                // Obras Section
                 item {
                     Text(
-                        text = "Obras Relacionadas",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "OBRAS RELACIONADAS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = Dimens.PaddingSmall)
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
                 if (uiState.obras.isEmpty()) {
                     item {
-                        Text(
-                            text = "Este cliente no tiene obras registradas.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = Dimens.PaddingMedium)
-                        )
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ) {
+                            Text(
+                                text = "Este cliente no tiene obras registradas.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(24.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
                     }
                 } else {
                     items(uiState.obras) { obra ->
@@ -191,7 +188,7 @@ fun ClientDetailScreen(
                     }
                 }
                 
-                item { Spacer(Modifier.height(Dimens.PaddingLarge)) }
+                item { Spacer(Modifier.height(32.dp)) }
             }
         }
     }
@@ -203,34 +200,55 @@ fun ClientHeader(
     onCall: () -> Unit,
     onEmail: () -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.PaddingMedium),
-            verticalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = cliente.nombre,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            if (cliente.dni.isNotBlank()) {
-                DetailRow(label = "ID/DNI", value = cliente.dni)
+            Column {
+                Text(
+                    text = "CLIENTE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = cliente.nombre,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (cliente.dni.isNotBlank()) {
+                    Text(
+                        text = "ID/DNI: ${cliente.dni}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
-            
+
             if (cliente.direccion.isNotBlank()) {
                  Row(verticalAlignment = Alignment.Top) {
                     Icon(
                         imageVector = Icons.Default.LocationOn, 
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         text = cliente.direccion,
                         style = MaterialTheme.typography.bodyMedium,
@@ -240,15 +258,17 @@ fun ClientHeader(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = Dimens.PaddingSmall),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (cliente.telefono.isNotBlank()) {
                     ActionButton(
                         icon = Icons.Default.Phone,
                         text = "Llamar",
                         onClick = onCall,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
                 if (cliente.email.isNotBlank()) {
@@ -256,7 +276,9 @@ fun ClientHeader(
                         icon = Icons.Default.Email,
                         text = "Email",
                         onClick = onEmail,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
@@ -265,38 +287,40 @@ fun ClientHeader(
 }
 
 @Composable
-fun DetailRow(label: String, value: String) {
-    Row {
-        Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
 fun ActionButton(
     icon: ImageVector,
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
-    FilledTonalButton(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.94f else 1f, label = "scale")
+
+    Surface(
         onClick = onClick,
-        modifier = modifier,
-        contentPadding = ButtonDefaults.ButtonWithIconContentPadding
+        modifier = modifier
+            .scale(scale)
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        interactionSource = interactionSource
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(text = text)
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(text = text, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }

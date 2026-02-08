@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +22,12 @@ import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.scale
 
 private val obraDateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
@@ -32,35 +38,40 @@ fun ObraCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
+    ElevatedCard(
         onClick = onClick,
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
-            .height(150.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            .height(150.dp)
+            .scale(scale),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Parte Superior: Nombre del Cliente y de la Obra
             Column {
                 Text(
                     text = obra.clienteNombre,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp, // Un poquito más grande al no haber icono
-                        lineHeight = 20.sp
-                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -72,7 +83,7 @@ fun ObraCard(
                     text = obra.nombreObra,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2, // Volvemos a permitir 2 líneas para la obra también
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 18.sp
                 )
@@ -87,29 +98,45 @@ fun ObraCard(
                 Text(
                     text = obra.fechaCreacion?.let { obraDateFormatter.format(it) } ?: "",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium
                 )
                 
-                EstadoIndicator(estado = obra.estado)
+                Surface(
+                    color = getEstadoColor(obra.estado).copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(color = getEstadoColor(obra.estado), shape = CircleShape)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = obra.estado.value.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = getEstadoColor(obra.estado)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EstadoIndicator(estado: EstadoObra) {
-    val color = when (estado) {
-        EstadoObra.FINALIZADO -> Color(0xFF1E8E3E)
-        EstadoObra.EN_PROGRESO -> Color(0xFF1967D2)
-        EstadoObra.EN_PAUSA -> Color(0xFFF9AB00)
-        else -> Color(0xFF5F6368)
+private fun getEstadoColor(estado: EstadoObra): Color {
+    return when (estado) {
+        EstadoObra.FINALIZADO -> Color(0xFF2E7D32)
+        EstadoObra.EN_PROGRESO -> MaterialTheme.colorScheme.primary
+        EstadoObra.EN_PAUSA -> Color(0xFFF57C00)
+        else -> MaterialTheme.colorScheme.outline
     }
-
-    Box(
-        modifier = Modifier
-            .size(10.dp) // Un poco más pequeño y sutil
-            .background(color = color, shape = CircleShape)
-    )
 }
 
 @Preview(showBackground = true)

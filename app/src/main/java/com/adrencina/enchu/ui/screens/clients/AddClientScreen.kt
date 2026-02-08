@@ -1,38 +1,24 @@
 package com.adrencina.enchu.ui.screens.clients
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.core.utils.getContactDetails
 import com.adrencina.enchu.core.utils.PickPhoneContact
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.adrencina.enchu.ui.components.ClientForm
-import com.adrencina.enchu.ui.theme.Dimens
+import com.adrencina.enchu.ui.components.EnchuButton
 import com.adrencina.enchu.viewmodel.AddClientSideEffect
 import com.adrencina.enchu.viewmodel.AddClientViewModel
 
@@ -57,7 +43,6 @@ fun AddClientScreen(
                 launch(Dispatchers.Main) {
                     if (contactData.name.isNotBlank()) viewModel.onNameChange(contactData.name)
                     if (contactData.phone.isNotBlank()) viewModel.onPhoneChange(contactData.phone)
-                    // Email not available with PickPhoneContact to avoid permissions
                 }
             }
         }
@@ -77,57 +62,66 @@ fun AddClientScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Nuevo Cliente") },
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "NUEVO CLIENTE",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = viewModel::saveClient,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Icon(Icons.Default.Check, contentDescription = "Guardar")
-                }
-            }
         }
     ) { paddingValues ->
-        com.adrencina.enchu.ui.components.FormSection(
-            title = "Datos Personales",
+        LazyColumn(
             modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = Dimens.PaddingMedium)
+                .fillMaxWidth()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp)
         ) {
-             ClientForm(
-                name = uiState.name,
-                onNameChange = viewModel::onNameChange,
-                dni = uiState.dni,
-                onDniChange = viewModel::onDniChange,
-                isAutoDni = uiState.isAutoDni,
-                onAutoDniChange = viewModel::onAutoDniChange,
-                phone = uiState.phone,
-                onPhoneChange = viewModel::onPhoneChange,
-                email = uiState.email,
-                onEmailChange = viewModel::onEmailChange,
-                address = uiState.address,
-                onAddressChange = viewModel::onAddressChange,
-                isExpanded = uiState.isExpanded,
-                onToggleExpand = viewModel::onToggleExpand,
-                showExpandButton = false, // Always expanded in full screen, or user logic?
-                                        // User said: "desde la pestaña de clientes, pida todo los datos desplegados"
-                onPickContact = { contactLauncher.launch(Unit) }
-            )
+            item {
+                ClientForm(
+                    name = uiState.name,
+                    onNameChange = viewModel::onNameChange,
+                    dni = uiState.dni,
+                    onDniChange = viewModel::onDniChange,
+                    isAutoDni = uiState.isAutoDni,
+                    onAutoDniChange = viewModel::onAutoDniChange,
+                    phone = uiState.phone,
+                    onPhoneChange = viewModel::onPhoneChange,
+                    email = uiState.email,
+                    onEmailChange = viewModel::onEmailChange,
+                    address = uiState.address,
+                    onAddressChange = viewModel::onAddressChange,
+                    isExpanded = uiState.isExpanded,
+                    onToggleExpand = viewModel::onToggleExpand,
+                    showExpandButton = false,
+                    onPickContact = { contactLauncher.launch(Unit) }
+                )
+            }
+
+            item {
+                Spacer(Modifier.height(32.dp))
+                EnchuButton(
+                    onClick = viewModel::saveClient,
+                    text = "Guardar Cliente",
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading && uiState.name.isNotBlank()
+                )
+                if (uiState.isLoading) {
+                    Spacer(Modifier.height(16.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
         }
     }
 }

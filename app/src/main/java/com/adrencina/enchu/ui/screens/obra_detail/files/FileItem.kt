@@ -34,6 +34,21 @@ import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.ui.draw.scale
+
 @Composable
 fun FileItem(
     file: FileEntity, 
@@ -43,30 +58,59 @@ fun FileItem(
     onShare: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
 
-    ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = {
-            Text(
-                text = file.fileName,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal)
-            )
-        },
-        supportingContent = {
-            val formattedSize = formatFileSize(file.size)
-            val formattedDate = formatDate(file.createdAt)
-            Text(text = "$formattedSize • $formattedDate")
-        },
-        leadingContent = {
+    ElevatedCard(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .scale(scale),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             FileIcon(fileExtension = file.fileName.substringAfterLast('.', ""), mimeType = file.mimeType)
-        },
-        trailingContent = {
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = file.fileName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                val formattedSize = formatFileSize(file.size)
+                val formattedDate = formatDate(file.createdAt)
+                Text(
+                    text = "$formattedSize • $formattedDate",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         imageVector = AppIcons.MoreVert,
                         contentDescription = "Más opciones",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                     )
                 }
                 DropdownMenu(
@@ -88,7 +132,7 @@ fun FileItem(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Eliminar") },
+                        text = { Text("Eliminar", color = MaterialTheme.colorScheme.error) },
                         onClick = {
                             showMenu = false
                             onDelete()
@@ -97,15 +141,15 @@ fun FileItem(
                 }
             }
         }
-    )
+    }
 }
 
 @Composable
 private fun FileIcon(fileExtension: String, mimeType: String) {
     Surface(
         modifier = Modifier.size(48.dp),
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -67,6 +67,16 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.scale
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+import com.adrencina.enchu.ui.components.AppTextField
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewBudgetScreen(
@@ -109,22 +119,26 @@ fun NewBudgetScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = when (uiState.currentStep) {
-                                1 -> "Seleccionar Cliente"
-                                2 -> "Datos Generales"
-                                3 -> "Carga de Materiales"
-                                else -> "Revisar Presupuesto"
+                                1 -> "CLIENTE"
+                                2 -> "DATOS GENERALES"
+                                3 -> "MATERIALES"
+                                else -> "REVISIÓN"
                             },
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
                         )
                         Text(
-                            text = "Paso ${uiState.currentStep} de 4",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "PASO ${uiState.currentStep} DE 4",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -148,7 +162,10 @@ fun NewBudgetScreen(
                             Icon(Icons.Default.Share, contentDescription = "Compartir PDF", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         bottomBar = {
@@ -271,44 +288,11 @@ fun ManualClientDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Cliente Manual / Contacto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { contactLauncher.launch(Unit) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.ContactPhone, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Importar de Contactos")
-                }
-
-                HorizontalDivider()
-
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nombre (Requerido)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = { Text("Dirección") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Teléfono") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Cliente Manual",
         confirmButton = {
-            Button(
+            EnchuButton(
                 onClick = {
                     val tempClient = Cliente(
                         id = UUID.randomUUID().toString(),
@@ -319,17 +303,60 @@ fun ManualClientDialog(
                     )
                     onConfirm(tempClient)
                 },
+                text = "Usar Cliente",
                 enabled = name.isNotBlank()
-            ) {
-                Text("Usar este Cliente")
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Import Contact Snappy Button
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+            Surface(
+                onClick = { contactLauncher.launch(Unit) },
+                interactionSource = interactionSource,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth().scale(scale)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.ContactPhone, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Importar de Contactos", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            AppTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "Nombre (Requerido)"
+            )
+            AppTextField(
+                value = address,
+                onValueChange = { address = it },
+                placeholder = "Dirección"
+            )
+            AppTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                placeholder = "Teléfono",
+                keyboardType = KeyboardType.Phone
+            )
+        }
+    }
 }
 
 @Composable
@@ -347,55 +374,45 @@ fun BudgetInfoStep(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        OutlinedTextField(
+        AppTextField(
             value = clientName,
             onValueChange = {},
-            label = { Text("Cliente") },
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
+            placeholder = "Cliente",
+            enabled = false
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = title,
             onValueChange = onTitleChange,
-            label = { Text("Título del Presupuesto") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
+            placeholder = "Título del Presupuesto (ej: Reforma Cocina)"
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = validity,
             onValueChange = onValidityChange,
-            label = { Text("Validez de oferta (días)") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            shape = RoundedCornerShape(8.dp)
+            placeholder = "Validez de oferta (días)",
+            keyboardType = KeyboardType.Number
         )
 
-        OutlinedTextField(
+        AppTextField(
             value = notes,
             onValueChange = onNotesChange,
-            label = { Text("Notas / Condiciones") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            maxLines = 5,
-            shape = RoundedCornerShape(8.dp)
+            placeholder = "Notas / Condiciones",
+            singleLine = false,
+            minLines = 4,
+            modifier = Modifier.height(150.dp)
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
+        EnchuButton(
             onClick = onNext,
+            text = "Siguiente: Cargar Materiales",
             modifier = Modifier.fillMaxWidth(),
             enabled = title.isNotBlank() && validity.isNotBlank()
-        ) {
-            Text("Siguiente: Cargar Materiales")
-        }
+        )
     }
 }
 
@@ -468,54 +485,64 @@ fun BudgetItemCard(
         format
     }
     
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = item.descripcion,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom, 
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.CenterVertically, 
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 MinimalInput(
                     value = item.precioUnitario,
-                    label = "Precio",
-                    modifier = Modifier.width(90.dp), 
+                    label = "PRECIO",
+                    modifier = Modifier.weight(1.2f), 
                     onValueChange = { onUpdate(item.cantidad, it) },
                     prefix = "$"
                 )
 
                 MinimalInput(
                     value = item.cantidad,
-                    label = "Cant.",
-                    modifier = Modifier.width(50.dp),
+                    label = "CANT.",
+                    modifier = Modifier.weight(0.8f),
                     onValueChange = { onUpdate(it, item.precioUnitario) }
                 )
                 
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    text = currencyFormatter.format(item.cantidad * item.precioUnitario),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "SUBTOTAL",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = currencyFormatter.format(item.cantidad * item.precioUnitario),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -535,10 +562,11 @@ fun MinimalInput(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 9.sp,
-            maxLines = 1
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
         )
+        Spacer(Modifier.height(4.dp))
         
         BasicTextField(
             value = text,
@@ -552,25 +580,25 @@ fun MinimalInput(
             },
             singleLine = true,
             maxLines = 1,
-            textStyle = MaterialTheme.typography.bodySmall.copy(
-                fontSize = 13.sp, 
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
             decorationBox = { innerTextField ->
                 Row(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (prefix != null) {
                         Text(
                             prefix, 
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), 
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(Modifier.width(2.dp))
                     }
                     innerTextField()
                 }
@@ -597,118 +625,104 @@ fun BudgetTotalsFooter(
     }
 
     Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 16.dp, // Strong shadow to separate from content
+        tonalElevation = 12.dp,
+        shadowElevation = 24.dp,
         color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.padding(bottom = 12.dp)
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 17.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            OutlinedButton(
-                onClick = onAddItemClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(32.dp),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(vertical = 0.dp),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("AGREGAR MATERIAL O MANO DE OBRA", style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp))
-            }
-
-            // Totals Row
+            // Totals and Discount Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Subtotal
                 Column {
-                    Text("Subtotal", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(currencyFormatter.format(subtotal), style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), fontWeight = FontWeight.SemiBold)
-                }
-
-                // Discount Input
-                Column {
-                    Text("Desc. (%)", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    BasicTextField(
-                        value = discountInput,
-                        onValueChange = onDiscountChange,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, color = MaterialTheme.colorScheme.error),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                        singleLine = true,
-                        decorationBox = { innerTextField ->
-                            Row(
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    .width(70.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("- ", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.error)
-                                Box(modifier = Modifier.weight(1f)) {
-                                    if (discountInput.isEmpty()) {
-                                        Text("0", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                                    }
-                                    innerTextField()
-                                }
-                                Text("%", style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = MaterialTheme.colorScheme.error)
-                            }
-                        }
+                    Text(
+                        text = "SUBTOTAL: ${currencyFormatter.format(subtotal)}", 
+                        style = MaterialTheme.typography.labelMedium, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "DESC: ", 
+                            style = MaterialTheme.typography.labelMedium, 
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        BasicTextField(
+                            value = discountInput,
+                            onValueChange = onDiscountChange,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                Row(
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    innerTextField()
+                                    Text("%", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        )
+                    }
                 }
                 
-                // Total
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "TOTAL",
-                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "TOTAL A PAGAR",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
                     )
                     Text(
                         text = currencyFormatter.format(total),
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
             
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(), 
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (!isEditingSentBudget) {
-                    OutlinedButton(
-                        onClick = onSaveDraft,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp),
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
-                    ) {
-                        Text("Guardar Borrador", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
-                    }
-                }
+            // Primary Action Buttons
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                EnchuButton(
+                    onClick = onAddItemClick,
+                    text = "Añadir Material / Mano de Obra",
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    icon = Icons.Default.Add
+                )
                 
-                Button(
-                    onClick = onApprove,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(), 
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Siguiente: Revisar", style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp), maxLines = 1)
+                    if (!isEditingSentBudget) {
+                        TextButton(
+                            onClick = onSaveDraft,
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Guardar Borrador", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    
+                    EnchuButton(
+                        onClick = onApprove,
+                        text = "Siguiente",
+                        modifier = Modifier.weight(1.5f)
+                    )
                 }
             }
         }
@@ -827,36 +841,31 @@ fun BudgetPreviewStep(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Botones Finales en Fila
+        // Botones Finales Premium
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (uiState.isEditingSentBudget) {
-                Button(
+                EnchuButton(
                     onClick = onApprove,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Guardar Cambios", style = MaterialTheme.typography.labelMedium)
-                }
+                    text = "Guardar Cambios",
+                    modifier = Modifier.weight(1f)
+                )
             } else {
-                OutlinedButton(
+                TextButton(
                     onClick = onSaveDraft,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Borrador", style = MaterialTheme.typography.labelMedium)
+                    Text("Borrador", fontWeight = FontWeight.Bold)
                 }
 
-                Button(
+                EnchuButton(
                     onClick = onApprove,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Confirmar", style = MaterialTheme.typography.labelMedium)
-                }
+                    text = "Confirmar",
+                    modifier = Modifier.weight(1.5f)
+                )
             }
         }
         

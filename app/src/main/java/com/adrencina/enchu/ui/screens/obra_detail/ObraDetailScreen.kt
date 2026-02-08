@@ -3,6 +3,7 @@ import com.adrencina.enchu.domain.model.EstadoObra
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,20 +15,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -43,7 +51,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -71,6 +81,8 @@ import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.ui.theme.EnchuTheme
 import com.adrencina.enchu.ui.theme.Exito
 import java.util.Date
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
 
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
@@ -322,23 +334,9 @@ fun ObraDetailScreenContent(
                     }
                     
                     if (uiState.showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = onDismissDeleteDialog,
-                            title = { Text("Eliminar Obra") },
-                            text = { Text("¿Estás seguro de que quieres eliminar esta obra y todos sus datos asociados? Esta acción es irreversible.") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = onConfirmDelete,
-                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                                ) {
-                                    Text("Eliminar")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = onDismissDeleteDialog) {
-                                    Text("Cancelar")
-                                }
-                            }
+                        DeleteConfirmationDialog(
+                            onDismiss = onDismissDeleteDialog,
+                            onConfirm = onConfirmDelete
                         )
                     }
 
@@ -441,70 +439,142 @@ private fun ObraDetailTopAppBar(
     )
 }
 
-// Info Section Minimalista
+// Info Section Premium (Estilo HeroCard)
 @Composable
 private fun ObraInfoSection(obra: Obra) {
     var isDescriptionExpanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    
+    val progreso = if (obra.tareasTotales > 0) {
+        obra.tareasCompletadas.toFloat() / obra.tareasTotales.toFloat()
+    } else 0f
 
-    Column(
+    ElevatedCard(
+        onClick = { isDescriptionExpanded = !isDescriptionExpanded },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { isDescriptionExpanded = !isDescriptionExpanded }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
         ) {
-            Text(
-                text = obra.nombreObra,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-
-            SuggestionChip(
-                onClick = { /* No action */ },
-                label = { 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = obra.estado.value, 
+                        text = "DETALLES DE OBRA",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    ) 
-                },
-                colors = SuggestionChipDefaults.suggestionChipColors(
-                    containerColor = if (obra.estado == EstadoObra.EN_PROGRESO) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurface
-                ),
-                border = null,
-                modifier = Modifier.height(24.dp)
-            )
-        }
-
-        if (obra.descripcion.isNotBlank()) {
-            AnimatedVisibility(visible = isDescriptionExpanded) {
-                Text(
-                    text = obra.descripcion,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-            if (!isDescriptionExpanded) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                    Text(
-                        text = "Ver descripción",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
                     )
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = obra.nombreObra,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = obra.clienteNombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                val statusContainerColor = if (obra.estado == EstadoObra.EN_PROGRESO) 
+                    MaterialTheme.colorScheme.primaryContainer 
+                else MaterialTheme.colorScheme.surfaceVariant
+                
+                val statusContentColor = if (obra.estado == EstadoObra.EN_PROGRESO) 
+                    MaterialTheme.colorScheme.onPrimaryContainer 
+                else MaterialTheme.colorScheme.onSurfaceVariant
+
+                Surface(
+                    color = statusContainerColor,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = obra.estado.value.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = statusContentColor
+                    )
+                }
+            }
+
+            if (obra.descripcion.isNotBlank()) {
+                AnimatedVisibility(visible = isDescriptionExpanded) {
+                    Text(
+                        text = obra.descripcion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                }
+                if (!isDescriptionExpanded) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically, 
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) {
+                        Text(
+                            text = "Ver descripción completa",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
+            // Barra de Progreso Integrada
+            if (obra.tareasTotales > 0) {
+                Spacer(Modifier.height(20.dp))
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Progreso General",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${(progreso * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { progreso },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        strokeCap = StrokeCap.Round
                     )
                 }
             }
@@ -614,21 +684,27 @@ private fun ArchiveConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Archivar Obra") },
-        text = { Text("¿Deseas finalizar y archivar esta obra?\n\nAl archivarla, liberarás espacio en tu lista de 'Obras Activas' y podrás crear nuevas obras sin perder los datos de esta.") },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Archivar Obra",
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("Archivar")
-            }
+            EnchuButton(
+                onClick = onConfirm,
+                text = "Archivar"
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        Text(
+            text = "¿Deseas finalizar y archivar esta obra?\n\nAl archivarla, liberarás espacio en tu lista de 'Obras Activas' y podrás crear nuevas obras sin perder los datos de esta.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 // Preview
@@ -693,35 +769,72 @@ private fun AddTareaDialog(
 ) {
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Nueva Tarea") },
-        text = {
-            androidx.compose.material3.OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Descripción") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Nueva Tarea",
         confirmButton = {
-            Button(
+            EnchuButton(
                 onClick = {
                     if (text.isNotBlank()) {
                         onConfirm(text)
                         onDismiss()
                     }
                 },
+                text = "Agregar",
                 enabled = text.isNotBlank()
-            ) {
-                Text("Agregar")
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        val focusedColor = MaterialTheme.colorScheme.primary
+        val unfocusedColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        
+        OutlinedTextField(
+            value = text,
+            onValueChange = { newVal -> text = newVal },
+            label = { Text("¿Qué hay que hacer?") },
+            placeholder = { Text("Ej: Instalación de térmicas") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = focusedColor,
+                unfocusedBorderColor = unfocusedColor
+            )
+        )
+    }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Eliminar Obra",
+        confirmButton = {
+            EnchuButton(
+                onClick = onConfirm,
+                text = "Eliminar",
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
+            }
+        }
+    ) {
+        Text(
+            text = "¿Estás seguro de que quieres eliminar esta obra y todos sus datos asociados? Esta acción es irreversible.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

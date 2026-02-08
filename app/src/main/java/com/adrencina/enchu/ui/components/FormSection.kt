@@ -23,32 +23,31 @@ import com.adrencina.enchu.ui.theme.EnchuTheme
  * ADDED: Nuevo componente reutilizable para las secciones del formulario.
  * Muestra un título y luego renderiza el contenido dentro de una Card blanca.
  */
+import androidx.compose.ui.unit.sp
+
 @Composable
 fun FormSection(
     title: String,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            shape = MaterialTheme.shapes.medium,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.background
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = null
-        ) {
-            Column(
-                modifier = Modifier.padding(start = 0.dp, top = 4.dp, end = 0.dp, bottom = 8.dp),
-                content = content
-            )
-        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            content = content
+        )
     }
 }
 

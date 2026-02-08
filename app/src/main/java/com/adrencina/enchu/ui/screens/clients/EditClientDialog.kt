@@ -9,6 +9,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.adrencina.enchu.data.model.Cliente
 
+import androidx.compose.ui.text.font.FontWeight
+import com.adrencina.enchu.ui.components.AppTextField
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+
 @Composable
 fun EditClientDialog(
     cliente: Cliente,
@@ -21,51 +26,11 @@ fun EditClientDialog(
     var email by remember { mutableStateOf(cliente.email) }
     var direccion by remember { mutableStateOf(cliente.direccion) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Editar Cliente") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre Completo") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = dni,
-                    onValueChange = { dni = it },
-                    label = { Text("DNI / ID") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = telefono,
-                    onValueChange = { telefono = it },
-                    label = { Text("Teléfono") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                )
-                OutlinedTextField(
-                    value = direccion,
-                    onValueChange = { direccion = it },
-                    label = { Text("Dirección") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = "Editar Cliente",
         confirmButton = {
-            TextButton(
+            EnchuButton(
                 onClick = {
                     if (nombre.isNotBlank()) {
                         onConfirm(
@@ -78,15 +43,49 @@ fun EditClientDialog(
                             )
                         )
                     }
-                }
-            ) {
-                Text("Guardar")
-            }
+                },
+                text = "Guardar",
+                enabled = nombre.isNotBlank()
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            AppTextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                placeholder = "Nombre Completo"
+            )
+            AppTextField(
+                value = dni,
+                onValueChange = { dni = it },
+                placeholder = "DNI / ID",
+                keyboardType = KeyboardType.Number
+            )
+            AppTextField(
+                value = telefono,
+                onValueChange = { telefono = it },
+                placeholder = "Teléfono",
+                keyboardType = KeyboardType.Phone
+            )
+            AppTextField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = "Email",
+                keyboardType = KeyboardType.Email
+            )
+            AppTextField(
+                value = direccion,
+                onValueChange = { direccion = it },
+                placeholder = "Dirección"
+            )
+        }
+    }
 }

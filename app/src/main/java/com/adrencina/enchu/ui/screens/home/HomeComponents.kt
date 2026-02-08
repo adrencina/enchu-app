@@ -332,50 +332,93 @@ fun RecentObraCard(
 fun SummaryCard(
     totalCobrado: Double,
     totalPendiente: Double,
-    saldoTotal: Double
+    saldoTotal: Double,
+    onClick: () -> Unit = {}
 ) {
     val currencyFormat = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("es", "AR"))
     
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "scale"
+    )
+
     ElevatedCard(
+        onClick = onClick,
+        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .scale(scale),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
-            Text(
-                text = "SALDO TOTAL",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = currencyFormat.format(saldoTotal),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Black
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "ESTADO FINANCIERO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Saldo de Obras",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Outlined.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
             
             Spacer(Modifier.height(16.dp))
             
+            Text(
+                text = currencyFormat.format(saldoTotal),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.ExtraBold
+            )
+            
+            Spacer(Modifier.height(24.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SummaryItem(
                     label = "Cobrado",
                     value = currencyFormat.format(totalCobrado),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    icon = Icons.Default.CheckCircle,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.weight(1f)
                 )
                 SummaryItem(
                     label = "Pendiente",
                     value = currencyFormat.format(totalPendiente),
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    icon = Icons.Default.Pending,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -383,20 +426,47 @@ fun SummaryCard(
 }
 
 @Composable
-private fun SummaryItem(label: String, value: String, color: Color) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.7f),
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
+private fun SummaryItem(
+    label: String, 
+    value: String, 
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = containerColor,
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 

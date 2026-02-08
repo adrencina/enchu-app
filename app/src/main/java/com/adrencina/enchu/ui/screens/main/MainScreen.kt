@@ -9,11 +9,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +34,14 @@ import com.adrencina.enchu.ui.screens.home.HomeScreen
 import com.adrencina.enchu.ui.screens.profile.ProfileScreen
 import com.adrencina.enchu.ui.screens.presupuestos.PresupuestosScreen
 import android.util.Log
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PostAdd
+import androidx.core.content.FileProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +69,7 @@ fun MainScreen(
 
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
 
     val newObraResult = navBackStackEntry?.savedStateHandle?.get<String>("new_obra_result")
     val onClearNewObraResult: () -> Unit = {
@@ -105,7 +110,9 @@ fun MainScreen(
                         restoreState = true
                     }
                 },
-                onFabClick = { showBottomSheet = true }
+                onFabClick = { showBottomSheet = true },
+                fabIcon = Icons.Default.Add,
+                showFab = true // Siempre visible por ahora
             )
         }
     ) { innerPadding ->
@@ -161,53 +168,64 @@ fun MainScreen(
                         .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 48.dp)
                 ) {
                     Text(
-                        text = "Crear",
+                        text = "Acciones Rápidas",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier.padding(bottom = 20.dp, start = 8.dp)
                     )
                     
-                    ListItem(
-                        headlineContent = { Text("Nuevo Presupuesto", fontWeight = FontWeight.SemiBold) },
-                        supportingContent = { Text("Crea un borrador detallado") },
-                        leadingContent = { 
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(20.dp))
+                    // Lógica Condicional de Opciones
+                    when (currentRoute) {
+                        Routes.CLIENTES_SCREEN -> {
+                            BottomSheetMenuItem(
+                                title = "Nuevo Cliente",
+                                subtitle = "Agrega un contacto al directorio",
+                                icon = Icons.Default.PersonAdd,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = {
+                                    showBottomSheet = false
+                                    onAddClientClick()
                                 }
-                            }
-                        },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            onAddBudgetClick(null)
+                            )
                         }
-                    )
-                    
-                    Spacer(Modifier.height(8.dp))
-                    
-                    ListItem(
-                        headlineContent = { Text("Nueva Obra", fontWeight = FontWeight.SemiBold) },
-                        supportingContent = { Text("Directo a ejecución") },
-                        leadingContent = { 
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
+                        Routes.PRESUPUESTOS_SCREEN -> {
+                            BottomSheetMenuItem(
+                                title = "Nuevo Presupuesto",
+                                subtitle = "Crea un borrador detallado",
+                                icon = Icons.Default.PostAdd,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = {
+                                    showBottomSheet = false
+                                    onAddBudgetClick(null)
                                 }
-                            }
-                        },
-                        modifier = Modifier.clickable {
-                            showBottomSheet = false
-                            onAddObraClick()
+                            )
                         }
-                    )
+                        else -> { // Home y Menú
+                            BottomSheetMenuItem(
+                                title = "Nuevo Presupuesto",
+                                subtitle = "Crea un borrador detallado",
+                                icon = Icons.Default.Description,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = {
+                                    showBottomSheet = false
+                                    onAddBudgetClick(null)
+                                }
+                            )
+                            
+                            Spacer(Modifier.height(8.dp))
+                            
+                            BottomSheetMenuItem(
+                                title = "Nueva Obra",
+                                subtitle = "Directo a ejecución",
+                                icon = Icons.Default.Home,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                onClick = {
+                                    showBottomSheet = false
+                                    onAddObraClick()
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -215,10 +233,38 @@ fun MainScreen(
 }
 
 @Composable
+private fun BottomSheetMenuItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    containerColor: Color,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.SemiBold) },
+        supportingContent = { Text(subtitle) },
+        leadingContent = { 
+            Surface(
+                color = containerColor,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+@Composable
 fun CustomBottomNavigation(
     currentDestination: NavDestination?,
     onNavigate: (String) -> Unit,
-    onFabClick: () -> Unit
+    onFabClick: () -> Unit,
+    fabIcon: ImageVector = Icons.Default.Add,
+    showFab: Boolean = true
 ) {
     Box(
         modifier = Modifier.fillMaxWidth(),
@@ -276,18 +322,20 @@ fun CustomBottomNavigation(
             }
         }
 
-        FloatingActionButton(
-            onClick = onFabClick,
-            shape = RoundedCornerShape(16.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier
-                .size(56.dp)
-                .align(Alignment.TopCenter)
-                .offset(y = (-12).dp),
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Crear", modifier = Modifier.size(28.dp))
+        if (showFab) {
+            FloatingActionButton(
+                onClick = onFabClick,
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .size(56.dp)
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-12).dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+            ) {
+                Icon(fabIcon, contentDescription = "Crear", modifier = Modifier.size(28.dp))
+            }
         }
     }
 }

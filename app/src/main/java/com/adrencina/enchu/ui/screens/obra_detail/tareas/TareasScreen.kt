@@ -14,6 +14,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.scale
+import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.core.resources.AppIcons
 import com.adrencina.enchu.domain.model.Tarea
 import com.adrencina.enchu.ui.theme.Dimens
@@ -32,40 +40,46 @@ fun TareasScreen(
             .fillMaxSize()
             .padding(horizontal = Dimens.PaddingMedium)
     ) {
-        // Input Area
+        // Input Area Premium
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = Dimens.PaddingSmall),
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = newTaskText,
                 onValueChange = { newTaskText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Nueva tarea (ej: Comprar material)") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (newTaskText.isNotBlank()) {
-                            onAddTarea(newTaskText)
-                            newTaskText = ""
-                        }
-                    }
-                )
+                placeholder = "¿Qué hay que hacer?",
+                imeAction = ImeAction.Done
             )
-            Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.9f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "scale"
+            )
+
             FilledIconButton(
                 onClick = {
                     if (newTaskText.isNotBlank()) {
                         onAddTarea(newTaskText)
                         newTaskText = ""
                     }
-                }
+                },
+                interactionSource = interactionSource,
+                modifier = Modifier
+                    .size(56.dp)
+                    .scale(scale),
+                shape = RoundedCornerShape(16.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Icon(AppIcons.Add, contentDescription = "Agregar tarea")
             }
@@ -82,13 +96,14 @@ fun TareasScreen(
                 Text(
                     text = "No hay tareas pendientes",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = Dimens.PaddingLarge)
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(tareas, key = { it.id }) { tarea ->
                     TareaItem(
@@ -108,38 +123,49 @@ fun TareaItem(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val containerColor = if (tarea.completada) 
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    else 
+        MaterialTheme.colorScheme.surfaceContainerLow
+
+    val contentAlpha = if (tarea.completada) 0.5f else 1f
+
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = MaterialTheme.shapes.small,
-        tonalElevation = if (tarea.completada) 0.dp else 1.dp
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = containerColor,
+        onClick = onToggle
     ) {
         Row(
             modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth(),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = tarea.completada,
-                onCheckedChange = { onToggle() }
+                onCheckedChange = { onToggle() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                    uncheckedColor = MaterialTheme.colorScheme.outline
+                )
             )
+            
             Text(
                 text = tarea.descripcionTarea,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    textDecoration = if (tarea.completada) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (tarea.completada) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
-                ),
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 12.dp),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    textDecoration = if (tarea.completada) TextDecoration.LineThrough else TextDecoration.None
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
+
             IconButton(onClick = onDelete) {
                 Icon(
-                    AppIcons.Delete,
-                    contentDescription = "Eliminar tarea",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                    imageVector = AppIcons.Delete,
+                    contentDescription = "Eliminar",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
             }

@@ -14,6 +14,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adrencina.enchu.ui.theme.EnchuTheme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+
 @Composable
 fun AppTextField(
     value: String,
@@ -34,8 +36,8 @@ fun AppTextField(
             .fillMaxWidth()
             .testTag("app_text_field_$placeholder"),
         enabled = enabled,
-        placeholder = { Text(placeholder) },
-        shape = MaterialTheme.shapes.medium,
+        placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+        shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(
             keyboardType = keyboardType,
             imeAction = imeAction,
@@ -48,7 +50,8 @@ fun AppTextField(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            errorBorderColor = MaterialTheme.colorScheme.error
         )
     )
 }

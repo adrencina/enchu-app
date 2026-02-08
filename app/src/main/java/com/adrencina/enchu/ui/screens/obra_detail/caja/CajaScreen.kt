@@ -18,7 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.EnchuDialog
+import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.domain.model.Movimiento
+import androidx.compose.ui.graphics.vector.ImageVector
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -35,53 +41,59 @@ fun CajaScreen(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply { maximumFractionDigits = 0 }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // --- Header Minimalista ---
-        Column(
+        // --- Header Premium Card ---
+        ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp, horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(16.dp),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
         ) {
-            Text(
-                text = "SALDO DISPONIBLE",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.sp
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = currencyFormat.format(saldo),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (saldo >= 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.error
-            )
-            
-            Spacer(Modifier.height(16.dp))
-            
-            // Row de Ingresos/Gastos
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ArrowUpward, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(currencyFormat.format(totalIngresos), style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    text = "ESTADO DE CAJA",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = currencyFormat.format(saldo),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (saldo >= 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
+                )
                 
-                Spacer(Modifier.width(24.dp))
-                VerticalDivider(Modifier.height(16.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.width(24.dp))
+                Spacer(Modifier.height(24.dp))
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ArrowDownward, null, tint = Color(0xFFC62828), modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(currencyFormat.format(totalEgresos), style = MaterialTheme.typography.bodyMedium, color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    CajaSummaryItem(
+                        label = "Ingresos",
+                        value = currencyFormat.format(totalIngresos),
+                        color = Color(0xFF2E7D32),
+                        icon = Icons.Default.ArrowUpward
+                    )
+                    
+                    CajaSummaryItem(
+                        label = "Gastos",
+                        value = currencyFormat.format(totalEgresos),
+                        color = Color(0xFFC62828),
+                        icon = Icons.Default.ArrowDownward
+                    )
                 }
             }
         }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -93,10 +105,21 @@ fun CajaScreen(
                     currencyFormat = currencyFormat, 
                     onDelete = { onDeleteMovimiento(mov.id) }
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
+    }
+}
+
+@Composable
+private fun CajaSummaryItem(label: String, value: String, color: Color, icon: ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = color.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+        }
+        Text(value, style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.ExtraBold)
     }
 }
 
@@ -170,70 +193,81 @@ fun AddMovimientoDialog(
     var tipo by remember { mutableStateOf("INGRESO") }
     var categoria by remember { mutableStateOf("OTRO") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (tipo == "INGRESO") "Registrar Cobro" else "Registrar Gasto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Selector de Tipo
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = tipo == "INGRESO",
-                        onClick = { tipo = "INGRESO"; categoria = "PAGO_CLIENTE" },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) { Text("Cobro") }
-                    SegmentedButton(
-                        selected = tipo == "EGRESO",
-                        onClick = { tipo = "EGRESO"; categoria = "MATERIALES" },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) { Text("Gasto") }
-                }
-
-                OutlinedTextField(
-                    value = monto,
-                    onValueChange = { monto = it },
-                    label = { Text("Monto ($)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción (ej: Adelanto, Compra cables...)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Text("Categoría:", style = MaterialTheme.typography.labelSmall)
-                val categorias = if (tipo == "INGRESO") listOf("PAGO_CLIENTE", "ADELANTO", "OTROS") 
-                                 else listOf("MATERIALES", "HERRAMIENTAS", "VIATICOS", "MANO_OBRA_EXTRA", "OTROS")
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    categorias.take(3).forEach { cat ->
-                        FilterChip(
-                            selected = categoria == cat,
-                            onClick = { categoria = cat },
-                            label = { Text(cat, fontSize = 9.sp) }
-                        )
-                    }
-                }
-            }
-        },
+    EnchuDialog(
+        onDismiss = onDismiss,
+        title = if (tipo == "INGRESO") "Registrar Cobro" else "Registrar Gasto",
         confirmButton = {
-            Button(
+            EnchuButton(
                 onClick = {
                     val m = monto.toDoubleOrNull() ?: 0.0
                     if (m > 0 && descripcion.isNotBlank()) {
                         onConfirm(Movimiento(descripcion = descripcion, monto = m, tipo = tipo, categoria = categoria))
                     }
                 },
+                text = "Guardar",
                 enabled = monto.isNotBlank() && descripcion.isNotBlank()
-            ) {
-                Text("Guardar")
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
+                Text("Cancelar", fontWeight = FontWeight.Bold)
+            }
         }
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Selector de Tipo
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = tipo == "INGRESO",
+                    onClick = { tipo = "INGRESO"; categoria = "PAGO_CLIENTE" },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) { Text("Cobro", fontWeight = FontWeight.Bold) }
+                SegmentedButton(
+                    selected = tipo == "EGRESO",
+                    onClick = { tipo = "EGRESO"; categoria = "MATERIALES" },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) { Text("Gasto", fontWeight = FontWeight.Bold) }
+            }
+
+            AppTextField(
+                value = monto,
+                onValueChange = { monto = it },
+                placeholder = "Monto ($)",
+                keyboardType = KeyboardType.Decimal
+            )
+
+            AppTextField(
+                value = descripcion,
+                onValueChange = { descripcion = it },
+                placeholder = "Descripción (ej: Adelanto, Compra cables...)"
+            )
+            
+            Column {
+                Text(
+                    text = "CATEGORÍA", 
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                val categorias = if (tipo == "INGRESO") listOf("PAGO_CLIENTE", "ADELANTO", "OTROS") 
+                                 else listOf("MATERIALES", "HERRAMIENTAS", "VIATICOS", "MANO_OBRA_EXTRA", "OTROS")
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(), 
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categorias.take(3).forEach { cat ->
+                        FilterChip(
+                            selected = categoria == cat,
+                            onClick = { categoria = cat },
+                            label = { Text(cat) },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
