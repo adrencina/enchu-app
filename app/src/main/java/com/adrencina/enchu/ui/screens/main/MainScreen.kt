@@ -354,11 +354,19 @@ private fun BottomNavItemComposable(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 12.dp),
+            .padding(vertical = 4.dp, horizontal = 4.dp), // Reducido de 12.dp a 4.dp
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(imageVector = icon, contentDescription = label, tint = color, modifier = Modifier.size(24.dp))
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = fontWeight, fontSize = 10.sp)
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.labelSmall, 
+            color = color, 
+            fontWeight = fontWeight, 
+            fontSize = 10.sp,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }

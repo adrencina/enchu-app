@@ -118,7 +118,25 @@ class ObraDetailViewModel @Inject constructor(
             // Cargar Subcolecciones independientemente
             launch {
                 repository.getTareas(obraId).collect { tareas ->
-                    updateSuccessState { it.copy(tareas = tareas) }
+                    updateSuccessState { currentState ->
+                        // Lógica de Auto-Corrección de Contadores (Self-Healing)
+                        val totalReal = tareas.size
+                        val completadasReal = tareas.count { it.completada }
+                        val obraActual = currentState.obra
+                        
+                        if (obraActual.tareasTotales != totalReal || obraActual.tareasCompletadas != completadasReal) {
+                            android.util.Log.d("ObraDetailVM", "Detectada inconsistencia en contadores. Reparando... Real: $completadasReal/$totalReal - Doc: ${obraActual.tareasCompletadas}/${obraActual.tareasTotales}")
+                            launch {
+                                val obraCorregida = obraActual.copy(
+                                    tareasTotales = totalReal,
+                                    tareasCompletadas = completadasReal
+                                )
+                                repository.updateObra(obraCorregida)
+                            }
+                        }
+                        
+                        currentState.copy(tareas = tareas)
+                    }
                 }
             }
             launch {

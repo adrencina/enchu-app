@@ -104,7 +104,9 @@ fun HeroObraCard(
 
             // --- LÍNEA DE PROGRESO MINIMALISTA ---
             if (obra.tareasTotales > 0) {
-                val progreso = obra.tareasCompletadas.toFloat() / obra.tareasTotales.toFloat()
+                // Cálculo de progreso seguro: aseguramos que no exceda 1f y que refleje la realidad de los contadores
+                val progresoCalculado = obra.tareasCompletadas.toFloat() / obra.tareasTotales.toFloat()
+                val progreso = progresoCalculado.coerceIn(0f, 1f)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

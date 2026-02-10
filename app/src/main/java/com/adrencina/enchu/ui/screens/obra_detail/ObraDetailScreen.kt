@@ -418,7 +418,7 @@ fun ObraDetailScreenContent(
                         )
                     }
 
-                    ObraInfoSection(obra = uiState.obra)
+                    ObraInfoSection(obra = uiState.obra, tareas = uiState.tareas)
 
                     ObraDetailTabs(
                         selectedTabIndex = uiState.selectedTabIndex,
@@ -488,11 +488,11 @@ private fun ObraDetailTopAppBar(
 
 // Info Section Premium (Estilo HeroCard)
 @Composable
-private fun ObraInfoSection(obra: Obra) {
+private fun ObraInfoSection(obra: Obra, tareas: List<Tarea>) {
     var isDescriptionExpanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     
-    val progreso = if (obra.tareasTotales > 0) {
-        obra.tareasCompletadas.toFloat() / obra.tareasTotales.toFloat()
+    val progreso = if (tareas.isNotEmpty()) {
+        tareas.count { it.completada }.toFloat() / tareas.size.toFloat()
     } else 0f
 
     ElevatedCard(
@@ -588,7 +588,7 @@ private fun ObraInfoSection(obra: Obra) {
             }
 
             // Barra de Progreso Integrada
-            if (obra.tareasTotales > 0) {
+            if (tareas.isNotEmpty()) {
                 Spacer(Modifier.height(20.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(

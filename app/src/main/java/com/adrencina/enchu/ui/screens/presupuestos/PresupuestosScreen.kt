@@ -5,15 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,43 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adrencina.enchu.data.model.PresupuestoWithItems
-import androidx.core.content.FileProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
 import android.content.Intent
 import androidx.compose.material.icons.filled.Share
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.draw.scale
-import com.adrencina.enchu.ui.components.EnchuButton
-
-import com.adrencina.enchu.ui.components.SkeletonBox
-
-@Composable
-fun PresupuestosSkeleton() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        repeat(6) {
-            SkeletonBox(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(90.dp),
-                shape = RoundedCornerShape(24.dp)
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -100,7 +68,7 @@ fun PresupuestosScreen(
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    context.startActivity(Intent.createChooser(intent, "Enviar Presupuesto"))
+                    context.startActivity(Intent.createChooser(intent, "Compartir Presupuesto"))
                 }
             }
         }
@@ -113,59 +81,29 @@ fun PresupuestosScreen(
         }
     }
 
-    val tabs = listOf("BORRADORES", "ENVIADOS")
+    val tabs = listOf("Borradores", "Enviados")
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Column {
-                CenterAlignedTopAppBar(
-                    title = { 
-                        Text(
-                            "MIS PRESUPUESTOS",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.sp
-                        ) 
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                TopAppBar(
+                    title = { Text("Mis Presupuestos") },
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 )
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = MaterialTheme.colorScheme.background,
-                    divider = {},
-                    indicator = { tabPositions ->
-                        if (selectedTabIndex < tabPositions.size) {
-                            TabRowDefaults.SecondaryIndicator(
-                                Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                color = MaterialTheme.colorScheme.primary,
-                                height = 3.dp
-                            )
-                        }
-                    }
-                ) {
+                TabRow(selectedTabIndex = selectedTabIndex) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = { 
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                    letterSpacing = 1.sp
-                                ) 
-                            },
-                            selectedContentColor = MaterialTheme.colorScheme.primary,
-                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = { Text(title) }
                         )
                     }
                 }
             }
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        }
     ) { paddingValues ->
         val items = if (selectedTabIndex == 0) uiState.drafts else uiState.sent
 
@@ -174,9 +112,7 @@ fun PresupuestosScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (items.isEmpty() && uiState.drafts.isEmpty() && uiState.sent.isEmpty()) {
-                PresupuestosSkeleton()
-            } else if (items.isEmpty()) {
+            if (items.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.align(Alignment.Center),
                     message = if (selectedTabIndex == 0) "No tienes borradores pendientes" else "No has enviado presupuestos aún"
@@ -184,7 +120,7 @@ fun PresupuestosScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 88.dp, top = 16.dp, start = 16.dp, end = 16.dp),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
@@ -213,7 +149,7 @@ fun PresupuestosScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(color, RoundedCornerShape(24.dp))
+                                        .background(color, RoundedCornerShape(8.dp))
                                         .padding(horizontal = 20.dp),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
@@ -230,7 +166,7 @@ fun PresupuestosScreen(
                                     isSent = selectedTabIndex == 1,
                                     onClick = { onEditBudgetClick(item.presupuesto.id) },
                                     onCreateObra = { viewModel.acceptBudget(item) },
-                                    onExportPdf = { viewModel.onExportPdf(item) }
+                                    onShareClick = { viewModel.onExportPdf(item) }
                                 )
                             }
                         )
@@ -246,29 +182,19 @@ fun EmptyState(modifier: Modifier = Modifier, message: String) {
     Column(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Surface(
-            modifier = Modifier.size(120.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                )
-            }
-        }
-        Spacer(Modifier.height(24.dp))
+        Icon(
+            imageVector = Icons.Default.Description,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.outlineVariant
+        )
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Medium
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -279,7 +205,7 @@ fun CompactBudgetCard(
     isSent: Boolean,
     onClick: () -> Unit,
     onCreateObra: () -> Unit,
-    onExportPdf: () -> Unit
+    onShareClick: () -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.getDefault()) }
     val currencyFormatter = remember {
@@ -288,59 +214,41 @@ fun CompactBudgetCard(
         cf
     }
 
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
-
-    ElevatedCard(
+    Card(
         onClick = onClick,
-        interactionSource = interactionSource,
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp) // Elevación sutil
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp), // Padding interno reducido
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono sutil
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (isSent) Icons.Default.Share else Icons.Default.Description,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
+            // Columna Izquierda: Info Principal
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (presupuesto.presupuesto.numero > 0) {
+                        Text(
+                            text = "#${String.format("%04d", presupuesto.presupuesto.numero)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = presupuesto.presupuesto.titulo.ifBlank { "Sin título" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 }
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            // Info Principal
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = presupuesto.presupuesto.titulo.ifBlank { "Presupuesto sin título" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = presupuesto.presupuesto.clienteNombre ?: "Cliente desconocido",
                     style = MaterialTheme.typography.bodySmall,
@@ -350,40 +258,43 @@ fun CompactBudgetCard(
                 )
             }
 
-            // Totales y Fecha
+            Spacer(Modifier.width(8.dp))
+
+            // Columna Derecha: Totales y Fecha
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = currencyFormatter.format(presupuesto.presupuesto.total),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = dateFormatter.format(Date(presupuesto.presupuesto.creadoEn)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.Medium
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Acciones: Compartir y Crear Obra
+            Spacer(Modifier.width(8.dp))
+            VerticalDivider(Modifier.height(32.dp))
+            Spacer(Modifier.width(4.dp))
+            
+            IconButton(onClick = onShareClick) {
+                Icon(
+                    Icons.Default.Share, 
+                    contentDescription = "Compartir PDF",
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
 
             if (isSent) {
-                Spacer(Modifier.width(8.dp))
                 IconButton(onClick = onCreateObra) {
                     Icon(
                         Icons.Default.Build, 
                         contentDescription = "Crear Obra",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            } else {
-                Spacer(Modifier.width(8.dp))
-                IconButton(onClick = onExportPdf) {
-                    Icon(
-                        Icons.Default.Share, 
-                        contentDescription = "Enviar",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(22.dp)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }

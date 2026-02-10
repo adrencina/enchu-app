@@ -234,46 +234,54 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addTarea(obraId: String, tarea: Tarea): Result<Unit> = try {
-        val batch = firestore.batch()
         val obraRef = firestore.collection("obras").document(obraId)
-        val tareaRef = obraRef.collection("tareas").document()
+        val tareasCollection = obraRef.collection("tareas")
+        val tareaRef = tareasCollection.document()
         
-        batch.set(tareaRef, tarea.toDocument().copy(id = tareaRef.id))
-        batch.update(obraRef, "tareasTotales", com.google.firebase.firestore.FieldValue.increment(1))
+        // Añadir la tarea
+        tareaRef.set(tarea.toDocument().copy(id = tareaRef.id)).await()
         
-        batch.commit().await()
+        // Recalcular contadores para consistencia total
+        recalcularContadores(obraId)
+        
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
+    // Función auxiliar para garantizar consistencia absoluta en los contadores
+    private suspend fun recalcularContadores(obraId: String) {
+        try {
+            val tareasSnapshot = firestore.collection("obras").document(obraId).collection("tareas").get().await()
+            val total = tareasSnapshot.size()
+            val completadas = tareasSnapshot.documents.count { it.getBoolean("completada") == true }
+            
+            firestore.collection("obras").document(obraId).update(
+                mapOf(
+                    "tareasTotales" to total,
+                    "tareasCompletadas" to completadas
+                )
+            ).await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     override suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit> = try {
-        val obraRef = firestore.collection("obras").document(obraId)
-        val tareaRef = obraRef.collection("tareas").document(tareaId)
+        val tareaRef = firestore.collection("obras").document(obraId).collection("tareas").document(tareaId)
         
-        firestore.runTransaction { transaction ->
-            transaction.update(tareaRef, "completada", completada)
-            val increment = if (completada) 1L else -1L
-            transaction.update(obraRef, "tareasCompletadas", com.google.firebase.firestore.FieldValue.increment(increment))
-        }.await()
+        tareaRef.update("completada", completada).await()
+        
+        // Recalcular SIEMPRE para asegurar la UI
+        recalcularContadores(obraId)
         
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> = try {
-        val obraRef = firestore.collection("obras").document(obraId)
-        val tareaRef = obraRef.collection("tareas").document(tareaId)
+        firestore.collection("obras").document(obraId).collection("tareas").document(tareaId).delete().await()
         
-        // Necesitamos saber si la tarea estaba completada para decrementar el contador correcto
-        val tareaSnapshot = tareaRef.get().await()
-        val estabaCompletada = tareaSnapshot.getBoolean("completada") ?: false
+        // Recalcular SIEMPRE
+        recalcularContadores(obraId)
         
-        val batch = firestore.batch()
-        batch.delete(tareaRef)
-        batch.update(obraRef, "tareasTotales", com.google.firebase.firestore.FieldValue.increment(-1))
-        if (estabaCompletada) {
-            batch.update(obraRef, "tareasCompletadas", com.google.firebase.firestore.FieldValue.increment(-1))
-        }
-        
-        batch.commit().await()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 

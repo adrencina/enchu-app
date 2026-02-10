@@ -19,11 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import com.adrencina.enchu.ui.components.EnchuButton
-import com.adrencina.enchu.ui.components.EnchuDialog
-import com.adrencina.enchu.ui.components.AppTextField
 import com.adrencina.enchu.domain.model.PresupuestoItem
 import java.text.NumberFormat
 import java.util.Locale
@@ -43,56 +38,51 @@ fun PresupuestoScreen(
     var itemToUpdateCosto by remember { mutableStateOf<PresupuestoItem?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // --- Header Premium Card ---
-        ElevatedCard(
+        // --- Header Minimalista ---
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(32.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            )
+                .padding(vertical = 16.dp, horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text(
+                text = "BALANCE DE MATERIALES",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            
+            // Dato Protagonista: El Desvío/Ahorro
+            Text(
+                text = (if (desvioTotal > 0) "+" else "") + currencyFormat.format(desvioTotal),
+                style = MaterialTheme.typography.displaySmall, // Grande pero fino
+                fontWeight = FontWeight.Bold,
+                color = if (desvioTotal >= 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+            )
+            
+            Spacer(Modifier.height(8.dp))
+            
+            // Datos Secundarios
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "BALANCE DE MATERIALES",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Spacer(Modifier.height(8.dp))
-                
-                // Dato Protagonista: El Desvío/Ahorro
-                Text(
-                    text = (if (desvioTotal > 0) "+" else "") + currencyFormat.format(desvioTotal),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (desvioTotal >= 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
-                )
-                
-                Spacer(Modifier.height(24.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    PresupuestoSummaryItem(
-                        label = "Presupuestado",
-                        value = currencyFormat.format(totalMateriales)
-                    )
-                    PresupuestoSummaryItem(
-                        label = "Costo Real",
-                        value = currencyFormat.format(totalReal)
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Presupuestado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(currencyFormat.format(totalMateriales), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.width(32.dp))
+                VerticalDivider(Modifier.height(24.dp))
+                Spacer(Modifier.width(32.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Costo Real", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(currencyFormat.format(totalReal), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         // --- Lista Plana ---
         LazyColumn(
@@ -254,23 +244,6 @@ fun StatusChip(
 }
 
 @Composable
-private fun PresupuestoSummaryItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label.uppercase(), 
-            style = MaterialTheme.typography.labelSmall, 
-            color = MaterialTheme.colorScheme.onSurfaceVariant, 
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = value, 
-            style = MaterialTheme.typography.titleMedium, 
-            fontWeight = FontWeight.ExtraBold
-        )
-    }
-}
-
-@Composable
 fun CostoRealDialog(
     item: PresupuestoItem,
     onDismiss: () -> Unit,
@@ -278,37 +251,35 @@ fun CostoRealDialog(
 ) {
     var costoText by remember { mutableStateOf(item.precioUnitario.toString()) }
 
-    EnchuDialog(
-        onDismiss = onDismiss,
-        title = "Costo Real de Compra",
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Costo Real de Compra") },
+        text = {
+            Column {
+                Text("Ingresa el precio unitario real que pagaste:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = costoText,
+                    onValueChange = { costoText = it },
+                    label = { Text("Precio Unitario") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
         confirmButton = {
-            EnchuButton(
-                onClick = {
-                    val value = costoText.toDoubleOrNull() ?: item.precioUnitario
-                    onConfirm(value)
-                },
-                text = "Guardar"
-            )
+            Button(onClick = {
+                val value = costoText.toDoubleOrNull() ?: item.precioUnitario
+                onConfirm(value)
+            }) {
+                Text("Guardar")
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.height(56.dp)) {
-                Text("Cancelar", fontWeight = FontWeight.Bold)
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
             }
         }
-    ) {
-        Column {
-            Text(
-                text = "¿Cuánto pagaste por unidad de ${item.descripcion}?", 
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(20.dp))
-            AppTextField(
-                value = costoText,
-                onValueChange = { costoText = it },
-                placeholder = "Precio Unitario ($)",
-                keyboardType = KeyboardType.Decimal
-            )
-        }
-    }
+    )
 }
