@@ -36,6 +36,8 @@ import com.adrencina.enchu.ui.components.SearchBar
 import com.adrencina.enchu.ui.theme.Dimens
 import com.adrencina.enchu.viewmodel.ClientsViewModel
 
+import com.adrencina.enchu.ui.components.EmptyState
+import com.adrencina.enchu.ui.components.EnchuButton
 import com.adrencina.enchu.ui.components.SkeletonBox
 
 @Composable
@@ -67,8 +69,7 @@ fun ClientsScreen(
     onClientSelected: ((Cliente) -> Unit)? = null,
     onAddManualClientClick: (() -> Unit)? = null
 ) {
-    val filteredClientes by viewModel.filteredClientes.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
     val isSelectionMode = onClientSelected != null
@@ -105,7 +106,7 @@ fun ClientsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SearchBar(
-                    query = searchQuery,
+                    query = uiState.searchQuery,
                     onQueryChange = viewModel::onSearchQueryChange,
                     placeholder = "Nombre, teléfono...",
                     modifier = Modifier.weight(1f)
@@ -131,23 +132,34 @@ fun ClientsScreen(
                 }
             }
 
-            if (filteredClientes.isEmpty() && searchQuery.isEmpty()) {
+            if (uiState.isLoading) {
                 ClientsSkeleton()
-            } else if (filteredClientes.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No se encontraron clientes",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
+            } else if (uiState.filteredClientes.isEmpty() && uiState.searchQuery.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Default.People,
+                    title = "Sin clientes aún",
+                    description = "Agregá a tus clientes para organizar mejor tus obras y presupuestos.",
+                    action = {
+                        EnchuButton(
+                            onClick = onAddClientClick,
+                            text = "Agregar primer cliente",
+                            icon = Icons.Default.PersonAdd
+                        )
+                    }
+                )
+            } else if (uiState.filteredClientes.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Default.SearchOff,
+                    title = "Sin resultados",
+                    description = "No encontramos a ningún cliente que coincida con \"${uiState.searchQuery}\"."
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(filteredClientes, key = { it.id }) { cliente ->
+                    items(uiState.filteredClientes, key = { it.id }) { cliente ->
                         ClientItem(
                             cliente = cliente,
                             onClick = {

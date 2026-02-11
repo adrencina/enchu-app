@@ -10,7 +10,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+
+data class ClientsUiState(
+    val isLoading: Boolean = false,
+    val filteredClientes: List<Cliente> = emptyList(),
+    val searchQuery: String = ""
+)
 
 @HiltViewModel
 class ClientsViewModel @Inject constructor(
@@ -20,11 +27,11 @@ class ClientsViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    private val _clientes = repository.getClientes()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val filteredClientes: StateFlow<List<Cliente>> = combine(_clientes, _searchQuery) { list, query ->
-        if (query.isBlank()) {
+    val uiState: StateFlow<ClientsUiState> = combine(
+        repository.getClientes(),
+        _searchQuery
+    ) { list, query ->
+        val filtered = if (query.isBlank()) {
             list
         } else {
             list.filter {
@@ -33,7 +40,16 @@ class ClientsViewModel @Inject constructor(
                 it.email.contains(query, ignoreCase = true)
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        ClientsUiState(
+            isLoading = false,
+            filteredClientes = filtered,
+            searchQuery = query
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ClientsUiState(isLoading = true)
+    )
 
     fun onSearchQueryChange(newQuery: String) {
         _searchQuery.value = newQuery

@@ -89,6 +89,11 @@ class ObraDetailViewModel @Inject constructor(
         }
     }
 
+    fun retry() {
+        _uiState.value = ObraDetailUiState.Loading
+        loadData()
+    }
+
     private fun loadData() {
         dataLoadingJob?.cancel()
         dataLoadingJob = viewModelScope.launch {

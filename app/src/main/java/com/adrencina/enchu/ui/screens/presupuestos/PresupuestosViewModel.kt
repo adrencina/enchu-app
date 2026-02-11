@@ -22,6 +22,7 @@ import java.io.File
 import javax.inject.Inject
 
 data class PresupuestosUiState(
+    val isLoading: Boolean = false,
     val drafts: List<PresupuestoWithItems> = emptyList(),
     val sent: List<PresupuestoWithItems> = emptyList()
 )
@@ -46,6 +47,7 @@ class PresupuestosViewModel @Inject constructor(
     val uiState: StateFlow<PresupuestosUiState> = presupuestoDao.getAllPresupuestosWithItems()
         .map { list ->
             PresupuestosUiState(
+                isLoading = false,
                 drafts = list.filter { it.presupuesto.estado != "ENVIADO" && it.presupuesto.estado != "ACEPTADO" },
                 sent = list.filter { it.presupuesto.estado == "ENVIADO" }
             )
@@ -53,7 +55,7 @@ class PresupuestosViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = PresupuestosUiState()
+            initialValue = PresupuestosUiState(isLoading = true)
         )
 
     fun deletePresupuesto(presupuesto: PresupuestoEntity) {

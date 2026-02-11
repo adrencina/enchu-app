@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrencina.enchu.domain.model.Obra
+import com.adrencina.enchu.ui.components.SkeletonBox
 
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -469,26 +470,37 @@ private fun SummaryItem(
 
 @Composable
 fun HomeSkeletonLoader() {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         // Hero Skeleton
-        Box(
+        SkeletonBox(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .height(220.dp),
+            shape = RoundedCornerShape(32.dp)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Title Skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .width(120.dp)
+                .height(24.dp)
+        )
+        
         // List Skeletons
-        repeat(3) {
-            Box(
+        repeat(4) {
+            SkeletonBox(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .height(88.dp),
+                shape = RoundedCornerShape(16.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

@@ -102,6 +102,9 @@ import androidx.compose.foundation.clickable
 
 import com.adrencina.enchu.ui.components.SkeletonBox
 
+import com.adrencina.enchu.ui.components.EmptyState
+import androidx.compose.material.icons.filled.CloudOff
+
 @Composable
 fun ObraDetailSkeleton() {
     Column(
@@ -225,7 +228,8 @@ fun ObraDetailScreen(
         onDismissAddMovimientoDialog = viewModel::onDismissAddMovimientoDialog,
         onConfirmAddMovimiento = viewModel::onAddMovimiento,
         onDeleteMovimiento = viewModel::onDeleteMovimiento,
-        onDismissAddTareaDialog = viewModel::onDismissAddTareaDialog
+        onDismissAddTareaDialog = viewModel::onDismissAddTareaDialog,
+        onRetry = viewModel::retry
     )
 }
 
@@ -269,7 +273,8 @@ fun ObraDetailScreenContent(
     onDismissAddMovimientoDialog: () -> Unit,
     onConfirmAddMovimiento: (com.adrencina.enchu.domain.model.Movimiento) -> Unit,
     onDeleteMovimiento: (String) -> Unit,
-    onDismissAddTareaDialog: () -> Unit
+    onDismissAddTareaDialog: () -> Unit,
+    onRetry: () -> Unit
 ) {
     val tabTitles = listOf("LOG", "ARCHIVOS", "TAREAS", "MATERIALES", "CAJA")
 
@@ -353,9 +358,17 @@ fun ObraDetailScreenContent(
                     ObraDetailSkeleton()
                 }
                 is ObraDetailUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Error: ${uiState.message}", color = MaterialTheme.colorScheme.error)
-                    }
+                    EmptyState(
+                        icon = Icons.Default.CloudOff,
+                        title = "Algo salió mal",
+                        description = uiState.message,
+                        action = {
+                            EnchuButton(
+                                onClick = onRetry,
+                                text = "Reintentar"
+                            )
+                        }
+                    )
                 }
                 is ObraDetailUiState.Success -> {
                     if (uiState.showEditDialog) {
@@ -801,7 +814,8 @@ fun ObraDetailScreenContentPreview() {
             onDismissAddMovimientoDialog = {},
             onConfirmAddMovimiento = {},
             onDeleteMovimiento = {},
-            onDismissAddTareaDialog = {}
+            onDismissAddTareaDialog = {},
+            onRetry = {}
         )
     }
 }

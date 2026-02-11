@@ -28,6 +28,9 @@ import android.app.Activity
 import android.content.Intent
 import kotlinx.coroutines.launch
 
+import com.adrencina.enchu.ui.components.EmptyState
+import com.adrencina.enchu.ui.components.EnchuButton
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -52,8 +55,16 @@ fun HomeScreen(
     }
 
     LaunchedEffect(uiState.userMessage) {
-        uiState.userMessage?.let {
-            snackbarHostState.showSnackbar(it)
+        uiState.userMessage?.let { message ->
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "Reintentar",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.retry()
+            }
+            viewModel.clearUserMessage()
         }
     }
 
@@ -194,19 +205,18 @@ fun HomeScreen(
                     }
                 } else if (uiState.obraActiva == null) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No hay obras activas.\n¡Crea una con el botón +!",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
+                        EmptyState(
+                            icon = Icons.Default.Construction,
+                            title = "No hay obras activas",
+                            description = "Parece que no tenés ninguna obra en curso. ¡Empezá creando una nueva!",
+                            action = {
+                                EnchuButton(
+                                    onClick = onAddObraClick,
+                                    text = "Crear mi primera obra",
+                                    icon = Icons.Default.Add
+                                )
+                            }
+                        )
                     }
                 }
             }

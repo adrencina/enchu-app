@@ -83,6 +83,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun retry() {
+        loadObras()
+    }
+
+    fun clearUserMessage() {
+        _uiState.update { it.copy(userMessage = null) }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun loadObras() {
         viewModelScope.launch {

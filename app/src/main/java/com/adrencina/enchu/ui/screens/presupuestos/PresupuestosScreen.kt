@@ -31,6 +31,29 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import com.adrencina.enchu.ui.components.EmptyState
+import com.adrencina.enchu.ui.components.EnchuButton
+import com.adrencina.enchu.ui.components.SkeletonBox
+
+@Composable
+fun BudgetsSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(6) {
+            SkeletonBox(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp),
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PresupuestosScreen(
@@ -112,10 +135,24 @@ fun PresupuestosScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (items.isEmpty()) {
+            if (uiState.isLoading) {
+                BudgetsSkeleton()
+            } else if (items.isEmpty()) {
                 EmptyState(
-                    modifier = Modifier.align(Alignment.Center),
-                    message = if (selectedTabIndex == 0) "No tienes borradores pendientes" else "No has enviado presupuestos aún"
+                    icon = Icons.Default.Description,
+                    title = if (selectedTabIndex == 0) "Sin borradores" else "Sin presupuestos enviados",
+                    description = if (selectedTabIndex == 0) 
+                        "Tus borradores aparecerán acá. ¡Empezá uno nuevo!" 
+                        else "Acá verás los presupuestos que hayas compartido con tus clientes.",
+                    action = if (selectedTabIndex == 0) {
+                        {
+                            EnchuButton(
+                                onClick = onNewBudgetClick,
+                                text = "Nuevo Presupuesto",
+                                icon = Icons.Default.Build
+                            )
+                        }
+                    } else null
                 )
             } else {
                 LazyColumn(
@@ -174,28 +211,6 @@ fun PresupuestosScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun EmptyState(modifier: Modifier = Modifier, message: String) {
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Description,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.outlineVariant
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
