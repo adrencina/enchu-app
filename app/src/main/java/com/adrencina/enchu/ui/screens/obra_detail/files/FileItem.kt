@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.DropdownMenu
@@ -158,7 +158,7 @@ private fun FileIcon(fileExtension: String, mimeType: String) {
             val icon = when {
                 mimeType == "application/pdf" -> Icons.Default.PictureAsPdf
                 mimeType.startsWith("image/") -> Icons.Default.Image
-                else -> Icons.Default.Article
+                else -> Icons.AutoMirrored.Filled.Article
             }
             Icon(
                 imageVector = icon,

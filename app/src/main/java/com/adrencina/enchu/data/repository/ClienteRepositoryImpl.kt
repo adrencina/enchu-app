@@ -59,7 +59,7 @@ class ClienteRepositoryImpl @Inject constructor(
                 val organizationId = userSnapshot.getString("organizationId") ?: ""
     
                 // Asignamos el ID del usuario al cliente y lo guardamos en la colección "clientes"
-                firestore.collection("clientes").add(cliente.copy(userId = userId, organizationId = organizationId)).await()
+                firestore.collection("clientes").add(cliente.copy(userId = userId, organizationId = organizationId))
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -76,7 +76,7 @@ class ClienteRepositoryImpl @Inject constructor(
                         "email" to cliente.email,
                         "direccion" to cliente.direccion
                     )
-                ).await()
+                )
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -85,7 +85,7 @@ class ClienteRepositoryImpl @Inject constructor(
 
         override suspend fun deleteCliente(clienteId: String): Result<Unit> {
             return try {
-                firestore.collection("clientes").document(clienteId).delete().await()
+                firestore.collection("clientes").document(clienteId).delete()
                 Result.success(Unit)
             } catch (e: Exception) {
                 Result.failure(e)

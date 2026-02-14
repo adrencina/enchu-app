@@ -79,7 +79,7 @@ class HomeViewModel @Inject constructor(
     fun launchBilling(activity: android.app.Activity) {
         viewModelScope.launch {
             val userId = authRepository.currentUser?.uid ?: ""
-            billingRepository.launchBillingFlow(activity, userId)
+            billingRepository.launchBillingFlow(activity, userId, com.adrencina.enchu.data.repository.BillingRepositoryImpl.PRO_MONTHLY_ID)
         }
     }
 

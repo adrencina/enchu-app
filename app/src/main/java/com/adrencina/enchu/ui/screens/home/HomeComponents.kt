@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.ui.components.SkeletonBox
 
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 
@@ -169,7 +171,7 @@ fun HeroObraCard(
                     
                     val pendientes = obra.tareasTotales - obra.tareasCompletadas
                     QuickActionButton(
-                        icon = Icons.Outlined.Assignment,
+                        icon = Icons.AutoMirrored.Outlined.Assignment,
                         label = "Tareas",
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -185,7 +187,7 @@ fun HeroObraCard(
                         onClick = { onFilesClick(obra.id) }
                     )
                     QuickActionButton(
-                        icon = Icons.Outlined.Chat,
+                        icon = Icons.AutoMirrored.Outlined.Chat,
                         label = "WhatsApp",
                         containerColor = Color(0xFFE7FFDB),
                         contentColor = Color(0xFF075E54),

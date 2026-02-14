@@ -470,18 +470,12 @@ private fun ObraDetailTopAppBar(
 ) {
     TopAppBar(
         title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = obra?.clienteNombre?.uppercase() ?: "Cargando...",
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            Text(
+                text = obra?.clienteNombre ?: "Cargando...",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         },
         navigationIcon = {
             IconButton(onClick = onBackPressed) {

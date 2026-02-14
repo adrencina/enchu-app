@@ -32,10 +32,16 @@ class BillingRepositoryImpl @Inject constructor(
         .enablePendingPurchases()
         .build()
 
-    // ID del producto en Google Play Console
-    private val PRO_SUBSCRIPTION_ID = "suscripcion_mensual_pro"
+    // IDs de productos en Google Play Console
+    companion object {
+        const val PRO_MONTHLY_ID = "suscripcion_mensual_pro"
+        const val PRO_ANNUAL_ID = "suscripcion_anual_pro"
+        private val ALL_PRODUCTS = listOf(PRO_MONTHLY_ID, PRO_ANNUAL_ID)
+    }
 
     override suspend fun startConnection() {
+        if (billingClient.isReady) return
+
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -50,15 +56,14 @@ class BillingRepositoryImpl @Inject constructor(
 
             override fun onBillingServiceDisconnected() {
                 Log.w("BillingRepository", "Desconectado de Google Play. Reintentando...")
-                // Aquí se podría implementar una lógica de reintento exponencial
             }
         })
     }
 
-    override suspend fun launchBillingFlow(activity: Activity, userId: String) {
+    override suspend fun launchBillingFlow(activity: Activity, userId: String, productId: String) {
         val productList = listOf(
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PRO_SUBSCRIPTION_ID)
+                .setProductId(productId)
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         )
@@ -89,8 +94,8 @@ class BillingRepositoryImpl @Inject constructor(
 
                     billingClient.launchBillingFlow(activity, billingFlowParams)
                 } else {
-                    Log.e("BillingRepository", "No se encontraron detalles del producto")
-                    _purchasesUpdateFlow.value = "Error: No se encontró el plan PRO disponible."
+                    Log.e("BillingRepository", "No se encontraron detalles del producto: $productId")
+                    _purchasesUpdateFlow.value = "Error: El plan seleccionado no está disponible en Google Play."
                 }
             }
         }
@@ -112,7 +117,6 @@ class BillingRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handlePurchase(purchase: Purchase) {
-        // VERIFICACIÓN DE SEGURIDAD (Básica Local)
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
             if (!purchase.isAcknowledged) {
                 val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
@@ -141,16 +145,18 @@ class BillingRepositoryImpl @Inject constructor(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 var hasActiveSubscription = false
                 for (purchase in purchases) {
-                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && purchase.products.contains(PRO_SUBSCRIPTION_ID)) {
-                        hasActiveSubscription = true
-                        // Asegurar que esté reconocida
-                        if (!purchase.isAcknowledged) {
-                            CoroutineScope(Dispatchers.IO).launch { handlePurchase(purchase) }
+                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                        val isProProduct = purchase.products.any { it in ALL_PRODUCTS }
+                        if (isProProduct) {
+                            hasActiveSubscription = true
+                            if (!purchase.isAcknowledged) {
+                                CoroutineScope(Dispatchers.IO).launch { handlePurchase(purchase) }
+                            }
                         }
                     }
                 }
                 _isPro.value = hasActiveSubscription
-                Log.d("BillingRepository", "Estado de suscripción: $hasActiveSubscription")
+                Log.d("BillingRepository", "Estado de suscripción PRO: $hasActiveSubscription")
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.adrencina.enchu.data.local.FileDao
 import com.adrencina.enchu.data.model.SyncState
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -18,7 +19,8 @@ class UploadWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
     private val fileDao: FileDao,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val firestore: FirebaseFirestore
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -44,9 +46,14 @@ class UploadWorker @AssistedInject constructor(
 
             val storageRef = storage.reference.child("obras/${fileEntity.workId}/${fileEntity.fileName}")
 
-            // Add metadata for security rules
+            // Obtener el organizationId de la Obra en Firestore para asegurar consistencia
+            val obraSnap = firestore.collection("obras").document(fileEntity.workId).get().await()
+            val organizationId = obraSnap.getString("organizationId") ?: ""
+
+            // Add metadata for security rules (Owner and Organization)
             val metadata = com.google.firebase.storage.StorageMetadata.Builder()
                 .setCustomMetadata("ownerId", fileEntity.userId)
+                .setCustomMetadata("organizationId", organizationId)
                 .build()
 
             storageRef.putFile(Uri.fromFile(localFile), metadata).await()

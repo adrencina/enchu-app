@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
 }
@@ -17,8 +19,8 @@ android {
         applicationId = "com.adrencina.enchu"
         minSdk = 26
         targetSdk = 35
-        versionCode = 36
-        versionName = "4.2"
+        versionCode = 39
+        versionName = "4.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -96,6 +98,8 @@ dependencies {
     // Firebase BOM (Bill of Materials)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)

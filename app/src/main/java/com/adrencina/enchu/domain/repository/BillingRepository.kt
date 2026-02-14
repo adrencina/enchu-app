@@ -8,7 +8,7 @@ interface BillingRepository {
     val purchasesUpdateFlow: Flow<String?> // Flow para mensajes de estado (éxito, error)
 
     suspend fun startConnection()
-    suspend fun launchBillingFlow(activity: Activity, userId: String)
+    suspend fun launchBillingFlow(activity: Activity, userId: String, productId: String)
     suspend fun checkSubscriptionStatus()
     fun terminateConnection()
 }

@@ -3,30 +3,34 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Función auxiliar para obtener el organizationId del usuario desde Firestore
+    function getUserOrgId() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.organizationId;
+    }
+
     // Regla para Obras
-    // Ruta: obras/{workId}/{fileName}
     match /obras/{workId}/{allPaths=**} {
-       // Lectura: Permitida a usuarios autenticados.
-       // (Mejora futura: restringir a miembros de la obra consultando Firestore)
-       allow read: if request.auth != null;
        
-       // Escritura (Crear, Actualizar, Borrar):
-       // 1. Usuario autenticado.
-       // 2. Integridad de subida: Si se sube archivo (request.resource), el metadata 'ownerId' debe coincidir con el UID.
-       // 3. Protección de sobreescritura: Si el archivo ya existe (resource), solo el dueño (metadata.ownerId) puede tocarlo.
-       //    (Se permite modificar archivos legacy que no tengan metadata para evitar bloqueos).
+       // LECTURA: Solo dueños o miembros de la misma organización
+       allow read: if request.auth != null && (
+         resource.metadata.ownerId == request.auth.uid ||
+         (resource.metadata.organizationId != null && resource.metadata.organizationId == getUserOrgId())
+       );
+       
+       // ESCRITURA: 
        allow write: if request.auth != null
-                    && (request.resource == null || request.resource.metadata.ownerId == request.auth.uid)
+                    && (request.resource == null || (
+                        request.resource.metadata.ownerId == request.auth.uid &&
+                        request.resource.metadata.organizationId == getUserOrgId()
+                    ))
                     && (resource == null || resource.metadata == null || resource.metadata.ownerId == request.auth.uid);
     }
 
-    // Regla para Organizaciones
-    // Ruta: organizations/{orgId}/logo.jpg
+    // Regla para Organizaciones (Logos)
     match /organizations/{orgId}/{allPaths=**} {
-       // Permitir subir/borrar solo si estás autenticado.
-       // Nota: No podemos validar fácilmente membresía sin Custom Claims o llamadas costosas a Firestore.
-       allow write: if request.auth != null; 
-       allow read: if request.auth != null;
+       // Solo miembros de la organización pueden leer o subir el logo
+       allow read: if request.auth != null && (orgId == getUserOrgId());
+       allow write: if request.auth != null && (orgId == getUserOrgId());
     }
   }
 }

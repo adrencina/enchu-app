@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -76,16 +76,15 @@ fun ClientsScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = { 
                     Text(
-                        text = if (isSelectionMode) "SELECCIONAR CLIENTE" else "CLIENTES",
+                        text = if (isSelectionMode) "Seleccionar cliente" else "Clientes",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.sp
+                        fontWeight = FontWeight.ExtraBold
                     ) 
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
@@ -305,7 +304,7 @@ fun ClientItem(
                             )
                             DropdownMenuItem(
                                 text = { Text("WhatsApp") },
-                                leadingIcon = { Icon(Icons.Outlined.Chat, null) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Chat, null) },
                                 onClick = {
                                     menuExpanded = false
                                     onWhatsAppClick()

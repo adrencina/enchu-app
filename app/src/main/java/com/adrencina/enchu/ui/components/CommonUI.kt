@@ -141,7 +141,8 @@ fun EnchuButton(
     icon: ImageVector? = null,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -152,7 +153,7 @@ fun EnchuButton(
     )
 
     Button(
-        onClick = onClick,
+        onClick = if (!isLoading) onClick else ({}),
         modifier = modifier
             .scale(scale)
             .height(56.dp),
@@ -164,18 +165,26 @@ fun EnchuButton(
             disabledContentColor = contentColor.copy(alpha = 0.5f)
         ),
         interactionSource = interactionSource,
-        enabled = enabled,
+        enabled = enabled && !isLoading,
         contentPadding = PaddingValues(horizontal = 24.dp)
     ) {
-        if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(12.dp))
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = contentColor,
+                strokeWidth = 3.dp
+            )
+        } else {
+            if (icon != null) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

@@ -40,7 +40,7 @@
 # --- REGLAS DE SEGURIDAD PARA HILT Y VIEWMODELS ---
 # Evitar que R8 elimine o renombre los constructores de ViewModels y Repositorios
 # Esto es vital para que la Inyección de Dependencias funcione en Release.
--keep class com.adrencina.enchu.ui.screens.obra_detail.ObraDetailViewModel { *; }
+-keep class com.adrencina.enchu.ui.**ViewModel { *; }
 -keep class com.adrencina.enchu.data.repository.** { *; }
 -keep class com.adrencina.enchu.di.** { *; }
 -keep class com.adrencina.enchu.domain.use_case.** { *; }
@@ -61,11 +61,10 @@
 -dontwarn androidx.room.**
 
 # --- ELIMINACIÓN DE LOGS EN PRODUCCIÓN (BLINDAJE DE INFORMACIÓN) ---
-# Esta regla elimina físicamente las llamadas a Log del código compilado en Release.
+# Esta regla elimina físicamente las llamadas a Log de depuración del código compilado en Release.
+# Mantenemos W (Warning) y E (Error) para que Crashlytics pueda capturar contextos de error.
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
     public static *** i(...);
-    public static *** w(...);
-    public static *** e(...);
 }

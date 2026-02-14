@@ -111,12 +111,22 @@ fun PresupuestosScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("Mis Presupuestos") },
+                    title = { 
+                        Text(
+                            "Presupuestos",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        ) 
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 )
-                TabRow(selectedTabIndex = selectedTabIndex) {
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    divider = {} // Remove the divider to make it cleaner
+                ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTabIndex == index,

@@ -35,6 +35,7 @@ fun ObraDocument.toDomain(): Obra {
         notas = this.notas,
         presupuestoTotal = this.presupuestoTotal,
         fechaCreacion = this.fechaCreacion,
+        lastActivity = this.lastActivity,
         tareasTotales = this.tareasTotales,
         tareasCompletadas = this.tareasCompletadas
     )
@@ -61,6 +62,7 @@ fun Obra.toDocument(): ObraDocument {
         notas = this.notas,
         presupuestoTotal = this.presupuestoTotal,
         fechaCreacion = this.fechaCreacion,
+        lastActivity = this.lastActivity,
         tareasTotales = this.tareasTotales,
         tareasCompletadas = this.tareasCompletadas
     )

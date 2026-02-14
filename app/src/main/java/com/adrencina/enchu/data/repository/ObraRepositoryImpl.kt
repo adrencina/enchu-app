@@ -17,12 +17,15 @@ import com.adrencina.enchu.domain.model.PresupuestoItem
 import com.adrencina.enchu.domain.model.Tarea
 import com.adrencina.enchu.domain.repository.ObraRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
+import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 
 class ObraRepositoryImpl @Inject constructor(
@@ -54,10 +57,13 @@ class ObraRepositoryImpl @Inject constructor(
                 presupuestoTotal = presupuesto.total,
                 descuento = presupuesto.descuento,
                 validez = presupuesto.validez,
-                notas = presupuesto.notas
+                notas = presupuesto.notas,
+                fechaCreacion = Date(),
+                lastActivity = Date()
             )
             
-            firestore.collection("obras").document(obraId).set(nuevaObraDomain.toDocument()).await()
+            // Escritura Optimista
+            firestore.collection("obras").document(obraId).set(nuevaObraDomain.toDocument())
 
             if (presupuesto.items.isNotEmpty()) {
                 val batch = firestore.batch()
@@ -74,7 +80,7 @@ class ObraRepositoryImpl @Inject constructor(
                     )
                     batch.set(itemRef, itemDoc)
                 }
-                batch.commit().await()
+                batch.commit()
             }
 
             Result.success(obraId)
@@ -98,12 +104,15 @@ class ObraRepositoryImpl @Inject constructor(
 
                 val organizationId = profileSnap?.getString("organizationId")
                 val obrasQuery = if (!organizationId.isNullOrEmpty()) {
-                    firestore.collection("obras").whereEqualTo("organizationId", organizationId)
+                    firestore.collection("obras")
+                        .whereEqualTo("organizationId", organizationId)
+                        .orderBy("lastActivity", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 } else {
-                    firestore.collection("obras").whereEqualTo("userId", userId)
+                    firestore.collection("obras")
+                        .whereEqualTo("userId", userId)
+                        .orderBy("lastActivity", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 }
                 
-                // Remove previous listener if exists to avoid duplicates/leaks when profile updates
                 obrasRegistration?.remove()
                 
                 obrasRegistration = obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
@@ -177,12 +186,14 @@ class ObraRepositoryImpl @Inject constructor(
     }    
         
     override suspend fun archiveObra(obraId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).update("isArchived", true).await()
+        firestore.collection("obras").document(obraId).update(
+            mapOf("isArchived" to true, "lastActivity" to FieldValue.serverTimestamp())
+        )
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteObra(obraId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).delete().await()
+        firestore.collection("obras").document(obraId).delete()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -190,8 +201,13 @@ class ObraRepositoryImpl @Inject constructor(
         val userId = auth.currentUser?.uid ?: throw Exception("No auth")
         val userSnapshot = firestore.collection("users").document(userId).get().await()
         val organizationId = userSnapshot.getString("organizationId") ?: "" 
-        val obraDoc = obra.toDocument().copy(userId = userId, organizationId = organizationId)
-        firestore.collection("obras").add(obraDoc).await()
+        val obraDoc = obra.toDocument().copy(
+            userId = userId, 
+            organizationId = organizationId,
+            fechaCreacion = Date(),
+            lastActivity = Date()
+        )
+        firestore.collection("obras").document(obraDoc.id.ifEmpty { UUID.randomUUID().toString() }).set(obraDoc)
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -215,9 +231,10 @@ class ObraRepositoryImpl @Inject constructor(
                 "telefono" to obraDoc.telefono,
                 "direccion" to obraDoc.direccion,
                 "clienteId" to obraDoc.clienteId,
-                "clienteNombre" to obraDoc.clienteNombre
+                "clienteNombre" to obraDoc.clienteNombre,
+                "lastActivity" to FieldValue.serverTimestamp()
             )
-        ).await()
+        )
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -238,49 +255,51 @@ class ObraRepositoryImpl @Inject constructor(
         val tareasCollection = obraRef.collection("tareas")
         val tareaRef = tareasCollection.document()
         
-        // Añadir la tarea
-        tareaRef.set(tarea.toDocument().copy(id = tareaRef.id)).await()
-        
-        // Recalcular contadores para consistencia total
-        recalcularContadores(obraId)
+        val batch = firestore.batch()
+        batch.set(tareaRef, tarea.toDocument().copy(id = tareaRef.id, fechaCreacion = Date()))
+        batch.update(obraRef, mapOf(
+            "tareasTotales" to FieldValue.increment(1),
+            "lastActivity" to FieldValue.serverTimestamp()
+        ))
+        batch.commit()
         
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
-    // Función auxiliar para garantizar consistencia absoluta en los contadores
-    private suspend fun recalcularContadores(obraId: String) {
-        try {
-            val tareasSnapshot = firestore.collection("obras").document(obraId).collection("tareas").get().await()
-            val total = tareasSnapshot.size()
-            val completadas = tareasSnapshot.documents.count { it.getBoolean("completada") == true }
-            
-            firestore.collection("obras").document(obraId).update(
-                mapOf(
-                    "tareasTotales" to total,
-                    "tareasCompletadas" to completadas
-                )
-            ).await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     override suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit> = try {
-        val tareaRef = firestore.collection("obras").document(obraId).collection("tareas").document(tareaId)
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document(tareaId)
         
-        tareaRef.update("completada", completada).await()
+        val batch = firestore.batch()
+        batch.update(tareaRef, "completada", completada)
         
-        // Recalcular SIEMPRE para asegurar la UI
-        recalcularContadores(obraId)
+        val increment = if (completada) 1L else -1L
+        batch.update(obraRef, mapOf(
+            "tareasCompletadas" to FieldValue.increment(increment),
+            "lastActivity" to FieldValue.serverTimestamp()
+        ))
         
+        batch.commit()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("tareas").document(tareaId).delete().await()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document(tareaId)
         
-        // Recalcular SIEMPRE
-        recalcularContadores(obraId)
+        // Obtenemos el estado de la tarea antes de borrarla para ajustar contadores
+        // Nota: Aquí sí necesitamos un await para saber qué contador decrementar
+        val snapshot = tareaRef.get().await()
+        val fueCompletada = snapshot.getBoolean("completada") ?: false
+        
+        val batch = firestore.batch()
+        batch.delete(tareaRef)
+        batch.update(obraRef, mapOf(
+            "tareasTotales" to FieldValue.increment(-1),
+            "tareasCompletadas" to if (fueCompletada) FieldValue.increment(-1) else FieldValue.increment(0),
+            "lastActivity" to FieldValue.serverTimestamp()
+        ))
+        batch.commit()
         
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
@@ -298,12 +317,19 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addAvance(obraId: String, avance: Avance): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("avances").add(avance.toDocument()).await()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val batch = firestore.batch()
+        val avanceRef = obraRef.collection("avances").document()
+        
+        batch.set(avanceRef, avance.toDocument())
+        batch.update(obraRef, "lastActivity", FieldValue.serverTimestamp())
+        batch.commit()
+        
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteAvance(obraId: String, avanceId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("avances").document(avanceId).delete().await()
+        firestore.collection("obras").document(obraId).collection("avances").document(avanceId).delete()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -320,12 +346,19 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addMovimiento(obraId: String, movimiento: Movimiento): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("movimientos").add(movimiento.toDocument()).await()
+        val obraRef = firestore.collection("obras").document(obraId)
+        val batch = firestore.batch()
+        val movRef = obraRef.collection("movimientos").document()
+        
+        batch.set(movRef, movimiento.toDocument())
+        batch.update(obraRef, "lastActivity", FieldValue.serverTimestamp())
+        batch.commit()
+        
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deleteMovimiento(obraId: String, movimientoId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("movimientos").document(movimientoId).delete().await()
+        firestore.collection("obras").document(obraId).collection("movimientos").document(movimientoId).delete()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -342,23 +375,23 @@ class ObraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addPresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("presupuesto_items").add(item.toDocument()).await()
+        firestore.collection("obras").document(obraId).collection("presupuesto_items").add(item.toDocument())
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun updatePresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(item.id).set(item.toDocument()).await()
+        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(item.id).set(item.toDocument())
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun deletePresupuestoItem(obraId: String, itemId: String): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId).delete().await()
+        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId).delete()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun updateItemLogistics(obraId: String, itemId: String, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?): Result<Unit> = try {
         firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId)
-            .update(mapOf("isComprado" to isComprado, "isInstalado" to isInstalado, "costoReal" to costoReal)).await()
+            .update(mapOf("isComprado" to isComprado, "isInstalado" to isInstalado, "costoReal" to costoReal))
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 }
