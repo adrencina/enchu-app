@@ -7,5 +7,7 @@ data class UserProfile(
     val email: String = "",
     val displayName: String = "",
     val organizationId: String = "", // Link a la organización
-    val role: String = "OWNER" // OWNER, EMPLOYEE
+    val role: String = "OWNER", // OWNER, WORKER, ADMIN
+    val status: String = "ACTIVE", // PENDING, ACTIVE, SUSPENDED
+    val lastRejectionTimestamp: Long = 0L
 )

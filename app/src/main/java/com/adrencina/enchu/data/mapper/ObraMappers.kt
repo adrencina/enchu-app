@@ -1,187 +1,154 @@
 package com.adrencina.enchu.data.mapper
 
-import com.adrencina.enchu.data.model.AvanceDocument
-import com.adrencina.enchu.data.model.MovimientoDocument
-import com.adrencina.enchu.data.model.ObraDocument
-import com.adrencina.enchu.data.model.PresupuestoItemDocument
-import com.adrencina.enchu.data.model.TareaDocument
-import com.adrencina.enchu.domain.model.Avance
-import com.adrencina.enchu.domain.model.EstadoObra
-import com.adrencina.enchu.domain.model.Movimiento
-import com.adrencina.enchu.domain.model.Obra
-import com.adrencina.enchu.domain.model.PresupuestoItem
-import com.adrencina.enchu.domain.model.Tarea
+import com.adrencina.enchu.data.model.*
+import com.adrencina.enchu.domain.model.*
+import com.adrencina.enchu.data.model.MemberPermissions as MemberPermissionsDoc
+import com.adrencina.enchu.domain.model.MemberPermissions as MemberPermissionsDomain
 
-// --- OBRA ---
+object ObraMapper {
 
-fun ObraDocument.toDomain(): Obra {
-    return Obra(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        clienteId = this.clienteId,
-        clienteNombre = this.clienteNombre,
-        clienteCuit = this.clienteCuit,
-        clientTaxCondition = this.clientTaxCondition,
-        nombreObra = this.nombreObra,
-        descripcion = this.descripcion,
-        telefono = this.telefono,
-        direccion = this.direccion,
-        estado = EstadoObra.fromValue(this.estado),
-        budgetNumber = this.budgetNumber,
-        isArchived = this.isArchived,
-        descuento = this.descuento,
-        validez = this.validez,
-        notas = this.notas,
-        presupuestoTotal = this.presupuestoTotal,
-        fechaCreacion = this.fechaCreacion,
-        lastActivity = this.lastActivity,
-        tareasTotales = this.tareasTotales,
-        tareasCompletadas = this.tareasCompletadas
+    fun toDomain(doc: ObraDocument): Obra {
+        return Obra(
+            id = doc.id,
+            userId = doc.userId,
+            organizationId = doc.organizationId,
+            clienteId = doc.clienteId,
+            clienteNombre = doc.clienteNombre,
+            clienteCuit = doc.clienteCuit,
+            clientTaxCondition = doc.clientTaxCondition,
+            nombreObra = doc.nombreObra,
+            descripcion = doc.descripcion,
+            telefono = doc.telefono,
+            direccion = doc.direccion,
+            estado = EstadoObra.fromValue(doc.estado),
+            budgetNumber = doc.budgetNumber,
+            isArchived = doc.isArchived,
+            descuento = doc.descuento,
+            validez = doc.validez,
+            notas = doc.notas,
+            presupuestoTotal = doc.presupuestoTotal,
+            fechaCreacion = doc.fechaCreacion ?: java.util.Date(),
+            lastActivity = doc.lastActivity ?: java.util.Date(),
+            tareasTotales = doc.tareasTotales,
+            tareasCompletadas = doc.tareasCompletadas,
+            assignedMemberIds = doc.assignedMemberIds,
+            memberPermissions = doc.memberPermissions.mapValues { permsToDomain(it.value) }
+        )
+    }
+
+    fun toDocument(domain: Obra): ObraDocument {
+        return ObraDocument(
+            id = domain.id,
+            userId = domain.userId,
+            organizationId = domain.organizationId,
+            clienteId = domain.clienteId,
+            clienteNombre = domain.clienteNombre,
+            clienteCuit = domain.clienteCuit,
+            clientTaxCondition = domain.clientTaxCondition,
+            nombreObra = domain.nombreObra,
+            descripcion = domain.descripcion,
+            telefono = domain.telefono,
+            direccion = domain.direccion,
+            estado = domain.estado.value,
+            budgetNumber = domain.budgetNumber,
+            isArchived = domain.isArchived,
+            descuento = domain.descuento,
+            validez = domain.validez,
+            notas = domain.notas,
+            presupuestoTotal = domain.presupuestoTotal,
+            fechaCreacion = domain.fechaCreacion,
+            lastActivity = domain.lastActivity,
+            tareasTotales = domain.tareasTotales,
+            tareasCompletadas = domain.tareasCompletadas,
+            assignedMemberIds = domain.assignedMemberIds,
+            memberPermissions = domain.memberPermissions.mapValues { permsToDocument(it.value) }
+        )
+    }
+
+    fun permsToDomain(doc: MemberPermissionsDoc): MemberPermissionsDomain {
+        return MemberPermissionsDomain(
+            canEditTasks = doc.canEditTasks,
+            canAddAvances = doc.canAddAvances,
+            canViewFiles = doc.canViewFiles,
+            canAddFiles = doc.canAddFiles,
+            canViewFinances = doc.canViewFinances
+        )
+    }
+
+    fun permsToDocument(domain: MemberPermissionsDomain): MemberPermissionsDoc {
+        return MemberPermissionsDoc(
+            canEditTasks = domain.canEditTasks,
+            canAddAvances = domain.canAddAvances,
+            canViewFiles = domain.canViewFiles,
+            canAddFiles = domain.canAddFiles,
+            canViewFinances = domain.canViewFinances
+        )
+    }
+
+    // TAREAS
+    fun taskToDomain(doc: TareaDocument): Tarea = Tarea(
+        id = doc.id,
+        userId = doc.userId,
+        organizationId = doc.organizationId,
+        descripcionTarea = doc.descripcionTarea,
+        completada = doc.completada,
+        fechaCreacion = doc.fechaCreacion,
+        fechaVencimiento = doc.fechaVencimiento,
+        completedByUserId = doc.completedByUserId,
+        completedAt = doc.completedAt,
+        completionImageUrl = doc.completionImageUrl
     )
-}
 
-fun Obra.toDocument(): ObraDocument {
-    return ObraDocument(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        clienteId = this.clienteId,
-        clienteNombre = this.clienteNombre,
-        clienteCuit = this.clienteCuit,
-        clientTaxCondition = this.clientTaxCondition,
-        nombreObra = this.nombreObra,
-        descripcion = this.descripcion,
-        telefono = this.telefono,
-        direccion = this.direccion,
-        estado = this.estado.value,
-        budgetNumber = this.budgetNumber,
-        isArchived = this.isArchived,
-        descuento = this.descuento,
-        validez = this.validez,
-        notas = this.notas,
-        presupuestoTotal = this.presupuestoTotal,
-        fechaCreacion = this.fechaCreacion,
-        lastActivity = this.lastActivity,
-        tareasTotales = this.tareasTotales,
-        tareasCompletadas = this.tareasCompletadas
+    fun taskToDocument(domain: Tarea): TareaDocument = TareaDocument(
+        id = domain.id,
+        userId = domain.userId,
+        organizationId = domain.organizationId,
+        descripcionTarea = domain.descripcionTarea,
+        completada = domain.completada,
+        fechaCreacion = domain.fechaCreacion,
+        fechaVencimiento = domain.fechaVencimiento,
+        completedByUserId = domain.completedByUserId,
+        completedAt = domain.completedAt,
+        completionImageUrl = domain.completionImageUrl
     )
-}
 
-// --- TAREA ---
-
-fun TareaDocument.toDomain(): Tarea {
-    return Tarea(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcionTarea = this.descripcionTarea,
-        completada = this.completada,
-        fechaCreacion = this.fechaCreacion,
-        fechaVencimiento = this.fechaVencimiento
+    // AVANCES
+    fun avanceToDomain(doc: AvanceDocument): Avance = Avance(
+        id = doc.id,
+        userId = doc.userId,
+        organizationId = doc.organizationId,
+        descripcion = doc.descripcion,
+        fotosUrls = doc.fotosUrls,
+        fecha = doc.fecha ?: java.util.Date()
     )
-}
 
-fun Tarea.toDocument(): TareaDocument {
-    return TareaDocument(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcionTarea = this.descripcionTarea,
-        completada = this.completada,
-        fechaCreacion = this.fechaCreacion,
-        fechaVencimiento = this.fechaVencimiento
+    fun avanceToDocument(domain: Avance): AvanceDocument = AvanceDocument(
+        id = domain.id,
+        userId = domain.userId,
+        organizationId = domain.organizationId,
+        descripcion = domain.descripcion,
+        fotosUrls = domain.fotosUrls,
+        fecha = domain.fecha
     )
-}
 
-// --- AVANCE ---
-
-fun AvanceDocument.toDomain(): Avance {
-    return Avance(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcion = this.descripcion,
-        fotosUrls = this.fotosUrls,
-        fecha = this.fecha
+    // MOVIMIENTOS
+    fun movementToDomain(doc: MovimientoDocument): Movimiento = Movimiento(
+        id = doc.id,
+        obraId = doc.obraId,
+        monto = doc.monto,
+        descripcion = doc.descripcion,
+        tipo = doc.tipo,
+        categoria = doc.categoria,
+        fecha = doc.fecha ?: java.util.Date()
     )
-}
 
-fun Avance.toDocument(): AvanceDocument {
-    return AvanceDocument(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcion = this.descripcion,
-        fotosUrls = this.fotosUrls,
-        fecha = this.fecha
-    )
-}
-
-// --- MOVIMIENTO ---
-
-fun MovimientoDocument.toDomain(): Movimiento {
-    return Movimiento(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        obraId = this.obraId,
-        descripcion = this.descripcion,
-        monto = this.monto,
-        tipo = this.tipo,
-        categoria = this.categoria,
-        fecha = this.fecha
-    )
-}
-
-fun Movimiento.toDocument(): MovimientoDocument {
-    return MovimientoDocument(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        obraId = this.obraId,
-        descripcion = this.descripcion,
-        monto = this.monto,
-        tipo = this.tipo,
-        categoria = this.categoria,
-        fecha = this.fecha
-    )
-}
-
-// --- PRESUPUESTO ITEM (FIRESTORE) ---
-
-fun PresupuestoItemDocument.toDomain(): PresupuestoItem {
-    return PresupuestoItem(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcion = this.descripcion,
-        cantidad = this.cantidad,
-        unidad = null,
-        precioUnitario = this.precioUnitario,
-        tipo = this.tipo,
-        fuente = "MANUAL",
-        orden = 0,
-        isComprado = this.isComprado,
-        isInstalado = this.isInstalado,
-        costoReal = this.costoReal,
-        totalReal = this.totalReal,
-        desvio = this.desvio
-    )
-}
-
-fun PresupuestoItem.toDocument(): PresupuestoItemDocument {
-    return PresupuestoItemDocument(
-        id = this.id,
-        userId = this.userId,
-        organizationId = this.organizationId,
-        descripcion = this.descripcion,
-        cantidad = this.cantidad,
-        precioUnitario = this.precioUnitario,
-        tipo = this.tipo,
-        isComprado = this.isComprado,
-        isInstalado = this.isInstalado,
-        costoReal = this.costoReal,
-        fechaCreacion = null
+    fun movementToDocument(domain: Movimiento): MovimientoDocument = MovimientoDocument(
+        id = domain.id,
+        obraId = domain.obraId,
+        monto = domain.monto,
+        descripcion = domain.descripcion,
+        tipo = domain.tipo,
+        categoria = domain.categoria,
+        fecha = domain.fecha
     )
 }

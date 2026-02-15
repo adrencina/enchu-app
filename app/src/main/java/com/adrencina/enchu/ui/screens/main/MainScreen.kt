@@ -127,6 +127,7 @@ fun MainScreen(
                     onObraActionClick = onObraActionClick,
                     onAddObraClick = onAddObraClick,
                     onArchivedObrasClick = onArchivedObrasClick,
+                    onNavigateToTeam = onNavigateToTeamScreen,
                     newObraResult = newObraResult,
                     onClearNewObraResult = onClearNewObraResult
                 )

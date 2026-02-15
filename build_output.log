@@ -11,12 +11,12 @@ you may need to wait until a newer version with support for compileSdk = 35 is a
 To suppress this warning, add/update
     android.suppressUnsupportedCompileSdk=35
 to this project's gradle.properties.
+> Task :app:checkKotlinGradlePluginConfigurationErrors
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
-> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
-> Task :app:checkKotlinGradlePluginConfigurationErrors
 > Task :app:checkDebugAarMetadata UP-TO-DATE
 > Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:injectCrashlyticsMappingFileIdDebug UP-TO-DATE
 > Task :app:processDebugGoogleServices UP-TO-DATE
 > Task :app:mapDebugSourceSetPaths UP-TO-DATE
 > Task :app:generateDebugResources UP-TO-DATE
@@ -27,22 +27,6 @@ to this project's gradle.properties.
 > Task :app:extractDeepLinksDebug UP-TO-DATE
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:javaPreCompileDebug UP-TO-DATE
-> Task :app:mergeDebugShaders UP-TO-DATE
-> Task :app:compileDebugShaders NO-SOURCE
-> Task :app:generateDebugAssets UP-TO-DATE
-> Task :app:mergeDebugAssets UP-TO-DATE
-> Task :app:compressDebugAssets UP-TO-DATE
-> Task :app:desugarDebugFileDependencies UP-TO-DATE
-> Task :app:checkDebugDuplicateClasses UP-TO-DATE
-> Task :app:mergeExtDexDebug UP-TO-DATE
-> Task :app:mergeLibDexDebug UP-TO-DATE
-> Task :app:mergeDebugJniLibFolders UP-TO-DATE
-> Task :app:mergeDebugNativeLibs UP-TO-DATE
-> Task :app:stripDebugDebugSymbols UP-TO-DATE
-> Task :app:validateSigningDebug UP-TO-DATE
-> Task :app:writeDebugAppMetadata UP-TO-DATE
-> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
 > Task :app:processDebugManifestForPackage
 > Task :app:processDebugResources
 > Task :app:kaptGenerateStubsDebugKotlin
@@ -50,52 +34,34 @@ to this project's gradle.properties.
 > Task :app:compileDebugKotlin
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ClienteRepositoryImpl.kt:39:44 There is more than one label with such a name in this scope
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/FileRepositoryImpl.kt:64:23 Unnecessary safe call on a non-null receiver of type String
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ObraRepositoryImpl.kt:112:31 There is more than one label with such a name in this scope
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ObraRepositoryImpl.kt:158:31 There is more than one label with such a name in this scope
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ObraRepositoryImpl.kt:113:31 There is more than one label with such a name in this scope
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ObraRepositoryImpl.kt:169:31 There is more than one label with such a name in this scope
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/data/repository/ObraRepositoryImpl.kt:497:66 The corresponding parameter in the supertype 'ObraRepository' is named 'memberId'. This may cause problems when calling this function with named arguments.
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/di/AppModule.kt:39:53 Parameter 'context' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/domain/use_case/GeneratePresupuestoPdfUseCase.kt:60:28 Variable 'currentY' initializer is redundant
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/components/ObraCard.kt:99:46 Unnecessary safe call on a non-null receiver of type Date
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/components/SwipeableContactItem.kt:50:9 Variable 'density' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/navigation/AppNavigation.kt:121:17 Variable 'profileViewModel' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/clients/AddClientScreen.kt:90:44 'ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/clients/ClientsScreen.kt:64:5 Parameter 'onAddClientClick' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/clients/ClientsScreen.kt:296:69 'Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.Chat
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/home/HomeComponents.kt:171:47 'Assignment: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.Assignment
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/home/HomeComponents.kt:187:47 'Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.Chat
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/home/HomeScreen.kt:36:5 Parameter 'onAddObraClick' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/home/HomeScreen.kt:37:5 Parameter 'onArchivedObrasClick' is never used
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/archived_obras/ArchivedObrasScreen.kt:155:35 Unnecessary safe call on a non-null receiver of type Date
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/home/HomeScreen.kt:42:5 Parameter 'onArchivedObrasClick' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/login/LoginScreen.kt:40:47 'GoogleSignIn' is deprecated. Deprecated in Java
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/login/LoginScreen.kt:44:47 'GoogleSignInStatusCodes' is deprecated. Deprecated in Java
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/login/LoginScreen.kt:63:28 'GoogleSignIn' is deprecated. Deprecated in Java
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/login/LoginScreen.kt:68:37 'GoogleSignInStatusCodes' is deprecated. Deprecated in Java
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/login/LoginScreen.kt:82:34 'GoogleSignIn' is deprecated. Deprecated in Java
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/new_budget/NewBudgetScreen.kt:140:112 'ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/new_budget/NewBudgetScreen.kt:743:21 Variable 'density' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/new_budget/NewBudgetViewModel.kt:250:13 Variable 'userProfile' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/new_budget/NewBudgetViewModel.kt:289:29 Parameter 'context' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/ObraDetailViewModel.kt:102:29 Condition 'obra != null' is always 'true'
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/files/FileItem.kt:161:39 'Article: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Article
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/files/FilesViewModel.kt:59:17 Condition 'fileEntity.localPath == null' is always 'false'
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/files/FilesViewModel.kt:98:17 Condition 'file.localPath == null' is always 'false'
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/presupuesto/MaterialSearchDialog.kt:62:21 'SmallTopAppBar(() -> Unit, Modifier = ..., () -> Unit = ..., RowScope.() -> Unit = ..., WindowInsets = ..., TopAppBarColors = ..., TopAppBarScrollBehavior? = ...): Unit' is deprecated. Use TopAppBar instead.
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/presupuesto/MaterialSearchDialog.kt:69:52 'smallTopAppBarColors(Color = ..., Color = ..., Color = ..., Color = ..., Color = ...): TopAppBarColors' is deprecated. Use topAppBarColors instead.
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/obra_detail/presupuesto/PresupuestoScreen.kt:129:5 Parameter 'onDelete' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/presupuestos/PresupuestosScreen.kt:38:5 Parameter 'onNewBudgetClick' is never used
-w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/presupuestos/PresupuestosScreen.kt:253:66 Elvis operator (?:) always returns the left operand of non-nullable type String
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/presupuestos/PresupuestosScreen.kt:278:66 Elvis operator (?:) always returns the left operand of non-nullable type String
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/profile/team/TeamScreen.kt:38:9 Variable 'context' is never used
+w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/profile/team/TeamScreen.kt:125:45 'Divider(Modifier = ..., Dp = ..., Color = ...): Unit' is deprecated. Renamed to HorizontalDivider
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/screens/splash/SplashScreen.kt:33:5 Parameter 'viewModel' is never used
 w: file:///home/adrencina/AndroidStudioProjects/Enchu/app/src/main/java/com/adrencina/enchu/ui/theme/Theme.kt:91:20 'setter for statusBarColor: Int' is deprecated. Deprecated in Java
-
-> Task :app:compileDebugJavaWithJavac
-> Task :app:hiltAggregateDepsDebug UP-TO-DATE
-> Task :app:hiltJavaCompileDebug
-> Task :app:processDebugJavaRes
-> Task :app:transformDebugClassesWithAsm
-> Task :app:mergeDebugJavaResource
-> Task :app:dexBuilderDebug
-> Task :app:mergeDebugGlobalSynthetics UP-TO-DATE
-> Task :app:mergeProjectDexDebug
-> Task :app:packageDebug
-> Task :app:createDebugApkListingFileRedirect
-> Task :app:assembleDebug
 
 [Incubating] Problems report is available at: file:///home/adrencina/AndroidStudioProjects/Enchu/build/reports/problems/problems-report.html
 
@@ -105,5 +71,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 1m 38s
-42 actionable tasks: 17 executed, 25 up-to-date
+BUILD SUCCESSFUL in 52s
+18 actionable tasks: 8 executed, 10 up-to-date

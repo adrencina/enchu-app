@@ -6,6 +6,17 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
 /**
+ * Permisos específicos para un miembro dentro de una obra.
+ */
+data class MemberPermissions(
+    val canEditTasks: Boolean = true,
+    val canAddAvances: Boolean = true,
+    val canViewFiles: Boolean = true,
+    val canAddFiles: Boolean = false,
+    val canViewFinances: Boolean = false
+)
+
+/**
  * Representa el modelo de datos para una Obra en Firestore.
  */
 data class ObraDocument(
@@ -39,5 +50,9 @@ data class ObraDocument(
     @ServerTimestamp val lastActivity: Date? = null,
     
     val tareasTotales: Int = 0,
-    val tareasCompletadas: Int = 0
+    val tareasCompletadas: Int = 0,
+    
+    val assignedMemberIds: List<String> = emptyList(),
+    // Mapa de UserId -> Permisos
+    val memberPermissions: Map<String, MemberPermissions> = emptyMap()
 )

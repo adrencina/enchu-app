@@ -72,7 +72,7 @@ class AuthRepositoryImpl @Inject constructor(
             if (!snapshot.exists()) {
                 val newOrgRef = firestore.collection("organizations").document()
                 
-                // Usamos el Document directamente para la creación inicial (tiene defaults para campos opcionales)
+                // Usamos el Document directamente para la creación inicial
                 val newOrgDoc = OrganizationDocument(
                     id = newOrgRef.id,
                     name = "Organización de ${user.displayName ?: "Usuario"}",
@@ -86,7 +86,8 @@ class AuthRepositoryImpl @Inject constructor(
                     email = user.email ?: "",
                     displayName = user.displayName ?: "",
                     organizationId = newOrgRef.id,
-                    role = "OWNER"
+                    role = "OWNER",
+                    status = "ACTIVE"
                 )
                 userRef.set(newProfile).await()
             }
@@ -99,33 +100,46 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun joinOrganizationProfile(user: FirebaseUser, inviteCode: String): Result<Unit> {
         return try {
             val orgRef = firestore.collection("organizations").document(inviteCode)
-            val orgSnapshot = orgRef.get().await()
-
-            if (!orgSnapshot.exists()) {
-                return Result.failure(Exception("Código de organización inválido."))
-            }
-
-            // Mapeamos a Document
-            val orgDoc = orgSnapshot.toObject(OrganizationDocument::class.java) ?: return Result.failure(Exception("Error al leer organización."))
-            
-            val isOwner = orgDoc.ownerId == user.uid
-            val isAlreadyMember = orgDoc.members.contains(user.uid)
-            
-            val targetRole = if (isOwner) "OWNER" else "EMPLOYEE"
-
-            if (!isAlreadyMember) {
-                orgRef.update("members", com.google.firebase.firestore.FieldValue.arrayUnion(user.uid)).await()
-            }
-
             val userRef = firestore.collection("users").document(user.uid)
-            val newProfile = UserProfile(
-                id = user.uid,
-                email = user.email ?: "",
-                displayName = user.displayName ?: "",
-                organizationId = inviteCode,
-                role = targetRole
-            )
-            userRef.set(newProfile).await()
+
+            firestore.runTransaction { transaction ->
+                val orgSnapshot = transaction.get(orgRef)
+                if (!orgSnapshot.exists()) {
+                    throw Exception("Código de organización inválido.")
+                }
+
+                val orgDoc = orgSnapshot.toObject(OrganizationDocument::class.java)
+                    ?: throw Exception("Error al leer organización.")
+
+                // Consultamos el perfil actual para preservar el lastRejectionTimestamp
+                val currentProfileSnap = transaction.get(userRef)
+                val lastRejection = if (currentProfileSnap.exists()) {
+                    currentProfileSnap.getLong("lastRejectionTimestamp") ?: 0L
+                } else 0L
+
+                val isOwner = orgDoc.ownerId == user.uid
+                val isAlreadyMember = orgDoc.members.contains(user.uid)
+                val targetRole = if (isOwner) "OWNER" else "WORKER"
+                val targetStatus = if (isOwner) "ACTIVE" else "PENDING"
+
+                // 1. Unir el usuario a la lista de miembros de la organización
+                if (!isAlreadyMember) {
+                    val updatedMembers = orgDoc.members.toMutableList().apply { add(user.uid) }
+                    transaction.update(orgRef, "members", updatedMembers)
+                }
+
+                // 2. Crear/Actualizar el perfil del usuario
+                val newProfile = UserProfile(
+                    id = user.uid,
+                    email = user.email ?: "",
+                    displayName = user.displayName ?: "",
+                    organizationId = inviteCode,
+                    role = targetRole,
+                    status = targetStatus,
+                    lastRejectionTimestamp = lastRejection
+                )
+                transaction.set(userRef, newProfile)
+            }.await()
 
             Result.success(Unit)
         } catch (e: Exception) {

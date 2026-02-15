@@ -48,10 +48,35 @@ class OrganizationRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override fun getMembers(orgId: String): Flow<List<com.adrencina.enchu.data.model.UserProfile>> = callbackFlow {
+        if (orgId.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("users")
+            .whereEqualTo("organizationId", orgId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    // Logueamos el error pero no cerramos el flow con crash
+                    android.util.Log.e("OrganizationRepo", "Error de permisos o red: ${error.message}")
+                    trySend(emptyList()) 
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val users = snapshot.toObjects(com.adrencina.enchu.data.model.UserProfile::class.java)
+                    trySend(users)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
     override suspend fun updateOrganization(organization: Organization): Result<Unit> {
         return try {
             val doc = organization.toDocument()
-            firestore.collection("organizations").document(organization.id).set(doc).await()
+            // Optimista
+            firestore.collection("organizations").document(organization.id).set(doc)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -78,5 +103,52 @@ class OrganizationRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun removeMember(userId: String): Result<Unit> = try {
+        firestore.collection("users").document(userId).update(
+            mapOf(
+                "organizationId" to "",
+                "role" to "OWNER",
+                "status" to "ACTIVE",
+                "lastRejectionTimestamp" to System.currentTimeMillis()
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun updateMemberRole(userId: String, newRole: String): Result<Unit> = try {
+        firestore.collection("users").document(userId).update("role", newRole).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun approveMember(userId: String): Result<Unit> = try {
+        firestore.collection("users").document(userId).update(
+            mapOf(
+                "status" to "ACTIVE",
+                "role" to "WORKER" // Por defecto entra como trabajador
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override fun getPendingMembersCount(orgId: String): Flow<Int> = callbackFlow {
+        if (orgId.isBlank()) {
+            trySend(0)
+            return@callbackFlow
+        }
+        val listener = firestore.collection("users")
+            .whereEqualTo("organizationId", orgId)
+            .whereEqualTo("status", "PENDING")
+            .addSnapshotListener { snapshot, _ ->
+                trySend(snapshot?.size() ?: 0)
+            }
+        awaitClose { listener.remove() }
     }
 }

@@ -31,6 +31,7 @@ data class HomeUiState(
     val totalGastado: Double = 0.0,
     val saldoTotal: Double = 0.0,
     val totalPendiente: Double = 0.0,
+    val pendingRequestsCount: Int = 0,
     val userMessage: String? = null
 )
 
@@ -39,7 +40,8 @@ private data class DataBundle(
     val archivedRes: Resource<List<Obra>>,
     val query: String,
     val plan: String,
-    val role: UserRole
+    val role: UserRole,
+    val pendingCount: Int
 )
 
 sealed class HomeUiEffect {
@@ -105,20 +107,23 @@ class HomeViewModel @Inject constructor(
                     }
                 }
                 .flatMapLatest { (userName, organization, role) ->
+                    val orgId = organization?.id ?: ""
                     combine(
                         obraRepository.getObras(),
                         obraRepository.getArchivedObras(),
                         _searchQuery,
-                        billingRepository.isPro
-                    ) { activeRes, archivedRes, query, isPro ->
+                        billingRepository.isPro,
+                        organizationRepository.getPendingMembersCount(orgId)
+                    ) { activeRes, archivedRes, query, isPro, pendingCount ->
                         val plan = if (isPro) "PRO" else (organization?.plan ?: "FREE")
-                        DataBundle(activeRes, archivedRes, query, plan, role)
+                        DataBundle(activeRes, archivedRes, query, plan, role, pendingCount)
                     }.flatMapLatest { bundle ->
                         val activeRes = bundle.activeRes
                         val archivedRes = bundle.archivedRes
                         val query = bundle.query
                         val plan = bundle.plan
                         val currentRole = bundle.role
+                        val pendingCount = bundle.pendingCount
                         
                         val isLoading = activeRes is Resource.Loading || archivedRes is Resource.Loading
                         val isError = activeRes is Resource.Error || archivedRes is Resource.Error
@@ -139,6 +144,7 @@ class HomeViewModel @Inject constructor(
                                     recientes = emptyList(),
                                     archivedObras = archivedObras,
                                     plan = plan,
+                                    pendingRequestsCount = pendingCount,
                                     userMessage = errorMsg
                                 )
                             )
@@ -185,7 +191,7 @@ class HomeViewModel @Inject constructor(
                                     isError = isError,
                                     userName = userName,
                                     userRole = currentRole,
-                                    activeObras = filteredActive,
+                                    activeObras = sortedActive,
                                     obraActiva = obraActiva,
                                     recientes = recientes,
                                     archivedObras = filteredArchived,
@@ -194,6 +200,7 @@ class HomeViewModel @Inject constructor(
                                     totalGastado = totalEgresos,
                                     saldoTotal = saldo,
                                     totalPendiente = pendiente,
+                                    pendingRequestsCount = pendingCount,
                                     userMessage = errorMsg
                                 )
                             }

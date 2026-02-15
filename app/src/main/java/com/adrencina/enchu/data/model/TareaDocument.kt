@@ -10,11 +10,16 @@ import java.util.Date
  */
 data class TareaDocument(
     @DocumentId val id: String = "",
-    val userId: String = "",
+    val userId: String = "", // Creador
     val organizationId: String = "",
     val descripcionTarea: String = "",
     val completada: Boolean = false,
     @ServerTimestamp
     val fechaCreacion: Date? = null,
-    val fechaVencimiento: Date? = null // Campo opcional
+    val fechaVencimiento: Date? = null,
+    
+    // Trazabilidad de ejecución
+    val completedByUserId: String? = null,
+    val completedAt: Date? = null,
+    val completionImageUrl: String? = null
 )

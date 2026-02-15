@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.*
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ fun HomeScreen(
     onObraActionClick: (String, Int) -> Unit = { _, _ -> },
     onAddObraClick: () -> Unit,
     onArchivedObrasClick: () -> Unit = {},
+    onNavigateToTeam: () -> Unit = {},
     newObraResult: String? = null,
     onClearNewObraResult: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
@@ -131,6 +134,27 @@ fun HomeScreen(
                                 tint = cloudColor,
                                 modifier = Modifier.size(24.dp)
                             )
+
+                            // Campana de Notificaciones (Solo para OWNER)
+                            if (uiState.userRole == com.adrencina.enchu.domain.model.UserRole.OWNER) {
+                                BadgedBox(
+                                    badge = {
+                                        if (uiState.pendingRequestsCount > 0) {
+                                            Badge {
+                                                Text(uiState.pendingRequestsCount.toString())
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.clickable { onNavigateToTeam() }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "Notificaciones",
+                                        tint = if (uiState.pendingRequestsCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

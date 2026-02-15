@@ -9,5 +9,9 @@ data class Tarea(
     val descripcionTarea: String = "",
     val completada: Boolean = false,
     val fechaCreacion: Date? = null,
-    val fechaVencimiento: Date? = null
+    val fechaVencimiento: Date? = null,
+    
+    val completedByUserId: String? = null,
+    val completedAt: Date? = null,
+    val completionImageUrl: String? = null
 )

@@ -1,24 +1,15 @@
 package com.adrencina.enchu.data.repository
 
-import com.adrencina.enchu.data.mapper.toDocument
-import com.adrencina.enchu.data.mapper.toDomain
-import com.adrencina.enchu.data.model.AvanceDocument
-import com.adrencina.enchu.data.model.MovimientoDocument
-import com.adrencina.enchu.data.model.ObraDocument
-import com.adrencina.enchu.data.model.PresupuestoItemDocument
-import com.adrencina.enchu.data.model.TareaDocument
+import android.net.Uri
+import com.adrencina.enchu.data.mapper.ObraMapper
+import com.adrencina.enchu.data.model.*
 import com.adrencina.enchu.domain.common.Resource
-import com.adrencina.enchu.domain.model.Avance
-import com.adrencina.enchu.domain.model.EstadoObra
-import com.adrencina.enchu.domain.model.Movimiento
-import com.adrencina.enchu.domain.model.Obra
-import com.adrencina.enchu.domain.model.Presupuesto
-import com.adrencina.enchu.domain.model.PresupuestoItem
-import com.adrencina.enchu.domain.model.Tarea
+import com.adrencina.enchu.domain.model.*
 import com.adrencina.enchu.domain.repository.ObraRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -30,7 +21,8 @@ import javax.inject.Inject
 
 class ObraRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val storage: FirebaseStorage
 ) : ObraRepository {
 
     override suspend fun createObraFromPresupuesto(presupuesto: Presupuesto): Result<String> {
@@ -63,7 +55,7 @@ class ObraRepositoryImpl @Inject constructor(
             )
             
             // Escritura Optimista
-            firestore.collection("obras").document(obraId).set(nuevaObraDomain.toDocument())
+            firestore.collection("obras").document(obraId).set(ObraMapper.toDocument(nuevaObraDomain))
 
             if (presupuesto.items.isNotEmpty()) {
                 val batch = firestore.batch()
@@ -103,14 +95,14 @@ class ObraRepositoryImpl @Inject constructor(
                 }
 
                 val organizationId = profileSnap?.getString("organizationId")
+                val role = profileSnap?.getString("role") ?: "OWNER"
+
                 val obrasQuery = if (!organizationId.isNullOrEmpty()) {
                     firestore.collection("obras")
                         .whereEqualTo("organizationId", organizationId)
-                        .orderBy("lastActivity", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 } else {
                     firestore.collection("obras")
                         .whereEqualTo("userId", userId)
-                        .orderBy("lastActivity", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 }
                 
                 obrasRegistration?.remove()
@@ -124,7 +116,13 @@ class ObraRepositoryImpl @Inject constructor(
                     if (obrasSnap != null) {
                         try {
                             val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
-                            val obrasList = obrasDocs.filter { it.id.isNotEmpty() && !it.isArchived }.map { it.toDomain() }
+                            // FILTRADO Y ORDENAMIENTO EN KOTLIN (Cero índices requeridos)
+                            val obrasList = obrasDocs
+                                .filter { it.id.isNotEmpty() && !it.isArchived }
+                                .filter { role != "WORKER" || it.assignedMemberIds.contains(userId) }
+                                .sortedByDescending { it.lastActivity }
+                                .map { ObraMapper.toDomain(it) }
+                            
                             trySend(Resource.Success(obrasList))
                         } catch (e: Exception) {
                             trySend(Resource.Error("Error de datos: ${e.message}"))
@@ -153,12 +151,16 @@ class ObraRepositoryImpl @Inject constructor(
                 }
 
                 val organizationId = profileSnap?.getString("organizationId")
+                val role = profileSnap?.getString("role") ?: "OWNER"
+
                 val obrasQuery = if (!organizationId.isNullOrEmpty()) {
-                    firestore.collection("obras").whereEqualTo("organizationId", organizationId)
+                    firestore.collection("obras")
+                        .whereEqualTo("organizationId", organizationId)
                 } else {
-                    firestore.collection("obras").whereEqualTo("userId", userId)
+                    firestore.collection("obras")
+                        .whereEqualTo("userId", userId)
                 }
-                
+
                 obrasRegistration?.remove()
                 
                 obrasRegistration = obrasQuery.addSnapshotListener { obrasSnap, obrasError ->
@@ -170,7 +172,12 @@ class ObraRepositoryImpl @Inject constructor(
                     if (obrasSnap != null) {
                         try {
                             val obrasDocs = obrasSnap.toObjects(ObraDocument::class.java)
-                            val obrasList = obrasDocs.filter { it.isArchived }.map { it.toDomain() }
+                            val obrasList = obrasDocs
+                                .filter { it.id.isNotEmpty() && it.isArchived }
+                                .filter { role != "WORKER" || it.assignedMemberIds.contains(userId) }
+                                .sortedByDescending { it.lastActivity }
+                                .map { ObraMapper.toDomain(it) }
+                            
                             trySend(Resource.Success(obrasList))
                         } catch (e: Exception) {
                             trySend(Resource.Error("Error de datos: ${e.message}"))
@@ -201,7 +208,7 @@ class ObraRepositoryImpl @Inject constructor(
         val userId = auth.currentUser?.uid ?: throw Exception("No auth")
         val userSnapshot = firestore.collection("users").document(userId).get().await()
         val organizationId = userSnapshot.getString("organizationId") ?: "" 
-        val obraDoc = obra.toDocument().copy(
+        val obraDoc = ObraMapper.toDocument(obra).copy(
             userId = userId, 
             organizationId = organizationId,
             fechaCreacion = Date(),
@@ -211,18 +218,20 @@ class ObraRepositoryImpl @Inject constructor(
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
-    override fun getObraById(obraId: String): Flow<Obra> = callbackFlow {
+    override fun getObraById(obraId: String): Flow<Obra?> = callbackFlow {
         val listener = firestore.collection("obras").document(obraId).addSnapshotListener { snapshot, _ ->
             if (snapshot != null && snapshot.exists()) {
                 val obraDoc = snapshot.toObject(ObraDocument::class.java)
-                if (obraDoc != null) trySend(obraDoc.toDomain()).isSuccess
+                trySend(obraDoc?.let { ObraMapper.toDomain(it) })
+            } else {
+                trySend(null)
             }
         }
         awaitClose { listener.remove() }
     }
 
     override suspend fun updateObra(obra: Obra): Result<Unit> = try {
-        val obraDoc = obra.toDocument()
+        val obraDoc = ObraMapper.toDocument(obra)
         firestore.collection("obras").document(obra.id).update(
             mapOf(
                 "nombreObra" to obraDoc.nombreObra,
@@ -243,8 +252,8 @@ class ObraRepositoryImpl @Inject constructor(
             .orderBy("fechaCreacion")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    val docs = snapshot.documents.mapNotNull { it.toObject(TareaDocument::class.java) }
-                    trySend(docs.map { it.toDomain() }).isSuccess
+                    val docs = snapshot.toObjects(TareaDocument::class.java)
+                    trySend(docs.map { ObraMapper.taskToDomain(it) }).isSuccess
                 }
             }
         awaitClose { listener.remove() }
@@ -256,7 +265,7 @@ class ObraRepositoryImpl @Inject constructor(
         val tareaRef = tareasCollection.document()
         
         val batch = firestore.batch()
-        batch.set(tareaRef, tarea.toDocument().copy(id = tareaRef.id, fechaCreacion = Date()))
+        batch.set(tareaRef, ObraMapper.taskToDocument(tarea).copy(id = tareaRef.id, fechaCreacion = Date()))
         batch.update(obraRef, mapOf(
             "tareasTotales" to FieldValue.increment(1),
             "lastActivity" to FieldValue.serverTimestamp()
@@ -269,9 +278,17 @@ class ObraRepositoryImpl @Inject constructor(
     override suspend fun updateTareaStatus(obraId: String, tareaId: String, completada: Boolean): Result<Unit> = try {
         val obraRef = firestore.collection("obras").document(obraId)
         val tareaRef = obraRef.collection("tareas").document(tareaId)
+        val currentUserId = auth.currentUser?.uid ?: ""
         
         val batch = firestore.batch()
-        batch.update(tareaRef, "completada", completada)
+        
+        val updates = mutableMapOf<String, Any?>(
+            "completada" to completada,
+            "completedByUserId" to if (completada) currentUserId else null,
+            "completedAt" to if (completada) FieldValue.serverTimestamp() else null
+        )
+        
+        batch.update(tareaRef, updates)
         
         val increment = if (completada) 1L else -1L
         batch.update(obraRef, mapOf(
@@ -283,12 +300,38 @@ class ObraRepositoryImpl @Inject constructor(
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
-    override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> = try {
+    override suspend fun completeTareaWithImage(obraId: String, tareaId: String, imageUri: Uri): Result<Unit> = try {
+        val currentUserId = auth.currentUser?.uid ?: throw Exception("No auth")
+        
+        // 1. Subir la imagen a Storage
+        val storagePath = "obras/$obraId/tasks/$tareaId/completion_${System.currentTimeMillis()}.jpg"
+        val storageRef = storage.reference.child(storagePath)
+        storageRef.putFile(imageUri).await()
+        val downloadUrl = storageRef.downloadUrl.await().toString()
+        
+        // 2. Actualizar Firestore
         val obraRef = firestore.collection("obras").document(obraId)
         val tareaRef = obraRef.collection("tareas").document(tareaId)
         
-        // Obtenemos el estado de la tarea antes de borrarla para ajustar contadores
-        // Nota: Aquí sí necesitamos un await para saber qué contador decrementar
+        val batch = firestore.batch()
+        batch.update(tareaRef, mapOf(
+            "completada" to true,
+            "completedByUserId" to currentUserId,
+            "completedAt" to FieldValue.serverTimestamp(),
+            "completionImageUrl" to downloadUrl
+        ))
+        batch.update(obraRef, mapOf(
+            "tareasCompletadas" to FieldValue.increment(1),
+            "lastActivity" to FieldValue.serverTimestamp()
+        ))
+        batch.commit()
+        
+        Result.success(Unit)
+    } catch (e: Exception) { Result.failure(e) }
+
+    override suspend fun deleteTarea(obraId: String, tareaId: String): Result<Unit> = try {
+        val obraRef = firestore.collection("obras").document(obraId)
+        val tareaRef = obraRef.collection("tareas").document(tareaId)
         val snapshot = tareaRef.get().await()
         val fueCompletada = snapshot.getBoolean("completada") ?: false
         
@@ -309,8 +352,8 @@ class ObraRepositoryImpl @Inject constructor(
             .orderBy("fecha", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    val docs = snapshot.documents.mapNotNull { it.toObject(AvanceDocument::class.java) }
-                    trySend(docs.map { it.toDomain() }).isSuccess
+                    val docs = snapshot.toObjects(AvanceDocument::class.java)
+                    trySend(docs.map { ObraMapper.avanceToDomain(it) }).isSuccess
                 }
             }
         awaitClose { listener.remove() }
@@ -321,7 +364,7 @@ class ObraRepositoryImpl @Inject constructor(
         val batch = firestore.batch()
         val avanceRef = obraRef.collection("avances").document()
         
-        batch.set(avanceRef, avance.toDocument())
+        batch.set(avanceRef, ObraMapper.avanceToDocument(avance).copy(id = avanceRef.id))
         batch.update(obraRef, "lastActivity", FieldValue.serverTimestamp())
         batch.commit()
         
@@ -338,8 +381,8 @@ class ObraRepositoryImpl @Inject constructor(
             .orderBy("fecha", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    val docs = snapshot.documents.mapNotNull { it.toObject(MovimientoDocument::class.java) }
-                    trySend(docs.map { it.toDomain() }).isSuccess
+                    val docs = snapshot.toObjects(MovimientoDocument::class.java)
+                    trySend(docs.map { ObraMapper.movementToDomain(it) }).isSuccess
                 }
             }
         awaitClose { listener.remove() }
@@ -350,7 +393,7 @@ class ObraRepositoryImpl @Inject constructor(
         val batch = firestore.batch()
         val movRef = obraRef.collection("movimientos").document()
         
-        batch.set(movRef, movimiento.toDocument())
+        batch.set(movRef, ObraMapper.movementToDocument(movimiento).copy(id = movRef.id))
         batch.update(obraRef, "lastActivity", FieldValue.serverTimestamp())
         batch.commit()
         
@@ -367,20 +410,55 @@ class ObraRepositoryImpl @Inject constructor(
             .orderBy("fechaCreacion", com.google.firebase.firestore.Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    val docs = snapshot.documents.mapNotNull { it.toObject(PresupuestoItemDocument::class.java) }
-                    trySend(docs.map { it.toDomain() }).isSuccess
+                    val docs = snapshot.toObjects(PresupuestoItemDocument::class.java)
+                    trySend(docs.map { itemDoc ->
+                        PresupuestoItem(
+                            id = itemDoc.id,
+                            userId = itemDoc.userId,
+                            organizationId = itemDoc.organizationId,
+                            descripcion = itemDoc.descripcion,
+                            cantidad = itemDoc.cantidad,
+                            precioUnitario = itemDoc.precioUnitario,
+                            tipo = itemDoc.tipo,
+                            isComprado = itemDoc.isComprado,
+                            isInstalado = itemDoc.isInstalado,
+                            costoReal = itemDoc.costoReal
+                        )
+                    }).isSuccess
                 }
             }
         awaitClose { listener.remove() }
     }
 
     override suspend fun addPresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("presupuesto_items").add(item.toDocument())
+        val ref = firestore.collection("obras").document(obraId).collection("presupuesto_items").document()
+        val doc = PresupuestoItemDocument(
+            id = ref.id,
+            userId = item.userId,
+            organizationId = item.organizationId,
+            descripcion = item.descripcion,
+            cantidad = item.cantidad,
+            precioUnitario = item.precioUnitario,
+            tipo = item.tipo
+        )
+        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(ref.id).set(doc)
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
     override suspend fun updatePresupuestoItem(obraId: String, item: PresupuestoItem): Result<Unit> = try {
-        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(item.id).set(item.toDocument())
+        val doc = PresupuestoItemDocument(
+            id = item.id,
+            userId = item.userId,
+            organizationId = item.organizationId,
+            descripcion = item.descripcion,
+            cantidad = item.cantidad,
+            precioUnitario = item.precioUnitario,
+            tipo = item.tipo,
+            isComprado = item.isComprado,
+            isInstalado = item.isInstalado,
+            costoReal = item.costoReal
+        )
+        firestore.collection("obras").document(obraId).collection("presupuesto_items").document(item.id).set(doc)
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 
@@ -392,6 +470,35 @@ class ObraRepositoryImpl @Inject constructor(
     override suspend fun updateItemLogistics(obraId: String, itemId: String, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?): Result<Unit> = try {
         firestore.collection("obras").document(obraId).collection("presupuesto_items").document(itemId)
             .update(mapOf("isComprado" to isComprado, "isInstalado" to isInstalado, "costoReal" to costoReal))
+        Result.success(Unit)
+    } catch (e: Exception) { Result.failure(e) }
+
+    override suspend fun assignMemberToObra(obraId: String, memberId: String): Result<Unit> = try {
+        val defaultPermissions = com.adrencina.enchu.data.model.MemberPermissions()
+        firestore.collection("obras").document(obraId).update(
+            mapOf(
+                "assignedMemberIds" to FieldValue.arrayUnion(memberId),
+                "memberPermissions.$memberId" to defaultPermissions
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) { Result.failure(e) }
+
+    override suspend fun removeMemberFromObra(obraId: String, memberId: String): Result<Unit> = try {
+        firestore.collection("obras").document(obraId).update(
+            mapOf(
+                "assignedMemberIds" to FieldValue.arrayRemove(memberId),
+                "memberPermissions.$memberId" to FieldValue.delete()
+            )
+        ).await()
+        Result.success(Unit)
+    } catch (e: Exception) { Result.failure(e) }
+
+    override suspend fun updateMemberPermissions(obraId: String, userId: String, permissions: com.adrencina.enchu.domain.model.MemberPermissions): Result<Unit> = try {
+        val permissionsDoc = ObraMapper.permsToDocument(permissions)
+        firestore.collection("obras").document(obraId).update(
+            "memberPermissions.$userId", permissionsDoc
+        ).await()
         Result.success(Unit)
     } catch (e: Exception) { Result.failure(e) }
 }

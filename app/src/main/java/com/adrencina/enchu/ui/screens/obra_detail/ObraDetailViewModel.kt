@@ -1,12 +1,13 @@
 package com.adrencina.enchu.ui.screens.obra_detail
-import com.adrencina.enchu.domain.model.EstadoObra
 
+import com.adrencina.enchu.domain.model.EstadoObra
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrencina.enchu.domain.model.Avance
 import com.adrencina.enchu.data.model.Cliente
+import com.adrencina.enchu.data.model.UserProfile
 import com.adrencina.enchu.domain.model.Movimiento
 import com.adrencina.enchu.domain.model.Obra
 import com.adrencina.enchu.domain.model.PresupuestoItem
@@ -33,6 +34,7 @@ sealed class ObraDetailUiState {
         val presupuestoItems: List<PresupuestoItem> = emptyList(),
         val movimientos: List<Movimiento> = emptyList(),
         val allClientes: List<Cliente> = emptyList(),
+        val organizationMembers: List<UserProfile> = emptyList(),
         val selectedTabIndex: Int = 0,
         val isMenuExpanded: Boolean = false,
         val showEditDialog: Boolean = false,
@@ -42,6 +44,7 @@ sealed class ObraDetailUiState {
         val showAddPresupuestoItemDialog: Boolean = false,
         val showAddTareaDialog: Boolean = false,
         val showAddMovimientoDialog: Boolean = false,
+        val showAssignMemberDialog: Boolean = false,
         val editedObraName: String = "",
         val editedObraDescription: String = "",
         val editedObraEstado: EstadoObra = EstadoObra.PRESUPUESTADO,
@@ -56,6 +59,7 @@ sealed class ObraDetailUiState {
 sealed class ObraDetailEffect {
     object NavigateBack : ObraDetailEffect()
     object LaunchFilePicker : ObraDetailEffect()
+    data class LaunchTaskPhotoPicker(val tareaId: String) : ObraDetailEffect()
     data class SharePdf(val file: File) : ObraDetailEffect()
 }
 
@@ -97,7 +101,6 @@ class ObraDetailViewModel @Inject constructor(
     private fun loadData() {
         dataLoadingJob?.cancel()
         dataLoadingJob = viewModelScope.launch {
-            // Cargar Obra (Trigger principal)
             launch {
                 repository.getObraById(obraId)
                     .catch { e -> 
@@ -105,14 +108,9 @@ class ObraDetailViewModel @Inject constructor(
                     }
                     .collect { obra ->
                         if (obra != null) {
-                            _uiState.update { current ->
-                                when (current) {
-                                    is ObraDetailUiState.Success -> current.copy(obra = obra)
-                                    else -> ObraDetailUiState.Success(
-                                        obra = obra,
-                                        selectedTabIndex = if (initialTab != -1) initialTab else 0
-                                    )
-                                }
+                            updateSuccessStateOrCreate(obra)
+                            if (obra.organizationId.isNotEmpty()) {
+                                loadOrganizationMembers(obra.organizationId)
                             }
                         } else {
                             _uiState.value = ObraDetailUiState.Error("Obra no encontrada")
@@ -120,28 +118,9 @@ class ObraDetailViewModel @Inject constructor(
                     }
             }
 
-            // Cargar Subcolecciones independientemente
             launch {
                 repository.getTareas(obraId).collect { tareas ->
-                    updateSuccessState { currentState ->
-                        // Lógica de Auto-Corrección de Contadores (Self-Healing)
-                        val totalReal = tareas.size
-                        val completadasReal = tareas.count { it.completada }
-                        val obraActual = currentState.obra
-                        
-                        if (obraActual.tareasTotales != totalReal || obraActual.tareasCompletadas != completadasReal) {
-                            android.util.Log.d("ObraDetailVM", "Detectada inconsistencia en contadores. Reparando... Real: $completadasReal/$totalReal - Doc: ${obraActual.tareasCompletadas}/${obraActual.tareasTotales}")
-                            launch {
-                                val obraCorregida = obraActual.copy(
-                                    tareasTotales = totalReal,
-                                    tareasCompletadas = completadasReal
-                                )
-                                repository.updateObra(obraCorregida)
-                            }
-                        }
-                        
-                        currentState.copy(tareas = tareas)
-                    }
+                    updateSuccessState { it.copy(tareas = tareas) }
                 }
             }
             launch {
@@ -167,13 +146,29 @@ class ObraDetailViewModel @Inject constructor(
         }
     }
 
+    private fun loadOrganizationMembers(orgId: String) {
+        viewModelScope.launch {
+            organizationRepository.getMembers(orgId).collect { members ->
+                updateSuccessState { it.copy(organizationMembers = members) }
+            }
+        }
+    }
+
+    private fun updateSuccessStateOrCreate(obra: Obra) {
+        _uiState.update { current ->
+            when (current) {
+                is ObraDetailUiState.Success -> current.copy(obra = obra)
+                else -> ObraDetailUiState.Success(
+                    obra = obra,
+                    selectedTabIndex = if (initialTab != -1) initialTab else 0
+                )
+            }
+        }
+    }
+
     private fun updateSuccessState(update: (ObraDetailUiState.Success) -> ObraDetailUiState.Success) {
         _uiState.update { current ->
-            if (current is ObraDetailUiState.Success) {
-                update(current)
-            } else {
-                current
-            }
+            if (current is ObraDetailUiState.Success) update(current) else current
         }
     }
 
@@ -195,181 +190,128 @@ class ObraDetailViewModel @Inject constructor(
         updateSuccessState { it.copy(isMenuExpanded = false) }
     }
 
-    fun onEditObra() {
-        updateSuccessState { currentState ->
-            val currentClient = currentState.allClientes.find { it.id == currentState.obra.clienteId }
-            currentState.copy(
-                isMenuExpanded = false,
-                showEditDialog = true,
-                editedObraName = currentState.obra.nombreObra,
-                editedObraDescription = currentState.obra.descripcion,
-                editedObraEstado = currentState.obra.estado,
-                editedTelefono = currentState.obra.telefono,
-                editedDireccion = currentState.obra.direccion,
-                editedCliente = currentClient
-            )
+    fun onAssignMemberClick() {
+        updateSuccessState { it.copy(showAssignMemberDialog = true, isMenuExpanded = false) }
+    }
+
+    fun onDismissAssignMemberDialog() {
+        updateSuccessState { it.copy(showAssignMemberDialog = false) }
+    }
+
+    fun onToggleMemberAssignment(memberId: String, isAssigned: Boolean) {
+        viewModelScope.launch {
+            if (isAssigned) {
+                repository.removeMemberFromObra(obraId, memberId)
+            } else {
+                repository.assignMemberToObra(obraId, memberId)
+            }
         }
+    }
+
+    fun onUpdateMemberPermissions(memberId: String, permissions: com.adrencina.enchu.domain.model.MemberPermissions) {
+        viewModelScope.launch {
+            repository.updateMemberPermissions(obraId, memberId, permissions)
+        }
+    }
+
+    fun onEditObra() {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
+        updateSuccessState { it.copy(
+            showEditDialog = true, 
+            isMenuExpanded = false,
+            editedObraName = currentState.obra.nombreObra,
+            editedObraDescription = currentState.obra.descripcion,
+            editedObraEstado = currentState.obra.estado,
+            editedTelefono = currentState.obra.telefono,
+            editedDireccion = currentState.obra.direccion,
+            editedCliente = currentState.allClientes.find { c -> c.id == currentState.obra.clienteId }
+        ) }
     }
 
     fun onDismissEditDialog() {
-        updateSuccessState { it.copy(showEditDialog = false, isEditDialogExpanded = false) }
+        updateSuccessState { it.copy(showEditDialog = false) }
     }
 
-    fun onToggleExpandEditDialog() {
-        updateSuccessState { it.copy(isEditDialogExpanded = !it.isEditDialogExpanded) }
-    }
-
-    fun onNameChanged(newName: String) {
-        updateSuccessState { it.copy(editedObraName = newName.take(50)) }
-    }
-
-    fun onDescriptionChanged(newDescription: String) {
-        updateSuccessState { it.copy(editedObraDescription = newDescription.take(200)) }
-    }
-
-    fun onEstadoChanged(newEstado: String) {
-        updateSuccessState { it.copy(editedObraEstado = EstadoObra.fromValue(newEstado)) }
-    }
-
-    fun onTelefonoChanged(newTelefono: String) {
-        updateSuccessState { it.copy(editedTelefono = newTelefono.take(20)) }
-    }
-
-    fun onDireccionChanged(newDireccion: String) {
-        updateSuccessState { it.copy(editedDireccion = newDireccion.take(100)) }
-    }
-
-    fun onClienteChanged(cliente: Cliente) {
-        updateSuccessState { it.copy(editedCliente = cliente) }
-    }
-
-    fun onConfirmEdit() {
+    fun onUpdateObra(name: String, description: String, estado: EstadoObra, telefono: String, direccion: String, cliente: Cliente?) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is ObraDetailUiState.Success) {
-                val updatedObra = currentState.obra.copy(
-                    nombreObra = currentState.editedObraName,
-                    descripcion = currentState.editedObraDescription,
-                    estado = currentState.editedObraEstado,
-                    telefono = currentState.editedTelefono,
-                    direccion = currentState.editedDireccion,
-                    clienteId = currentState.editedCliente?.id ?: currentState.obra.clienteId,
-                    clienteNombre = currentState.editedCliente?.nombre ?: currentState.obra.clienteNombre
-                )
-                repository.updateObra(updatedObra)
-            }
-        }
-        onDismissEditDialog()
-    }
-
-    fun onDeleteObraClick() {
-        onDismissMenu()
-        updateSuccessState { it.copy(showDeleteDialog = true) }
-    }
-
-    fun onDismissDeleteDialog() {
-        updateSuccessState { it.copy(showDeleteDialog = false) }
-    }
-
-    fun onConfirmDelete() {
-        dataLoadingJob?.cancel()
-        onDismissDeleteDialog()
-        viewModelScope.launch {
-            try {
-                repository.deleteObra(obraId)
-                onBackPressed()
-            } catch (e: Exception) {
-                // Ignore
-            }
+            val updatedObra = currentState.obra.copy(
+                nombreObra = name,
+                descripcion = description,
+                estado = estado,
+                telefono = telefono,
+                direccion = direccion,
+                clienteId = cliente?.id ?: "",
+                clienteNombre = cliente?.nombre ?: ""
+            )
+            repository.updateObra(updatedObra)
+            onDismissEditDialog()
         }
     }
 
     fun onArchiveObra() {
-        onDismissMenu()
-        updateSuccessState { it.copy(showArchiveDialog = true) }
+        updateSuccessState { it.copy(showArchiveDialog = true, isMenuExpanded = false) }
+    }
+
+    fun onConfirmArchive() {
+        viewModelScope.launch {
+            repository.archiveObra(obraId)
+            onBackPressed()
+        }
     }
 
     fun onDismissArchiveDialog() {
         updateSuccessState { it.copy(showArchiveDialog = false) }
     }
 
-    fun onConfirmArchive() {
+    fun onDeleteObra() {
+        updateSuccessState { it.copy(showDeleteDialog = true, isMenuExpanded = false) }
+    }
+
+    fun onConfirmDelete() {
         viewModelScope.launch {
-            repository.archiveObra(obraId)
-            onDismissArchiveDialog()
-            _effect.emit(ObraDetailEffect.NavigateBack)
+            repository.deleteObra(obraId)
+            onBackPressed()
         }
     }
 
-    fun onFabPressed() {
-        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
-        when (currentState.selectedTabIndex) {
-            0 -> updateSuccessState { it.copy(showAddAvanceDialog = true) }
-            1 -> viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
-            2 -> updateSuccessState { it.copy(showAddTareaDialog = true) }
-            3 -> updateSuccessState { it.copy(showAddPresupuestoItemDialog = true) }
-            4 -> updateSuccessState { it.copy(showAddMovimientoDialog = true) }
-        }
+    fun onDismissDeleteDialog() {
+        updateSuccessState { it.copy(showDeleteDialog = false) }
+    }
+
+    fun onAddAvance() {
+        updateSuccessState { it.copy(showAddAvanceDialog = true) }
+    }
+
+    fun onDismissAddAvanceDialog() {
+        updateSuccessState { it.copy(showAddAvanceDialog = false) }
+    }
+
+    fun onAddPresupuestoItem() {
+        updateSuccessState { it.copy(showAddPresupuestoItemDialog = true) }
+    }
+
+    fun onDismissAddPresupuestoItemDialog() {
+        updateSuccessState { it.copy(showAddPresupuestoItemDialog = false) }
+    }
+
+    fun onAddTarea() {
+        updateSuccessState { it.copy(showAddTareaDialog = true) }
     }
 
     fun onDismissAddTareaDialog() {
         updateSuccessState { it.copy(showAddTareaDialog = false) }
     }
 
-    fun onDismissAddAvanceDialog() {
-        updateSuccessState { it.copy(showAddAvanceDialog = false) }
-    }
-    
-    fun onDismissAddPresupuestoItemDialog() {
-        updateSuccessState { it.copy(showAddPresupuestoItemDialog = false) }
+    fun onAddMovimiento() {
+        updateSuccessState { it.copy(showAddMovimientoDialog = true) }
     }
 
     fun onDismissAddMovimientoDialog() {
         updateSuccessState { it.copy(showAddMovimientoDialog = false) }
     }
 
-    fun onAddPresupuestoItem(item: PresupuestoItem) {
-        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
-        viewModelScope.launch {
-            repository.addPresupuestoItem(
-                obraId, 
-                item.copy(
-                    userId = currentState.obra.userId,
-                    organizationId = currentState.obra.organizationId
-                )
-            )
-            onDismissAddPresupuestoItemDialog()
-        }
-    }
-    
-    fun onDeletePresupuestoItem(item: PresupuestoItem) {
-        viewModelScope.launch {
-            repository.deletePresupuestoItem(obraId, item.id)
-        }
-    }
-
-    fun onUpdateItemLogistics(item: PresupuestoItem, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?) {
-        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
-        viewModelScope.launch {
-            repository.updateItemLogistics(obraId, item.id, isComprado, isInstalado, costoReal)
-            
-            // Si se marca como comprado y hay un costo real, registrar automáticamente en la Caja como EGRESO
-            if (isComprado && costoReal != null) {
-                val mov = Movimiento(
-                    userId = currentState.obra.userId,
-                    organizationId = currentState.obra.organizationId,
-                    obraId = obraId,
-                    descripcion = "Compra: ${item.descripcion}",
-                    monto = costoReal * item.cantidad,
-                    tipo = "EGRESO",
-                    categoria = "MATERIALES"
-                )
-                repository.addMovimiento(obraId, mov)
-            }
-        }
-    }
-
-    fun onAddMovimiento(movimiento: Movimiento) {
+    fun onConfirmAddMovimiento(movimiento: Movimiento) {
         val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
         viewModelScope.launch {
             repository.addMovimiento(
@@ -396,12 +338,9 @@ class ObraDetailViewModel @Inject constructor(
             val orgId = currentState.obra.organizationId
             val organization = if (orgId.isNotBlank()) {
                 organizationRepository.getOrganization(orgId).first()
-            } else {
-                null
-            }
-
+            } else null
+            
             var currentObra = currentState.obra
-
             if (currentObra.budgetNumber == 0 && organization != null) {
                 val nextNumber = organization.lastBudgetNumber + 1
                 val updatedOrg = organization.copy(lastBudgetNumber = nextNumber)
@@ -459,14 +398,57 @@ class ObraDetailViewModel @Inject constructor(
     }
 
     fun onToggleTarea(tarea: Tarea) {
+        if (tarea.completada) return // Bloqueo total: no se puede desmarcar una tarea certificada
+        
         viewModelScope.launch {
-            repository.updateTareaStatus(obraId, tarea.id, !tarea.completada)
+            // Como ya filtramos que no esté completada, aquí siempre pedimos foto
+            _effect.emit(ObraDetailEffect.LaunchTaskPhotoPicker(tarea.id))
+        }
+    }
+
+    fun onTaskPhotoSelected(tareaId: String, uri: Uri) {
+        viewModelScope.launch {
+            repository.completeTareaWithImage(obraId, tareaId, uri)
         }
     }
 
     fun onDeleteTarea(tarea: Tarea) {
         viewModelScope.launch {
             repository.deleteTarea(obraId, tarea.id)
+        }
+    }
+
+    fun onDeletePresupuestoItem(item: PresupuestoItem) {
+        viewModelScope.launch {
+            repository.deletePresupuestoItem(obraId, item.id)
+        }
+    }
+
+    fun onUpdateItemLogistics(item: PresupuestoItem, isComprado: Boolean, isInstalado: Boolean, costoReal: Double?) {
+        viewModelScope.launch {
+            repository.updateItemLogistics(obraId, item.id, isComprado, isInstalado, costoReal)
+        }
+    }
+
+    fun onFabPressed() {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
+        when (currentState.selectedTabIndex) {
+            0 -> onAddAvance()
+            1 -> viewModelScope.launch { _effect.emit(ObraDetailEffect.LaunchFilePicker) }
+            2 -> onAddTarea()
+            3 -> onAddPresupuestoItem()
+            4 -> onAddMovimiento()
+        }
+    }
+
+    fun onAddPresupuestoItem(item: PresupuestoItem) {
+        val currentState = _uiState.value as? ObraDetailUiState.Success ?: return
+        viewModelScope.launch {
+            repository.addPresupuestoItem(obraId, item.copy(
+                userId = currentState.obra.userId,
+                organizationId = currentState.obra.organizationId
+            ))
+            onDismissAddPresupuestoItemDialog()
         }
     }
 }
